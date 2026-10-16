@@ -240,6 +240,12 @@ tr.cont td { border-top-color: #f0f0ee; }
 .sheet.on { transform: none; visibility: visible; }
 .sheet-head { display: flex; align-items: center; gap: 10px; padding: 12px 12px 8px; }
 .sheet-head h1 { flex: 1; font-size: 17px; }
+.sheet-head .ok {
+  height: 44px; padding: 0 18px; border-radius: 10px; border: none; cursor: pointer;
+  background: var(--accent); font-size: 22px; line-height: 1;
+}
+.sheet-head .ok:disabled { opacity: 0.25; }
+.tag.pend { background: transparent; border: 1.5px dashed var(--text); color: var(--text); font-family: inherit; cursor: pointer; }
 .sheet-body { flex: 1; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 4px 12px calc(16px + env(safe-area-inset-bottom)); }
 .sheet .pad { margin-top: 0; border: none; padding: 0; }
 .sheet .kbtn { height: 58px; }
@@ -323,7 +329,7 @@ main .combo-row .pbtn.open-pad { font-size: 15px; }
 
 <!-- いまの現場のでかぶつ -->
 <div class="sheet tall" id="bigSheet">
-  <div class="sheet-head"><h1 id="bigTitle"></h1><button class="burger" data-close aria-label="閉じる">✕</button></div>
+  <div class="sheet-head"><h1 id="bigTitle"></h1><button class="ok" id="bigOk" aria-label="登録して閉じる">☑️</button><button class="burger" data-close aria-label="登録せずに閉じる">✕</button></div>
   <div class="sheet-body">
     <div class="hero-big" id="siteBig"></div>
     <div id="groups"></div>
@@ -402,6 +408,7 @@ const DAIS = 5; // 最初から並べておく台の数
 const newDay = () => ({ date: today(), cur: 0, dais: Array.from({ length: DAIS }, () => []) });
 
 let state;
+let pendingBigs = []; // でかぶつ画面で押したけど、まだ☑️していない分
 function load() {
   try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
   if (!state || !Array.isArray(state.dais)) state = newDay();
@@ -451,7 +458,7 @@ function render() {
 
   // 品目ごとの点数
   document.querySelectorAll('[data-cnt]').forEach(el => {
-    const n = list.filter(e => e.name === el.dataset.cnt).length;
+    const n = list.concat(pendingBigs).filter(e => e.name === el.dataset.cnt).length;
     el.textContent = n ? `${n}点` : '';
   });
 
@@ -473,9 +480,12 @@ function render() {
   document.getElementById('bigTitle').textContent = last
     ? `${ss.length}現場目${last.pts ? `（${pt(last.pts)}p）` : ''}のでかぶつ`
     : 'でかぶつ（先にポイントを入れると現場が始まる）';
-  document.getElementById('siteBig').innerHTML = lastBigs.length
-    ? lastBigs.map(([k, n]) => `<span class="tag">${k}${n > 1 ? '×' + n : ''}</span>`).join('')
+  // 登録済みは塗り、☑️待ちは枠だけ（押すと取り消し）
+  document.getElementById('siteBig').innerHTML = (lastBigs.length || pendingBigs.length)
+    ? lastBigs.map(([k, n]) => `<span class="tag">${k}${n > 1 ? '×' + n : ''}</span>`).join('') +
+      pendingBigs.map((e, i) => `<button class="tag pend" data-unpend="${i}">${e.short} ${e.cond} ✕</button>`).join('')
     : '<span class="tag none">この現場はまだ無し</span>';
+  document.getElementById('bigOk').disabled = !pendingBigs.length;
 
   // 積んだもの（新しい順）
   const log = document.getElementById('log');
@@ -567,7 +577,12 @@ document.addEventListener('click', e => {
   } else if (b.dataset.tier) {
     const [gi, ii, ti] = b.dataset.tier.split('-').map(Number);
     const it = GROUPS[gi].items[ii], t = it.tiers[ti];
-    add({ price: 0, big: true, name: it.name, cond: t.cond, short: it.short });
+    // でかぶつ画面では、☑️を押すまで登録しない
+    pendingBigs.push({ price: 0, big: true, name: it.name, cond: t.cond, short: it.short });
+    render(); buzz();
+  } else if (b.dataset.unpend != null) {
+    pendingBigs.splice(+b.dataset.unpend, 1);
+    render();
   } else if (b.dataset.del != null) {
     cur().splice(+b.dataset.del, 1);
     save(); render();
@@ -703,10 +718,21 @@ function openPanel(id) {
   scrim.classList.add('on'); document.body.classList.add('lock');
 }
 function closeAll() {
+  pendingBigs = []; // ☑️を押さずに閉じたら捨てる
+  render();
   document.querySelectorAll('.drawer.on, .sheet.on').forEach(el => el.classList.remove('on'));
   scrim.classList.remove('on'); document.body.classList.remove('lock');
 }
 document.getElementById('burger').onclick = () => openPanel('drawer');
+document.getElementById('bigOk').onclick = () => {
+  if (!pendingBigs.length) return;
+  if (state.date !== today()) state = newDay();
+  const n = pendingBigs.length;
+  pendingBigs.forEach(e => cur().push(e));
+  pendingBigs = [];
+  save(); closeAll();
+  toast(`でかぶつ ${n}点 登録`);
+};
 scrim.onclick = closeAll;
 document.getElementById('resetDay').onclick = () => {
   if (!confirm('今日の台をぜんぶ消す？')) return;
