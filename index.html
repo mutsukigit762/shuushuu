@@ -179,10 +179,9 @@ main .combo-row .pbtn { font-size: 17px; }
   border-radius: 10px; padding: 8px 4px; cursor: pointer; font-family: inherit; text-align: center;
 }
 .tbtn { position: relative; }
-/* 押したボタンは白い霧をかぶせて、その上に「×n」 */
+.tbtn.has { background: #e6e6e4; color: #b4b4b0; border-color: #e6e6e4; }
 .tbtn.has::after {
-  content: attr(data-n); position: absolute; inset: -1px; display: grid; place-items: center;
-  border-radius: inherit; background: rgba(255,255,255,0.78);
+  content: attr(data-n); position: absolute; inset: 0; display: grid; place-items: center;
   font-size: 22px; font-weight: 800; color: var(--text);
 }
 .tbtn .p { display: block; font-size: 15px; font-weight: 700; padding: 6px 0; white-space: nowrap; letter-spacing: -0.02em; }
