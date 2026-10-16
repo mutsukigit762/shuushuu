@@ -567,6 +567,15 @@ function bigYen(e) {
     for (const t of it.tiers) if (t.cond === e.cond) return t.price;
   return 0;
 }
+// 残りの金額が、料金（400・900・1,300・2,300・3,200円）の組み合わせで作れるか。0円もOK
+// 例：1,200円の現場に900円の箱物を入れると残り300円になり、どの品目でも埋まらないのでだめ
+function canMake(yen) {
+  if (yen < 0 || yen % 100) return false;
+  const ok = [true];
+  for (let n = 100; n <= yen; n += 100) ok[n / 100] = PRICES.some(p => p <= n && ok[(n - p) / 100]);
+  return !!ok[yen / 100];
+}
+
 // いまの現場（最後にポイントを入れた所から後ろ）
 function curSite() {
   const l = cur(), i = l.findLastIndex(e => e.price > 0);
@@ -691,7 +700,7 @@ document.addEventListener('click', e => {
     const it = GROUPS[gi].items[ii], t = it.tiers[ti];
     // 押したらその場で登録。現場の金額を超える分は入れない
     const cs = curSite();
-    if (cs.bigYen + t.price > cs.yen) { refuse(b); return; }
+    if (!canMake(cs.yen - cs.bigYen - t.price)) { refuse(b); return; }
     const kind = it.kinds ? document.querySelector(`[data-kind="${gi}-${ii}"]`).dataset.value : '';
     add({ price: 0, big: true, name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }) });
   } else if (b.dataset.unbig != null) {
