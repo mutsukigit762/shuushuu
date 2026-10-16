@@ -304,8 +304,16 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .sheet .kbtn { height: 58px; }
 #siteBig { margin: 0; flex: 1; min-width: 0; }
 /* でかぶつ登録の上の段：仮置き（左いっぱい）と登録ボタン（右）を同じ高さで並べる */
-.big-head { padding: 14px 12px 10px; }
-.big-head .ok { height: 32px; padding: 0 14px; border-radius: 999px; font-size: 14px; flex: none; }
+.big-head { padding: 14px 12px 10px; flex-direction: column; align-items: stretch; gap: 10px; }
+.big-head h1 { font-size: 17px; }
+.big-head #siteBig { flex: none; width: 100%; }
+.toast {
+  position: fixed; left: 50%; bottom: calc(40px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+  background: var(--text); color: var(--bg); white-space: nowrap;
+  padding: 10px 18px; border-radius: 999px; font-size: 15px; font-weight: 700; z-index: 30;
+  opacity: 0; pointer-events: none; transition: opacity .15s;
+}
+.toast.on { opacity: 1; }
 
 /* 青＝テンキー、ピンク＝でかぶつ */
 .combo-row .pbtn.open-pad { font-size: 14px; }
@@ -373,6 +381,8 @@ main .combo-row .pbtn.open-big { font-size: 17px; }
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <!-- でかぶつのある現場の一覧 -->
 <div class="sheet center" id="sitesSheet">
   <div class="sheet-body"><div class="sites" id="sites"></div></div>
@@ -380,7 +390,7 @@ main .combo-row .pbtn.open-big { font-size: 17px; }
 
 <!-- いまの現場のでかぶつ -->
 <div class="sheet tall" id="bigSheet">
-  <div class="sheet-head big-head"><div class="hero-big" id="siteBig"></div></div>
+  <div class="sheet-head big-head"><h1 id="bigTitle"></h1><div class="hero-big" id="siteBig"></div></div>
   <div class="sheet-body">
     <div id="groups"></div>
   </div>
@@ -502,6 +512,11 @@ function render() {
   // ピンクのボタンとでかぶつ画面：いまの現場（最後にポイントを入れた現場）
   const last = ss[ss.length - 1];
   const lastBigs = last ? [...last.labels] : [];
+  // どの現場に登録しているかを見出しで出す
+  const cs = curSite();
+  document.getElementById('bigTitle').textContent = cs.yen
+    ? `${ss.length}箇所目の現場（${cs.yen.toLocaleString('ja-JP')}円）`
+    : '現場がまだ無い（先にポイントを入れる）';
   // いまの現場のでかぶつ。1個でも「×1」と書く。✕を押すと1つ減る
   document.getElementById('siteBig').innerHTML = lastBigs.map(([l, n]) =>
     `<button class="tag pend" data-unbig="${l}">${l}×${n} ✕</button>`).join('');
@@ -546,6 +561,26 @@ function sites(list) {
     }
   }
   return out;
+}
+
+// でかぶつ1点の料金（品目ボタンの定義から引く）
+function bigYen(e) {
+  for (const g of GROUPS) for (const it of g.items) if (it.name === e.name)
+    for (const t of it.tiers) if (t.cond === e.cond) return t.price;
+  return 0;
+}
+// いまの現場（最後にポイントを入れた所から後ろ）
+function curSite() {
+  const l = cur(), i = l.findLastIndex(e => e.price > 0);
+  const es = i < 0 ? [] : l.slice(i);
+  return { yen: i < 0 ? 0 : l[i].price, bigYen: es.reduce((a, e) => a + (e.short ? bigYen(e) : 0), 0) };
+}
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), 1400);
 }
 
 // 一覧用の書き方：「900円テーブル」。料金は品目ボタンの定義から引く
@@ -644,7 +679,9 @@ document.addEventListener('click', e => {
   } else if (b.dataset.tier) {
     const [gi, ii, ti] = b.dataset.tier.split('-').map(Number);
     const it = GROUPS[gi].items[ii], t = it.tiers[ti];
-    // 押したらその場で登録
+    // 押したらその場で登録。現場の金額を超える分は入れない
+    const cs = curSite();
+    if (cs.bigYen + t.price > cs.yen) { toast('金額が合いません'); return; }
     const kind = it.kinds ? document.querySelector(`[data-kind="${gi}-${ii}"]`).dataset.value : '';
     add({ price: 0, big: true, name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }) });
   } else if (b.dataset.unbig != null) {
