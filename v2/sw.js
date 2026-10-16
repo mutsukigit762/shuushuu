@@ -1,5 +1,5 @@
 // 中身を変えたら CACHE_NAME の数字を上げる（上げないと古いままになる）
-const CACHE_NAME = 'shuushuu2-2'; // v2 は shuushuu2- で始める（元の版と混ざらないように）
+const CACHE_NAME = 'shuushuu2-3'; // v2 は shuushuu2- で始める（元の版と混ざらないように）
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

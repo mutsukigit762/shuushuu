@@ -351,6 +351,15 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .brow .del { width: 40px; height: 40px; border: none; background: none; color: var(--text2); font-size: 18px; cursor: pointer; }
 .brow .grip { width: 40px; height: 44px; display: grid; place-items: center; color: var(--text2); touch-action: none; cursor: grab; }
 .brow .grip svg { pointer-events: none; }
+/* 現場ごとのカード。見出しは中身から「タンスと自転車の現場」のように付ける */
+.site-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 10px; overflow: hidden; }
+.site-head { display: flex; align-items: center; gap: 8px; padding: 10px 6px 8px 12px; }
+.site-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.site-n { font-size: 13px; color: var(--text2); font-variant-numeric: tabular-nums; }
+.site-add { width: 36px; height: 32px; border-radius: 9px; border: 1px solid var(--border); background: var(--card2); color: var(--text); font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer; }
+.site-card.all-done .site-name::after { content: ' ✓'; color: var(--text); }
+.site-rows { list-style: none; margin: 0; padding: 0; }
+.site-rows .brow { border: none; border-top: 1px solid var(--border); border-radius: 0; margin: 0; }
 /* つかんでいる行 */
 .brow.lift { z-index: 5; box-shadow: 0 8px 24px rgba(0,0,0,0.18); transition: none; }
 .brow.shift { transition: transform .15s ease; }
@@ -375,7 +384,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
   <section class="big-sec">
     <h2>でかぶつ</h2>
-    <ul class="big-list" id="bigList"></ul>
+    <div class="big-list" id="bigList"></div>
     <div class="big-wrap"><button class="pbtn open-big" data-open="bigSheet">でかぶつ</button></div>
   </section>
 </main>
@@ -484,7 +493,8 @@ const today = () => {
 };
 const DAIS = 5; // 最初から並べておく台の数
 // 台ごとに「申告された金額（円）」と「でかぶつの並び」だけを持つ
-const newDai = () => ({ yen: 0, bigs: [] });
+// でかぶつは現場ごとのまとまり（sites）で持つ。現場に番号は付けない
+const newDai = () => ({ yen: 0, sites: [] });
 const newDay = () => ({ date: today(), cur: 0, dais: Array.from({ length: DAIS }, newDai) });
 
 let state;
@@ -497,6 +507,24 @@ function load() {
   // 日付が変わっていたら新しい日として始める
   if (state.date !== today()) state = newDay();
   while (state.dais.length < DAIS) state.dais.push(newDai());
+  // 前の形（台にでかぶつが1列）で残っていたら、1つの現場にまとめる
+  for (const d of state.dais) if (!d.sites) { d.sites = d.bigs && d.bigs.length ? [{ bigs: d.bigs }] : []; delete d.bigs; }
+}
+const allBigs = d => d.sites.flatMap(x => x.bigs);
+// でかぶつ登録で足していく先の現場（null なら、最初に押した時に新しい現場を作る）
+let bigTarget = null;
+// 現場の呼び名：中身の品目名を出てきた順に「タンスと自転車の現場」
+function itemName(b) {
+  for (const g of GROUPS) for (const it of g.items) if (it.name === b.name)
+    for (const t of it.tiers) if (t.cond === b.cond) return b.kind || t.label || (it.kinds ? '箱物' : b.name);
+  return b.name;
+}
+function siteName(site) {
+  const n = [...new Set(site.bigs.map(itemName))];
+  if (n.length === 1) return `${n[0]}の現場`;
+  if (n.length === 2) return `${n[0]}と${n[1]}の現場`;
+  if (n.length === 3) return `${n[0]}・${n[1]}と${n[2]}の現場`;
+  return `${n[0]}・${n[1]}・${n[2]}ほかの現場`;
 }
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
@@ -519,31 +547,39 @@ function render() {
   document.getElementById('dayTotal').textContent = pt(dayTotal) + 'p';
   document.getElementById('heroLabel').textContent = `${state.cur + 1}台目の容積ポイント`;
   setAmount(pt(dai.yen));
-  const nDone = dai.bigs.filter(b => b.done).length;
-  document.getElementById('heroCount').textContent = dai.bigs.length ? `でかぶつ ${nDone}/${dai.bigs.length} 積んだ` : '';
+  const bigs = allBigs(dai), nDone = bigs.filter(b => b.done).length;
+  document.getElementById('heroCount').textContent = bigs.length ? `でかぶつ ${nDone}/${bigs.length} 積んだ` : '';
 
   // 台の切り替え
   document.getElementById('dais').innerHTML = state.dais.map((x, i) =>
-    `<button class="dai-chip${i === state.cur ? ' on' : ''}${x.yen || x.bigs.length ? '' : ' blank'}" data-dai="${i}">${daime(i)}<b>${pt(x.yen)}<small>p</small></b></button>`
+    `<button class="dai-chip${i === state.cur ? ' on' : ''}${x.yen || x.sites.length ? '' : ' blank'}" data-dai="${i}">${daime(i)}<b>${pt(x.yen)}<small>p</small></b></button>`
   ).join('');
 
-  // でかぶつの並び。押すと積んだ（取り消し線）、✕で消す、右のつまみで並べ替え
-  document.getElementById('bigList').innerHTML = dai.bigs.map((b, i) =>
-    `<li class="brow${b.done ? ' done' : ''}" data-i="${i}">
-      <button class="lbl" data-done="${i}">${bigLabel(b)}</button>
-      <button class="del" data-del="${i}" aria-label="消す">✕</button>
-      <span class="grip" aria-label="並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span>
-    </li>`).join('');
+  // でかぶつは現場ごとのカードで。行を押すと積んだ（取り消し線）、✕で消す、右のつまみで現場の中を並べ替え、＋でその現場に足す
+  document.getElementById('bigList').innerHTML = dai.sites.map((site, si) => {
+    const done = site.bigs.filter(b => b.done).length;
+    return `<div class="site-card${done === site.bigs.length ? ' all-done' : ''}">
+      <div class="site-head"><span class="site-name">${siteName(site)}</span><span class="site-n">${done}/${site.bigs.length}</span><button class="site-add" data-addto="${si}" aria-label="この現場に足す">＋</button></div>
+      <ul class="site-rows" data-si="${si}">${site.bigs.map((b, i) =>
+      `<li class="brow${b.done ? ' done' : ''}">
+        <button class="lbl" data-done="${si}-${i}">${bigLabel(b)}</button>
+        <button class="del" data-del="${si}-${i}" aria-label="消す">✕</button>
+        <span class="grip" aria-label="並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span>
+      </li>`).join('')}</ul>
+    </div>`;
+  }).join('');
 
   // でかぶつ登録：見出しと、登録したものの段（同じものは×nでまとめる。✕で1つ減る）
-  document.getElementById('bigTitle').textContent = `${state.cur + 1}台目のでかぶつ`;
+  const target = bigTarget != null ? dai.sites[bigTarget] : null;
+  const tBigs = target ? target.bigs : [];
+  document.getElementById('bigTitle').textContent = target ? siteName(target) : '新しい現場';
   const labels = new Map();
-  for (const b of dai.bigs) labels.set(bigLabel(b), (labels.get(bigLabel(b)) || 0) + 1);
+  for (const b of tBigs) labels.set(bigLabel(b), (labels.get(bigLabel(b)) || 0) + 1);
   document.getElementById('siteBig').innerHTML = [...labels].map(([l, n]) =>
     `<button class="tag pend" data-unbig="${l}">${l}×${n} ✕</button>`).join('');
-  // 押したボタンはグレーにして、上から「×n」を重ねる（この台の分を数える）
+  // 押したボタンはグレーにして、上から「×n」を重ねる（いま足している現場の分を数える）
   const counts = new Map();
-  for (const b of dai.bigs) { const k = b.name + '|' + b.cond; counts.set(k, (counts.get(k) || 0) + 1); }
+  for (const b of tBigs) { const k = b.name + '|' + b.cond; counts.set(k, (counts.get(k) || 0) + 1); }
   document.querySelectorAll('[data-tier]').forEach(el => {
     const [gi, ii, ti] = el.dataset.tier.split('-').map(Number);
     const it = GROUPS[gi].items[ii], n = counts.get(it.name + '|' + it.tiers[ti].cond) || 0;
@@ -627,6 +663,8 @@ document.addEventListener('click', e => {
   if (b.hasAttribute('data-close')) {
     closeAll();
   } else if (b.dataset.open) {
+    // 下のでかぶつボタンから開いた時は、新しい現場として足していく
+    if (b.dataset.open === 'bigSheet') bigTarget = null;
     openPanel(b.dataset.open);
   } else if (b.dataset.key) {
     padPress(b.dataset.key);
@@ -635,16 +673,29 @@ document.addEventListener('click', e => {
     const [gi, ii, ti] = b.dataset.tier.split('-').map(Number);
     const it = GROUPS[gi].items[ii], t = it.tiers[ti];
     const kind = it.kinds ? document.querySelector(`[data-kind="${gi}-${ii}"]`).dataset.value : '';
-    change(() => cur().bigs.push({ name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }), done: false }));
+    change(() => {
+      const d = cur();
+      if (bigTarget == null || !d.sites[bigTarget]) { d.sites.push({ bigs: [] }); bigTarget = d.sites.length - 1; }
+      d.sites[bigTarget].bigs.push({ name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }), done: false });
+    });
     buzz();
   } else if (b.dataset.unbig != null) {
-    const l = cur().bigs, i = l.findLastIndex(e => bigLabel(e) === b.dataset.unbig);
-    if (i >= 0) change(() => l.splice(i, 1));
+    const site = cur().sites[bigTarget];
+    const i = site ? site.bigs.findLastIndex(e => bigLabel(e) === b.dataset.unbig) : -1;
+    if (i >= 0) change(() => {
+      site.bigs.splice(i, 1);
+      if (!site.bigs.length) { cur().sites.splice(bigTarget, 1); bigTarget = null; }
+    });
   } else if (b.dataset.done != null) {
-    change(() => { const x = cur().bigs[+b.dataset.done]; x.done = !x.done; });
+    const [si, i] = b.dataset.done.split('-').map(Number);
+    change(() => { const x = cur().sites[si].bigs[i]; x.done = !x.done; });
     buzz();
   } else if (b.dataset.del != null) {
-    change(() => cur().bigs.splice(+b.dataset.del, 1));
+    // 現場の最後の1つを消したら、その現場ごと無くなる
+    const [si, i] = b.dataset.del.split('-').map(Number);
+    change(() => { const ss = cur().sites; ss[si].bigs.splice(i, 1); if (!ss[si].bigs.length) ss.splice(si, 1); });
+  } else if (b.dataset.addto != null) {
+    openPanel('bigSheet'); bigTarget = +b.dataset.addto; render();
   } else if (b.dataset.dai != null) {
     shownAmount = null; // 台を変える時は数字をパッと切り替える
     state.cur = +b.dataset.dai;
@@ -681,11 +732,11 @@ document.getElementById('undo').onclick = () => {
 // 台の行き来は「n台目」のチップで。リセットは確認なし。押し間違えたら「1つ戻す」で元に戻る
 document.getElementById('resetDai').onclick = () => {
   const d = cur();
-  if (!d.yen && !d.bigs.length) return;
+  if (!d.yen && !d.sites.length) return;
   change(() => { state.dais[state.cur] = newDai(); });
 };
 document.getElementById('resetAll').onclick = () => {
-  if (!state.dais.some(d => d.yen || d.bigs.length)) return;
+  if (!state.dais.some(d => d.yen || d.sites.length)) return;
   change(() => { const c = state.cur; state = newDay(); state.cur = c; });
 };
 
@@ -852,9 +903,9 @@ bigList.addEventListener('pointerdown', e => {
   const grip = e.target.closest('.grip');
   if (!grip) return;
   e.preventDefault();
-  const row = grip.closest('.brow'), rows = [...bigList.children];
-  const step = row.offsetHeight + 6; // 行の高さ＋すき間
-  drag = { row, rows, from: rows.indexOf(row), to: rows.indexOf(row), y0: e.clientY, step, id: e.pointerId };
+  const row = grip.closest('.brow'), ul = row.parentElement, rows = [...ul.children];
+  const step = row.offsetHeight; // 現場のカードの中は、行がすき間なしで並ぶ
+  drag = { row, rows, si: +ul.dataset.si, from: rows.indexOf(row), to: rows.indexOf(row), y0: e.clientY, step, id: e.pointerId };
   try { grip.setPointerCapture(e.pointerId); } catch (err) {}
   row.classList.add('lift');
   rows.forEach(r => r !== row && r.classList.add('shift'));
@@ -876,9 +927,9 @@ bigList.addEventListener('pointermove', e => {
 });
 function endDrag(e) {
   if (!drag || e.pointerId !== drag.id) return;
-  const { from, to } = drag;
+  const { from, to, si } = drag;
   drag = null;
-  if (from !== to) change(() => { const l = cur().bigs; l.splice(to, 0, l.splice(from, 1)[0]); });
+  if (from !== to) change(() => { const l = cur().sites[si].bigs; l.splice(to, 0, l.splice(from, 1)[0]); });
   else render();
 }
 bigList.addEventListener('pointerup', endDrag);
