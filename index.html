@@ -65,7 +65,9 @@ main { padding: 12px; max-width: 560px; margin: 0 auto; }
 }
 .hero-label { font-size: 13px; color: var(--text2); display: flex; justify-content: space-between; }
 .hero-amount { font-size: 52px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; margin-top: 2px; font-variant-numeric: tabular-nums; }
-.hero-amount .ph { visibility: hidden; font-style: normal; }
+/* 空いた桁：数字1つ分の幅をとって、グレーの下線「_」だけ見せる */
+.hero-amount .ph { color: transparent; font-style: normal; position: relative; }
+.hero-amount .ph::after { content: ''; position: absolute; left: 10%; right: 10%; bottom: 0.14em; height: 0.07em; border-radius: 2px; background: #cfcfcb; }
 .hero-amount small { font-size: 22px; font-weight: 700; margin-left: 2px; }
 /* 数字のカウンター：変わった桁だけ、新しい数字が上から降りてきて、今の数字は下へ落ちる */
 .dg { display: inline-block; height: 1.1em; overflow: hidden; vertical-align: bottom; }
