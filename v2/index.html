@@ -332,6 +332,28 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .combo-row .pbtn.open-pad { font-size: 14px; }
 .combo-row .pbtn.open-pad { display: grid; place-items: center; }
 
+/* ===== v2 ===== */
+.hero-btn { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.hero-btn:active { background: var(--card2); }
+.big-sec { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.big-list { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.big-list:empty::before { content: 'まだ無し'; display: block; color: var(--text2); font-size: 14px; padding: 6px 2px; }
+.brow {
+  display: flex; align-items: center; gap: 6px; background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; margin-bottom: 6px; padding: 0 4px 0 0; position: relative;
+}
+.brow .lbl {
+  flex: 1; min-width: 0; text-align: left; font: inherit; font-size: 17px; font-weight: 700; color: var(--text);
+  background: none; border: none; padding: 14px 12px; cursor: pointer;
+}
+/* 積んだものは取り消し線 */
+.brow.done .lbl { color: var(--text2); text-decoration: line-through; text-decoration-thickness: 2px; font-weight: 600; }
+.brow .del { width: 40px; height: 40px; border: none; background: none; color: var(--text2); font-size: 18px; cursor: pointer; }
+.brow .grip { width: 40px; height: 44px; display: grid; place-items: center; color: var(--text2); touch-action: none; cursor: grab; }
+.brow .grip svg { pointer-events: none; }
+/* つかんでいる行 */
+.brow.lift { z-index: 5; box-shadow: 0 8px 24px rgba(0,0,0,0.18); transition: none; }
+.brow.shift { transition: transform .15s ease; }
 </style>
 </head>
 <body>
@@ -343,16 +365,17 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 </header>
 
 <main>
-  <div class="hero">
-    <div class="hero-label"><span id="heroLabel"></span><span class="hero-side"><span id="heroCount"></span><button class="sites-btn" id="sitesBtn" data-open="sitesSheet"></button></span></div>
-    <div class="hero-row"><div class="hero-amount" id="heroAmount"></div><div class="hero-site" id="heroSite"></div></div>
-  </div>
+  <!-- 申告された容積ポイント。押すとテンキーで打ち直せる -->
+  <button class="hero hero-btn" data-open="padSheet">
+    <div class="hero-label"><span id="heroLabel"></span><span id="heroCount"></span></div>
+    <div class="hero-row"><div class="hero-amount" id="heroAmount"></div></div>
+  </button>
 
   <div class="dais" id="dais"></div>
 
-  <section>
-    <h2>容積ポイント</h2>
-    <div class="combo-row" id="comboRow"></div>
+  <section class="big-sec">
+    <h2>でかぶつ</h2>
+    <ul class="big-list" id="bigList"></ul>
     <div class="big-wrap"><button class="pbtn open-big" data-open="bigSheet">でかぶつ</button></div>
   </section>
 </main>
@@ -375,12 +398,12 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
 <!-- 24p以上を打つ画面 -->
 <div class="sheet" id="padSheet">
-  <div class="sheet-head"><h1>容積ポイントを打つ</h1><button class="burger" data-close aria-label="閉じる">✕</button></div>
+  <div class="sheet-head"><h1 id="padTitle">申告された容積ポイント</h1><button class="burger" data-close aria-label="閉じる">✕</button></div>
   <div class="sheet-body">
     <div class="pad">
       <div class="pad-top">
         <div class="pad-disp" id="padDisp"></div>
-        <button class="pad-add" id="padAdd">＋</button>
+        <button class="pad-add" id="padAdd">登録</button>
       </div>
       <div class="pad-keys">
         <button class="kbtn" data-key="1">1</button><button class="kbtn" data-key="2">2</button><button class="kbtn" data-key="3">3</button>
@@ -392,12 +415,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
   </div>
 </div>
 
-<!-- でかぶつのある現場の一覧 -->
-<div class="sheet center" id="sitesSheet">
-  <div class="sheet-body"><div class="sites" id="sites"></div></div>
-</div>
-
-<!-- いまの現場のでかぶつ -->
+<!-- この台のでかぶつを登録する -->
 <div class="sheet tall" id="bigSheet">
   <div class="sheet-head big-head"><h1 id="bigTitle"></h1><div class="hero-big" id="siteBig"></div></div>
   <div class="sheet-body">
@@ -465,16 +483,20 @@ const today = () => {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 };
 const DAIS = 5; // 最初から並べておく台の数
-const newDay = () => ({ date: today(), cur: 0, dais: Array.from({ length: DAIS }, () => []) });
+// 台ごとに「申告された金額（円）」と「でかぶつの並び」だけを持つ
+const newDai = () => ({ yen: 0, bigs: [] });
+const newDay = () => ({ date: today(), cur: 0, dais: Array.from({ length: DAIS }, newDai) });
 
 let state;
-let beforeReset = null; // リセット直前の状態（1つ戻すで戻せるように）
+// 1つ戻す：変える前の状態を積んでおく
+let history = [];
+function snap() { history.push(JSON.stringify(state)); if (history.length > 50) history.shift(); }
 function load() {
   try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
-  if (!state || !Array.isArray(state.dais)) state = newDay();
+  if (!state || !Array.isArray(state.dais) || state.dais.some(d => Array.isArray(d))) state = newDay();
   // 日付が変わっていたら新しい日として始める
   if (state.date !== today()) state = newDay();
-  while (state.dais.length < DAIS) state.dais.push([]);
+  while (state.dais.length < DAIS) state.dais.push(newDai());
 }
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
@@ -483,151 +505,57 @@ function save() {
 const daime = i => `${i+1}台目`;
 // 容積ポイント：料金の百円単位（1,300円→13p）。メモの「④216」と同じ数え方
 const pt = n => (n / 100).toLocaleString('ja-JP');
-const sum = list => list.reduce((a, e) => a + e.price, 0);
 const cur = () => state.dais[state.cur];
 
 // ===== 描画 =====
 function render() {
-  const list = cur();
-  const total = sum(list);
-  const dayTotal = state.dais.reduce((a, l) => a + sum(l), 0);
+  const dai = cur();
+  const dayTotal = state.dais.reduce((a, d) => a + d.yen, 0);
   const d = new Date();
   const wd = '日月火水木金土'[d.getDay()];
 
   document.getElementById('headTitle').innerHTML =
     `<b>${daime(state.cur)}</b>　${d.getMonth()+1}/${d.getDate()}(${wd})`;
   document.getElementById('dayTotal').textContent = pt(dayTotal) + 'p';
-  setAmount(pt(total));
-  // 件数はポイントを入れた回数。でかぶつは数えない
-  document.getElementById('heroCount').textContent = `${list.filter(e => e.price > 0).length}件`;
+  document.getElementById('heroLabel').textContent = `${state.cur + 1}台目の容積ポイント`;
+  setAmount(pt(dai.yen));
+  const nDone = dai.bigs.filter(b => b.done).length;
+  document.getElementById('heroCount').textContent = dai.bigs.length ? `でかぶつ ${nDone}/${dai.bigs.length} 積んだ` : '';
 
   // 台の切り替え
-  document.getElementById('dais').innerHTML = state.dais.map((l, i) =>
-    `<button class="dai-chip${i === state.cur ? ' on' : ''}${l.length ? '' : ' blank'}" data-dai="${i}">${daime(i)}<b>${pt(sum(l))}<small>p</small></b></button>`
+  document.getElementById('dais').innerHTML = state.dais.map((x, i) =>
+    `<button class="dai-chip${i === state.cur ? ' on' : ''}${x.yen || x.bigs.length ? '' : ' blank'}" data-dai="${i}">${daime(i)}<b>${pt(x.yen)}<small>p</small></b></button>`
   ).join('');
 
-  // 品目ごとの点数
+  // でかぶつの並び。押すと積んだ（取り消し線）、✕で消す、右のつまみで並べ替え
+  document.getElementById('bigList').innerHTML = dai.bigs.map((b, i) =>
+    `<li class="brow${b.done ? ' done' : ''}" data-i="${i}">
+      <button class="lbl" data-done="${i}">${bigLabel(b)}</button>
+      <button class="del" data-del="${i}" aria-label="消す">✕</button>
+      <span class="grip" aria-label="並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span>
+    </li>`).join('');
 
-  // 現場ごとのでかぶつ
-  // 現場の番号（何箇所目か）は、でかぶつの無い現場も含めて数える。まとめるのは同じ現場の中だけ
-  const ss = sites(list), withBig = ss.map((x, i) => ({ ...x, no: i + 1 })).filter(x => x.bigs.size);
-  const sb = document.getElementById('sitesBtn');
-  sb.textContent = `でかぶつ${withBig.length}箇所`;
-  // 台の数字の右に、いまの現場（何箇所目・何p）
-  document.getElementById('heroLabel').textContent = `${state.cur + 1}台目の容積ポイント`;
-  const lastSite = ss[ss.length - 1];
-  document.getElementById('heroSite').innerHTML = lastSite && lastSite.pts
-    ? `<span>${ss.length}箇所目</span><span><b>${pt(lastSite.pts)}</b><small>p</small></span>` : '';
-  sb.dataset.open = withBig.length ? 'sitesSheet' : ''; // 0箇所なら押しても何も起こらない
-  document.getElementById('sites').innerHTML = withBig.map(x =>
-    `<div class="site"><span class="no">${x.no}箇所目</span><span class="bg">${
-      [...x.labels].map(([k, n]) => k + (n > 1 ? `×${n}` : '')).join('、')
-    }</span></div>`).join('');
-  // ピンクのボタンとでかぶつ画面：いまの現場（最後にポイントを入れた現場）
-  const last = ss[ss.length - 1];
-  const lastBigs = last ? [...last.labels] : [];
-  // どの現場に登録しているかを見出しで出す
-  const cs = curSite();
-  document.getElementById('bigTitle').textContent = cs.yen
-    ? `${ss.length}箇所目の現場（${cs.yen.toLocaleString('ja-JP')}円）`
-    : '現場がまだ無い（先にポイントを入れる）';
-  // いまの現場のでかぶつ。1個でも「×1」と書く。✕を押すと1つ減る
-  document.getElementById('siteBig').innerHTML = lastBigs.map(([l, n]) =>
+  // でかぶつ登録：見出しと、登録したものの段（同じものは×nでまとめる。✕で1つ減る）
+  document.getElementById('bigTitle').textContent = `${state.cur + 1}台目のでかぶつ`;
+  const labels = new Map();
+  for (const b of dai.bigs) labels.set(bigLabel(b), (labels.get(bigLabel(b)) || 0) + 1);
+  document.getElementById('siteBig').innerHTML = [...labels].map(([l, n]) =>
     `<button class="tag pend" data-unbig="${l}">${l}×${n} ✕</button>`).join('');
-  // 押したボタンはグレーにして、上から「×n」を重ねる（いまの現場の分だけ数える）
-  const siteStart = list.findLastIndex(e => e.price > 0);
+  // 押したボタンはグレーにして、上から「×n」を重ねる（この台の分を数える）
   const counts = new Map();
-  for (const e of list.slice(Math.max(siteStart, 0))) if (e.short) {
-    const k = e.name + '|' + e.cond; counts.set(k, (counts.get(k) || 0) + 1);
-  }
+  for (const b of dai.bigs) { const k = b.name + '|' + b.cond; counts.set(k, (counts.get(k) || 0) + 1); }
   document.querySelectorAll('[data-tier]').forEach(el => {
     const [gi, ii, ti] = el.dataset.tier.split('-').map(Number);
     const it = GROUPS[gi].items[ii], n = counts.get(it.name + '|' + it.tiers[ti].cond) || 0;
     el.classList.toggle('has', n > 0);
     el.dataset.n = n ? `×${n}` : '';
   });
-
 }
 
-// 1行目のポイントを2つ以上組み合わせて作れる合計（max以下）。8, 12, 13, 16, 17 …
-function comboPoints(max) {
-  const base = PRICES.map(p => p / 100);
-  // reach[n] = n を作るのに要る最少の個数（作れなければ Infinity）
-  const reach = Array(max + 1).fill(Infinity); reach[0] = 0;
-  const two = new Set();
-  for (let n = 1; n <= max; n++) for (const b of base) if (b <= n && reach[n - b] < Infinity) {
-    reach[n] = Math.min(reach[n], reach[n - b] + 1);
-    if (reach[n - b] >= 1) two.add(n); // 2個以上で作れる
-  }
-  return [...two].sort((a, b) => a - b);
-}
-
-// ポイントを入れるたびに新しい現場。でかぶつは直前の現場に入る（ポイントより先に押した分は、それだけで1現場）
-function sites(list) {
-  const out = [];
-  for (const e of list) {
-    if (e.price > 0 || !out.length) out.push({ pts: 0, bigs: new Map(), labels: new Map() });
-    const x = out[out.length - 1];
-    x.pts += e.price;
-    if (e.short) {
-      const k = `${e.short.split(' ')[0]} ${e.cond}`; x.bigs.set(k, (x.bigs.get(k) || 0) + 1);
-      const l = bigLabel(e); x.labels.set(l, (x.labels.get(l) || 0) + 1);
-    }
-  }
-  return out;
-}
-
-// でかぶつ1点の料金（品目ボタンの定義から引く）
-function bigYen(e) {
-  for (const g of GROUPS) for (const it of g.items) if (it.name === e.name)
-    for (const t of it.tiers) if (t.cond === e.cond) return t.price;
-  return 0;
-}
-// 残りの金額が、料金（400・900・1,300・2,300・3,200円）の組み合わせで作れるか。0円もOK
-// 例：1,200円の現場に900円の箱物を入れると残り300円になり、どの品目でも埋まらないのでだめ
-function canMake(yen) {
-  if (yen < 0 || yen % 100) return false;
-  const ok = [true];
-  for (let n = 100; n <= yen; n += 100) ok[n / 100] = PRICES.some(p => p <= n && ok[(n - p) / 100]);
-  return !!ok[yen / 100];
-}
-
-// いまの現場（最後にポイントを入れた所から後ろ）
-function curSite() {
-  const l = cur(), i = l.findLastIndex(e => e.price > 0);
-  const es = i < 0 ? [] : l.slice(i);
-  return { yen: i < 0 ? 0 : l[i].price, bigYen: es.reduce((a, e) => a + (e.short ? bigYen(e) : 0), 0) };
-}
-// 金額が合わない時：押したボタンが赤くブルッと震える
-// 1台は999pでカンスト。超える分は入れずに、押したボタンが赤く震える
-const over999 = yen => sum(cur()) + yen > 99900;
-function shakeNg(btn) {
-  btn.classList.remove('ng'); void btn.offsetWidth; btn.classList.add('ng');
-  if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
-}
-
-// 隠し：同じボタンを続けて20回押すと、大きく震えて字が一瞬「😡」になる
-let ngBtn = null, ngCount = 0, ngLast = 0;
-function refuse(btn) {
-  const now = Date.now();
-  ngCount = (btn === ngBtn && now - ngLast < 1000) ? ngCount + 1 : 1;
-  ngBtn = btn; ngLast = now;
-  if (ngCount >= 20) {
-    ngCount = 0;
-    const p = btn.querySelector('.p'), orig = p.textContent;
-    p.textContent = '😡';
-    btn.classList.remove('ng', 'mad'); void btn.offsetWidth; btn.classList.add('mad');
-    if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 60]);
-    setTimeout(() => { p.textContent = orig; btn.classList.remove('mad'); }, 1200);
-    return;
-  }
-  btn.classList.remove('ng'); void btn.offsetWidth; btn.classList.add('ng');
-  if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
-}
 
 // 一覧用の書き方：「900円テーブル」。料金は品目ボタンの定義から引く
 function bigLabel(e) {
-  let yenv = e.price, name = e.name;
+  let yenv = 0, name = e.name;
   for (const g of GROUPS) for (const it of g.items) if (it.name === e.name)
     for (const t of it.tiers) if (t.cond === e.cond) { yenv = t.price; name = e.kind || t.label || e.name; }
   return yenv ? `${yenv.toLocaleString('ja-JP')}円${name}` : name;
@@ -654,17 +582,6 @@ function setAmount(str) {
 }
 
 function buildButtons() {
-  // 40pまでを小さい順に並べる（4→8→9→12→13→16…）。料金そのもの（4・9・13・23・32p）は色だけ変える。41p から先はテンキー
-  const base = PRICES.map(p => p / 100);
-  const pts = [...new Set([...base, ...comboPoints(40)])].sort((a, b) => a - b);
-  // 23pまでは4列（大きいボタン）、24pからは6列。小さい数が右下で、上に行くほど大きく、行の中は右から左へ増える
-  // テンキーは41pの代わりに、いちばん大きい数の並び（左上）に置く
-  const PAD = 'pad';
-  const chunk = (list, w) => { const out = []; for (let i = 0; i < list.length; i += w) out.push(list.slice(i, i + w).reverse()); return out; };
-  const rows = [...chunk([...pts.filter(n => n > 23), PAD], 6).reverse(), ...chunk(pts.filter(n => n <= 23), 4).reverse()];
-  document.getElementById('comboRow').innerHTML = rows.flat().map(n => n === PAD
-    ? '<button class="pbtn open-pad" data-open="padSheet" aria-label="テンキー"><svg viewBox="0 0 24 26" width="22" height="24" fill="currentColor"><circle cx="6" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="11" r="2"/><circle cx="12" cy="11" r="2"/><circle cx="18" cy="11" r="2"/><circle cx="6" cy="17" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="18" cy="17" r="2"/><circle cx="12" cy="23" r="2"/></svg></button>'
-    : `<button class="pbtn${base.includes(n) ? ' base' : ''}${n <= 23 ? ' wide' : ''}" data-price="${n * 100}">${n}<small>p</small></button>`).join('');
 
   // 見出しで分けず、どの品目も同じ形のカードで並べる
   document.getElementById('groups').innerHTML = GROUPS.map((g, gi) =>
@@ -683,11 +600,10 @@ function buildButtons() {
 // ===== 操作 =====
 function buzz() { if (navigator.vibrate) navigator.vibrate(15); }
 
-function add(entry) {
-  beforeReset = null;
-  if (state.date !== today()) { state = newDay(); }
-  cur().push(entry);
-  save(); render(); buzz();
+// 変える時はいつもここを通す（1つ戻すのため）
+function change(fn) {
+  if (state.date !== today()) state = newDay();
+  snap(); fn(); save(); render();
 }
 
 document.addEventListener('click', e => {
@@ -714,21 +630,21 @@ document.addEventListener('click', e => {
     openPanel(b.dataset.open);
   } else if (b.dataset.key) {
     padPress(b.dataset.key);
-  } else if (b.dataset.price) {
-    if (over999(+b.dataset.price)) { shakeNg(b); return; }
-    add({ price: +b.dataset.price });
   } else if (b.dataset.tier) {
+    // 押したらその場でこの台に登録
     const [gi, ii, ti] = b.dataset.tier.split('-').map(Number);
     const it = GROUPS[gi].items[ii], t = it.tiers[ti];
-    // 押したらその場で登録。現場の金額を超える分は入れない
-    const cs = curSite();
-    if (!canMake(cs.yen - cs.bigYen - t.price)) { refuse(b); return; }
     const kind = it.kinds ? document.querySelector(`[data-kind="${gi}-${ii}"]`).dataset.value : '';
-    add({ price: 0, big: true, name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }) });
+    change(() => cur().bigs.push({ name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }), done: false }));
+    buzz();
   } else if (b.dataset.unbig != null) {
-    // いまの現場の分は列の最後にあるので、後ろから探して1つ消す
-    const l = cur(), i = l.findLastIndex(e => e.short && bigLabel(e) === b.dataset.unbig);
-    if (i >= 0) { beforeReset = null; l.splice(i, 1); save(); render(); }
+    const l = cur().bigs, i = l.findLastIndex(e => bigLabel(e) === b.dataset.unbig);
+    if (i >= 0) change(() => l.splice(i, 1));
+  } else if (b.dataset.done != null) {
+    change(() => { const x = cur().bigs[+b.dataset.done]; x.done = !x.done; });
+    buzz();
+  } else if (b.dataset.del != null) {
+    change(() => cur().bigs.splice(+b.dataset.del, 1));
   } else if (b.dataset.dai != null) {
     shownAmount = null; // 台を変える時は数字をパッと切り替える
     state.cur = +b.dataset.dai;
@@ -750,37 +666,27 @@ function padPress(k) {
   renderPad();
 }
 document.getElementById('padAdd').onclick = () => {
-  const n = +padVal;
-  if (!n) return;
-  if (over999(n * 100)) { shakeNg(document.getElementById('padAdd')); return; }
-  padVal = ''; renderPad();
-  add({ price: n * 100 });
+  const yen = (+padVal || 0) * 100;
+  if (yen !== cur().yen) change(() => { cur().yen = yen; });
   closeAll();
 };
 
 document.getElementById('undo').onclick = () => {
-  // 直前がリセットなら、リセットを取り消す
-  if (beforeReset) {
-    state = beforeReset; beforeReset = null;
-    save(); render(); 
-    return;
-  }
-  const e = cur().pop();
-  if (!e) return;
+  if (!history.length) return;
+  state = JSON.parse(history.pop());
+  shownAmount = null;
   save(); render();
 };
 
 // 台の行き来は「n台目」のチップで。リセットは確認なし。押し間違えたら「1つ戻す」で元に戻る
 document.getElementById('resetDai').onclick = () => {
-  if (!cur().length) return;
-  beforeReset = JSON.parse(JSON.stringify(state));
-  state.dais[state.cur] = [];
-  save(); render(); 
+  const d = cur();
+  if (!d.yen && !d.bigs.length) return;
+  change(() => { state.dais[state.cur] = newDai(); });
 };
 document.getElementById('resetAll').onclick = () => {
-  if (!state.dais.some(l => l.length)) return;
-  beforeReset = JSON.parse(JSON.stringify(state));
-  state = newDay(); save(); render(); 
+  if (!state.dais.some(d => d.yen || d.bigs.length)) return;
+  change(() => { const c = state.cur; state = newDay(); state.cur = c; });
 };
 
 // ===== 料金表（マニュアル p.6〜9 と束品目一覧から） =====
@@ -888,6 +794,7 @@ function closeKindPops() {
 // メニュー（左から）とテンキー・でかぶつ（下から）を開け閉めする
 function openPanel(id) {
   closeAll();
+  if (id === 'padSheet') { padVal = cur().yen ? String(cur().yen / 100) : ''; renderPad(); }
   document.getElementById(id).classList.add('on');
   scrim.classList.add('on'); document.body.classList.add('lock');
 }
@@ -935,8 +842,47 @@ bigSheet.addEventListener('touchend', () => {
 
 // アプリに戻ってきた時に日付をまたいでいたら新しい日にする
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && state.date !== today()) { state = newDay(); save(); render(); }
+  if (document.visibilityState === 'visible' && state.date !== today()) { state = newDay(); history = []; save(); render(); }
 });
+
+// つまみを押さえたまま上下に動かすと、その行がついてくる。離した所に入る
+const bigList = document.getElementById('bigList');
+let drag = null;
+bigList.addEventListener('pointerdown', e => {
+  const grip = e.target.closest('.grip');
+  if (!grip) return;
+  e.preventDefault();
+  const row = grip.closest('.brow'), rows = [...bigList.children];
+  const step = row.offsetHeight + 6; // 行の高さ＋すき間
+  drag = { row, rows, from: rows.indexOf(row), to: rows.indexOf(row), y0: e.clientY, step, id: e.pointerId };
+  try { grip.setPointerCapture(e.pointerId); } catch (err) {}
+  row.classList.add('lift');
+  rows.forEach(r => r !== row && r.classList.add('shift'));
+});
+bigList.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const dy = e.clientY - drag.y0;
+  drag.row.style.transform = `translateY(${dy}px)`;
+  const to = Math.max(0, Math.min(drag.rows.length - 1, drag.from + Math.round(dy / drag.step)));
+  if (to !== drag.to) { drag.to = to; buzz(); }
+  // 間にある行を1つずつずらして、入る場所を空けて見せる
+  drag.rows.forEach((r, i) => {
+    if (r === drag.row) return;
+    let s = 0;
+    if (drag.from < to && i > drag.from && i <= to) s = -drag.step;
+    if (drag.from > to && i >= to && i < drag.from) s = drag.step;
+    r.style.transform = s ? `translateY(${s}px)` : '';
+  });
+});
+function endDrag(e) {
+  if (!drag || e.pointerId !== drag.id) return;
+  const { from, to } = drag;
+  drag = null;
+  if (from !== to) change(() => { const l = cur().bigs; l.splice(to, 0, l.splice(from, 1)[0]); });
+  else render();
+}
+bigList.addEventListener('pointerup', endDrag);
+bigList.addEventListener('pointercancel', endDrag);
 
 load();
 buildButtons();
