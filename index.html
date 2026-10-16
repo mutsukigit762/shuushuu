@@ -136,7 +136,10 @@ h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; 
 /* 12分割の格子で、23pまでは3マス（4列）、24pからは2マス（6列）。料金そのものは色だけグレー */
 .combo-row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 5px; }
 .combo-row .pbtn { grid-column: span 2; }
-.combo-row .pbtn.wide, .combo-row .pbtn.open-pad { grid-column: span 3; }
+.combo-row .pbtn.wide { grid-column: span 3; }
+/* でかぶつは並びから少し離して、下の真ん中に */
+.big-wrap { display: flex; justify-content: center; margin-top: 12px; padding-bottom: 8px; }
+.big-wrap .pbtn.open-big { width: 50%; height: 54px; font-size: 17px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .combo-row .pbtn.base { background: var(--card2); }
 .pbtn small, .tbtn .p small, .dai-chip b small { font-size: 0.7em; font-weight: 600; margin-left: 1px; }
 .combo-row .pbtn { height: 42px; font-size: 15px; border-radius: 10px; background: var(--card); }
@@ -146,7 +149,7 @@ body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; ove
 main { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; }
 main > section { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-bottom: 0; }
 /* 残りの高さを行の数で分けて、ボタンを縦に大きくする */
-main .combo-row { flex: 1; min-height: 0; grid-auto-rows: 1fr; padding-bottom: 8px; }
+main .combo-row { flex: 1; min-height: 0; grid-auto-rows: 1fr; }
 main .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
 
 /* テンキー */
@@ -327,9 +330,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
 /* 青＝テンキー、ピンク＝でかぶつ */
 .combo-row .pbtn.open-pad { font-size: 14px; }
-main .combo-row .pbtn.open-big { font-size: 17px; grid-column: span 9; }
 .combo-row .pbtn.open-pad { display: grid; place-items: center; }
-.combo-row .pbtn.open-big { grid-column: span 2; font-size: 14px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
 </style>
 </head>
@@ -352,6 +353,7 @@ main .combo-row .pbtn.open-big { font-size: 17px; grid-column: span 9; }
   <section>
     <h2>容積ポイント</h2>
     <div class="combo-row" id="comboRow"></div>
+    <div class="big-wrap"><button class="pbtn open-big" data-open="bigSheet">でかぶつ</button></div>
   </section>
 </main>
 
@@ -652,16 +654,17 @@ function setAmount(str) {
 }
 
 function buildButtons() {
-  // 41pまでを小さい順に並べる（4→8→9→12→13→16…）。料金そのもの（4・9・13・23・32p）は色だけ変える。42p から先はテンキー
+  // 40pまでを小さい順に並べる（4→8→9→12→13→16…）。料金そのもの（4・9・13・23・32p）は色だけ変える。41p から先はテンキー
   const base = PRICES.map(p => p / 100);
-  const pts = [...new Set([...base, ...comboPoints(41)])].sort((a, b) => a - b);
-  // 23pまでは4列（大きいボタン）、24pからは6列。小さい数が右下（テンキー・でかぶつのすぐ上）で、上に行くほど大きく、行の中は右から左へ増える
+  const pts = [...new Set([...base, ...comboPoints(40)])].sort((a, b) => a - b);
+  // 23pまでは4列（大きいボタン）、24pからは6列。小さい数が右下で、上に行くほど大きく、行の中は右から左へ増える
+  // テンキーは41pの代わりに、いちばん大きい数の並び（左上）に置く
+  const PAD = 'pad';
   const chunk = (list, w) => { const out = []; for (let i = 0; i < list.length; i += w) out.push(list.slice(i, i + w).reverse()); return out; };
-  const rows = [...chunk(pts.filter(n => n > 23), 6).reverse(), ...chunk(pts.filter(n => n <= 23), 4).reverse()];
-  document.getElementById('comboRow').innerHTML = rows.flat().map(n =>
-    `<button class="pbtn${base.includes(n) ? ' base' : ''}${n <= 23 ? ' wide' : ''}" data-price="${n * 100}">${n}<small>p</small></button>`).join('') +
-    '<button class="pbtn open-pad" data-open="padSheet" aria-label="テンキー"><svg viewBox="0 0 24 26" width="22" height="24" fill="currentColor"><circle cx="6" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="11" r="2"/><circle cx="12" cy="11" r="2"/><circle cx="18" cy="11" r="2"/><circle cx="6" cy="17" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="18" cy="17" r="2"/><circle cx="12" cy="23" r="2"/></svg></button>' +
-    '<button class="pbtn open-big" data-open="bigSheet">でかぶつ</button>';
+  const rows = [...chunk([...pts.filter(n => n > 23), PAD], 6).reverse(), ...chunk(pts.filter(n => n <= 23), 4).reverse()];
+  document.getElementById('comboRow').innerHTML = rows.flat().map(n => n === PAD
+    ? '<button class="pbtn open-pad" data-open="padSheet" aria-label="テンキー"><svg viewBox="0 0 24 26" width="22" height="24" fill="currentColor"><circle cx="6" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="11" r="2"/><circle cx="12" cy="11" r="2"/><circle cx="18" cy="11" r="2"/><circle cx="6" cy="17" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="18" cy="17" r="2"/><circle cx="12" cy="23" r="2"/></svg></button>'
+    : `<button class="pbtn${base.includes(n) ? ' base' : ''}${n <= 23 ? ' wide' : ''}" data-price="${n * 100}">${n}<small>p</small></button>`).join('');
 
   // 見出しで分けず、どの品目も同じ形のカードで並べる
   document.getElementById('groups').innerHTML = GROUPS.map((g, gi) =>
