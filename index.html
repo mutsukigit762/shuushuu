@@ -370,7 +370,8 @@ main .combo-row .pbtn.open-big { font-size: 17px; }
 // price は円で持つ（料金表と同じ数字）。画面にはポイントで出す
 const PRICES = [400, 900, 1300, 2300, 3200];
 
-// yen: true の品目は、ボタンを金額で出す（それ以外は条件の言葉で出す）
+// yen: true の品目は、ボタンを金額で出す（それ以外は btn の言葉で出す）
+// cond は記録の目印なので変えない（変えると、もう入れてある分の料金が引けなくなる）
 // kinds があれば、カードの右のピッカーで何の品目かを選べる
 const BOX_KINDS = ['タンス', 'チェスト', '食器棚', '本棚', 'スチール棚', 'テレビ台', 'レンジ台', 'キャビネット',
   'カラーボックス', '下駄箱', '鏡台', 'ロッカー', '脇机', 'ペット小屋'];
@@ -378,14 +379,14 @@ const GROUPS = [
   {
     items: [
       { name: 'ベッドマット', short: 'ベマ', tiers: [
-        { price: 900,  cond: '低反発', label: '低反発ベッドマット' },
-        { price: 1300, cond: '幅120以下' },
-        { price: 2300, cond: '幅140以上' },
+        { price: 900,  cond: '低反発', btn: '低反発', label: '低反発ベッドマット' },
+        { price: 1300, cond: '幅120以下', btn: 'シングル' },
+        { price: 2300, cond: '幅140以上', btn: 'ダブル' },
       ]},
       { name: 'ベッド', short: 'ベッド', tiers: [
-        { price: 1300, cond: 'シングル' },
-        { price: 2300, cond: 'セミダブル〜' },
-        { price: 3200, cond: '二段', label: '二段ベッド' },
+        { price: 1300, cond: 'シングル', btn: 'シングル' },
+        { price: 2300, cond: 'セミダブル〜', btn: 'ダブル' },
+        { price: 3200, cond: '二段', btn: '二段ベッド', label: '二段ベッド' },
       ]},
       { name: '箱物', title: '箱物系', short: '箱物', yen: true, kinds: BOX_KINDS, tiers: [
         { price: 900,  cond: '180〜' },
@@ -394,21 +395,21 @@ const GROUPS = [
         { price: 3200, cond: '405〜' },
       ]},
       { name: 'ソファー', short: 'ソファー', tiers: [
-        { price: 900,  cond: '幅100未満' },
-        { price: 2300, cond: '幅100以上' },
+        { price: 900,  cond: '幅100未満', btn: '一人用' },
+        { price: 2300, cond: '幅100以上', btn: '二人用以上' },
       ]},
       { name: '机', short: '机', tiers: [
-        { price: 900,  cond: '袖なし' },
-        { price: 1300, cond: '片袖' },
-        { price: 3200, cond: '両袖' },
+        { price: 900,  cond: '袖なし', btn: '袖なし机' },
+        { price: 1300, cond: '片袖', btn: '片袖机' },
+        { price: 3200, cond: '両袖', btn: '両袖机' },
       ]},
       { name: 'テーブル', short: 'テーブル', yen: true, tiers: [
         { price: 900,  cond: '100以上' },
         { price: 1300, cond: '150以上' },
       ]},
       { name: '自転車', short: '自転車', tiers: [
-        { price: 900,  cond: '18インチ以上' },
-        { price: 1300, cond: '電動', label: '電動自転車' },
+        { price: 900,  cond: '18インチ以上', btn: '18インチ以上' },
+        { price: 1300, cond: '電動', btn: '電動自転車', label: '電動自転車' },
       ]},
     ],
   },
@@ -571,9 +572,9 @@ function buildButtons() {
   document.getElementById('groups').innerHTML = GROUPS.map((g, gi) =>
     `<section>${g.items.map((it, ii) =>
       `<div class="item">
-        <div class="item-name"><span>${it.title || it.name}${it.kinds ? `<select class="kind" data-kind="${gi}-${ii}"><option value="">何？</option>${it.kinds.map(k => `<option>${k}</option>`).join('')}</select>` : ''}</span><span class="cnt" data-cnt="${it.name}"></span></div>
+        <div class="item-name"><span>${it.title || it.name}${it.kinds ? `<select class="kind" data-kind="${gi}-${ii}"><option value="">箱物</option>${it.kinds.map(k => `<option>${k}</option>`).join('')}</select>` : ''}</span><span class="cnt" data-cnt="${it.name}"></span></div>
         <div class="tiers" style="grid-template-columns:repeat(${it.tiers.length},1fr)">${it.tiers.map((t, ti) =>
-          `<button class="tbtn" data-tier="${gi}-${ii}-${ti}"><span class="p">${it.yen || t.yen ? t.price.toLocaleString('ja-JP') + '円' : t.cond}</span></button>`
+          `<button class="tbtn" data-tier="${gi}-${ii}-${ti}"><span class="p">${it.yen || t.yen ? t.price.toLocaleString('ja-JP') + '円' : t.btn || t.cond}</span></button>`
         ).join('')}</div>
       </div>`).join('')}</section>`
   ).join('');
