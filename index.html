@@ -71,12 +71,15 @@ main { padding: 12px; max-width: 560px; margin: 0 auto; }
 .tag.none { background: transparent; color: var(--text2); font-weight: 400; padding-left: 0; }
 
 /* 台の切り替え */
-.dais { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 14px; padding-bottom: 2px; }
+/* 5台までは画面幅に5等分で並べる。6台目からは横にはみ出してスクロール */
+.dais { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 24px) / 5); gap: 6px; overflow-x: auto; margin-bottom: 14px; padding-bottom: 2px; }
 .dai-chip {
-  flex: none; border: 1px solid var(--border); background: var(--card); color: var(--text2);
-  border-radius: 10px; padding: 6px 10px; font-size: 14px; cursor: pointer; font-family: inherit;
+  border: 1px solid var(--border); background: var(--card); color: var(--text2);
+  border-radius: 10px; padding: 6px 2px; font-size: 13px; cursor: pointer; font-family: inherit;
+  display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0;
 }
-.dai-chip b { color: var(--text); margin-left: 4px; }
+.dai-chip.empty b { color: var(--border); }
+.dai-chip b { color: var(--text); font-size: 14px; }
 .dai-chip.on { border-color: var(--accent); color: var(--accent); }
 .dai-chip.on b { color: var(--accent); }
 
@@ -288,7 +291,8 @@ const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 };
-const newDay = () => ({ date: today(), cur: 0, dais: [[]] });
+const DAIS = 5; // 最初から並べておく台の数
+const newDay = () => ({ date: today(), cur: 0, dais: Array.from({ length: DAIS }, () => []) });
 
 let state;
 function load() {
@@ -296,6 +300,7 @@ function load() {
   if (!state || !Array.isArray(state.dais)) state = newDay();
   // 日付が変わっていたら新しい日として始める
   if (state.date !== today()) state = newDay();
+  while (state.dais.length < DAIS) state.dais.push([]);
 }
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
@@ -331,7 +336,7 @@ function render() {
 
   // 台の切り替え
   document.getElementById('dais').innerHTML = state.dais.map((l, i) =>
-    `<button class="dai-chip${i === state.cur ? ' on' : ''}" data-dai="${i}">${maru(i)}<b>${yen(sum(l))}</b></button>`
+    `<button class="dai-chip${i === state.cur ? ' on' : ''}${l.length ? '' : ' empty'}" data-dai="${i}">${maru(i)}<b>${yen(sum(l))}</b></button>`
   ).join('');
 
   // 品目ごとの点数
@@ -413,10 +418,9 @@ document.getElementById('undo').onclick = () => {
 
 document.getElementById('next').onclick = () => {
   if (!cur().length) { toast('この台はまだ空だよ'); return; }
-  // 末尾の台にいる時だけ新しい台を足す。前の台を見ている時は一番新しい台へ戻る
-  const last = state.dais.length - 1;
-  if (state.cur === last) state.dais.push([]);
-  state.cur = state.dais.length - 1;
+  // ひとつ先の台へ。5台目より先は台を足す
+  if (state.cur === state.dais.length - 1) state.dais.push([]);
+  state.cur++;
   save(); render();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
