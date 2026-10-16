@@ -25,6 +25,7 @@
   --red: #d64541;
 }
 html, body { background: var(--bg); }
+html { height: 100%; overflow: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
   color: var(--text);
@@ -232,6 +233,14 @@ tr.cont td { border-top-color: #f0f0ee; }
 }
 .sheet.tall { height: 88vh; }
 .sheet.on { transform: none; visibility: visible; }
+/* 真ん中に出す画面 */
+.sheet.center {
+  top: 50%; bottom: auto; left: 50%; right: auto; margin: 0;
+  width: min(calc(100vw - 32px), 520px); max-height: 80vh;
+  border-radius: 20px; transform: translate(-50%, -50%);
+}
+.sheet.center.on { transform: translate(-50%, -50%); }
+.sheet.center .sheet-body { padding-bottom: 16px; }
 .sheet-head { display: flex; align-items: center; gap: 10px; padding: 12px 12px 8px; }
 .sheet-head h1 { flex: 1; font-size: 17px; }
 .sheet-head .ok {
@@ -321,7 +330,7 @@ main .combo-row .pbtn.open-big { font-size: 17px; }
 </div>
 
 <!-- でかぶつのある現場の一覧 -->
-<div class="sheet" id="sitesSheet">
+<div class="sheet center" id="sitesSheet">
   <div class="sheet-head"><h1 id="sitesTitle"></h1><button class="burger" data-close aria-label="閉じる">✕</button></div>
   <div class="sheet-body"><div class="sites" id="sites"></div></div>
 </div>
