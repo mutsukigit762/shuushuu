@@ -583,13 +583,13 @@ function curSite() {
   return { yen: i < 0 ? 0 : l[i].price, bigYen: es.reduce((a, e) => a + (e.short ? bigYen(e) : 0), 0) };
 }
 // 金額が合わない時：押したボタンが赤くブルッと震える
-// 隠し：同じボタンを続けて10回押すと、大きく震えて字が一瞬「😡」になる
+// 隠し：同じボタンを続けて20回押すと、大きく震えて字が一瞬「😡」になる
 let ngBtn = null, ngCount = 0, ngLast = 0;
 function refuse(btn) {
   const now = Date.now();
   ngCount = (btn === ngBtn && now - ngLast < 1000) ? ngCount + 1 : 1;
   ngBtn = btn; ngLast = now;
-  if (ngCount >= 10) {
+  if (ngCount >= 20) {
     ngCount = 0;
     const p = btn.querySelector('.p'), orig = p.textContent;
     p.textContent = '😡';
