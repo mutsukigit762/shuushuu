@@ -364,15 +364,14 @@ const GROUPS = [
       { name: 'ベッドマット', short: 'ベマ', tiers: [
         { price: 1300, cond: '幅120以下' },
         { price: 2300, cond: '幅140以上' },
-        { price: 900,  cond: '低反発' },
+        { price: 900,  cond: '低反発', label: '低反発ベッドマット' },
       ]},
     ],
   },
   {
-    title: '箱物',
+    title: '箱物系',
     items: [
       { name: '箱物', short: '箱物', tiers: [
-        { price: 400,  cond: '〜180' },
         { price: 900,  cond: '180〜' },
         { price: 1300, cond: '225〜' },
         { price: 2300, cond: '315〜' },
@@ -401,8 +400,8 @@ const GROUPS = [
         { price: 1300, cond: '150以上' },
       ]},
       { name: '自転車', short: '自転車', tiers: [
-        { price: 400, cond: '16インチ以下' },
-        { price: 900, cond: '18インチ以上' },
+        { price: 900,  cond: '18インチ以上' },
+        { price: 1300, cond: '電動', label: '電動自転車' },
       ]},
     ],
   },
@@ -520,10 +519,9 @@ function sites(list) {
 
 // 一覧用の書き方：「900円テーブル」。料金は品目ボタンの定義から引く
 function bigLabel(e) {
-  let yenv = e.price;
+  let yenv = e.price, name = e.name;
   for (const g of GROUPS) for (const it of g.items) if (it.name === e.name)
-    for (const t of it.tiers) if (t.cond === e.cond) yenv = t.price;
-  const name = e.cond === '低反発' ? '低反発ベッドマット' : e.name;
+    for (const t of it.tiers) if (t.cond === e.cond) { yenv = t.price; name = t.label || e.name; }
   return yenv ? `${yenv.toLocaleString('ja-JP')}円${name}` : name;
 }
 
