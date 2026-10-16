@@ -315,7 +315,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .big-head { padding: 14px 12px 10px; flex-direction: column; align-items: stretch; gap: 10px; }
 .big-head h1 { font-size: 17px; }
 .big-head #siteBig { flex: none; width: 100%; }
-.tbtn.ng { animation: shake .32s ease, ngred .6s ease; }
+.tbtn.ng, .pbtn.ng, .pad-add.ng { animation: shake .32s ease, ngred .6s ease; }
 .tbtn.mad { animation: bigshake .6s ease, ngred 1.2s ease; z-index: 2; }
 .tbtn.mad .p { scale: 1.9; color: var(--text); }
 .tbtn.mad::after { display: none; } /* 😡の間は「×n」を隠す */
@@ -596,6 +596,13 @@ function curSite() {
   return { yen: i < 0 ? 0 : l[i].price, bigYen: es.reduce((a, e) => a + (e.short ? bigYen(e) : 0), 0) };
 }
 // 金額が合わない時：押したボタンが赤くブルッと震える
+// 1台は999pでカンスト。超える分は入れずに、押したボタンが赤く震える
+const over999 = yen => sum(cur()) + yen > 99900;
+function shakeNg(btn) {
+  btn.classList.remove('ng'); void btn.offsetWidth; btn.classList.add('ng');
+  if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
+}
+
 // 隠し：同じボタンを続けて20回押すと、大きく震えて字が一瞬「😡」になる
 let ngBtn = null, ngCount = 0, ngLast = 0;
 function refuse(btn) {
@@ -701,6 +708,7 @@ document.addEventListener('click', e => {
   } else if (b.dataset.key) {
     padPress(b.dataset.key);
   } else if (b.dataset.price) {
+    if (over999(+b.dataset.price)) { shakeNg(b); return; }
     add({ price: +b.dataset.price });
   } else if (b.dataset.tier) {
     const [gi, ii, ti] = b.dataset.tier.split('-').map(Number);
@@ -737,6 +745,7 @@ function padPress(k) {
 document.getElementById('padAdd').onclick = () => {
   const n = +padVal;
   if (!n) return;
+  if (over999(n * 100)) { shakeNg(document.getElementById('padAdd')); return; }
   padVal = ''; renderPad();
   add({ price: n * 100 });
   closeAll();
