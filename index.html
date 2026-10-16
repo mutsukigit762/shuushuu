@@ -173,9 +173,7 @@ main .combo-row .pbtn { font-size: 17px; }
   padding: 10px; margin-bottom: 8px;
 }
 .item-name { font-size: 15px; font-weight: 700; margin-bottom: 8px; display: flex; justify-content: space-between; }
-.item-name .cnt { color: var(--accent); }
 .tiers { display: grid; gap: 6px; }
-.item-name:has(span:first-child:empty):has(.cnt:empty) { display: none; }
 .tbtn {
   border: 1px solid var(--border); background: var(--card2); color: var(--text);
   border-radius: 10px; padding: 8px 4px; cursor: pointer; font-family: inherit; text-align: center;
@@ -486,10 +484,6 @@ function render() {
   ).join('');
 
   // 品目ごとの点数
-  document.querySelectorAll('[data-cnt]').forEach(el => {
-    const n = list.concat(pendingBigs).filter(e => e.name === el.dataset.cnt).length;
-    el.textContent = n ? `${n}点` : '';
-  });
 
   // 現場ごとのでかぶつ
   // 現場の番号（何箇所目か）は、でかぶつの無い現場も含めて数える。まとめるのは同じ現場の中だけ
@@ -592,7 +586,7 @@ function buildButtons() {
   document.getElementById('groups').innerHTML = GROUPS.map((g, gi) =>
     `<section>${g.items.map((it, ii) =>
       `<div class="item">
-        <div class="item-name"><span>${it.title || it.name}${it.kinds ? `<button class="kind" data-kind="${gi}-${ii}" data-value="">箱物</button>` : ''}</span><span class="cnt" data-cnt="${it.name}"></span></div>
+        <div class="item-name"><span>${it.title || it.name}${it.kinds ? `<button class="kind" data-kind="${gi}-${ii}" data-value="">箱物</button>` : ''}</span></div>
         ${it.kinds ? `<div class="kind-pop" data-pop="${gi}-${ii}">${['', ...it.kinds].map(k =>
           `<button data-pick="${k}"${k ? '' : ' class="on"'}>${k || '箱物'}</button>`).join('')}</div>` : ''}
         <div class="tiers" style="grid-template-columns:repeat(${it.tiers.length},1fr)">${it.tiers.map((t, ti) =>
