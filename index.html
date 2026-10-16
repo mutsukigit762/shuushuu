@@ -653,7 +653,10 @@ function buildButtons() {
   // 41pまでを小さい順に並べる（4→8→9→12→13→16…）。料金そのもの（4・9・13・23・32p）は色だけ変える。42p から先はテンキー
   const base = PRICES.map(p => p / 100);
   const pts = [...new Set([...base, ...comboPoints(41)])].sort((a, b) => a - b);
-  document.getElementById('comboRow').innerHTML = pts.map(n =>
+  // 5つずつの行にして、行の順番だけ逆に。小さい数が下（テンキー・でかぶつのすぐ上）、上に行くほど大きい。行の中は左から右へ増える
+  const rows = [];
+  for (let i = 0; i < pts.length; i += 5) rows.push(pts.slice(i, i + 5));
+  document.getElementById('comboRow').innerHTML = rows.reverse().flat().map(n =>
     `<button class="pbtn${base.includes(n) ? ' base' : ''}" data-price="${n * 100}">${n}<small>p</small></button>`).join('') +
     '<button class="pbtn open-pad" data-open="padSheet" aria-label="テンキー"><svg viewBox="0 0 24 26" width="22" height="24" fill="currentColor"><circle cx="6" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="11" r="2"/><circle cx="12" cy="11" r="2"/><circle cx="18" cy="11" r="2"/><circle cx="6" cy="17" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="18" cy="17" r="2"/><circle cx="12" cy="23" r="2"/></svg></button>' +
     '<button class="pbtn open-big" data-open="bigSheet">でかぶつ</button>';
