@@ -261,7 +261,13 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .sheet-head .ok {
   height: 44px; padding: 0 18px; border-radius: 10px; border: none; cursor: pointer;
   background: var(--accent); color: var(--on-accent); display: grid; place-items: center;
+  font-size: 16px; font-weight: 700; font-family: inherit;
 }
+/* でかぶつ登録だけ、下からニュッと出る。下に払うと閉じる */
+#bigSheet { transition: transform .26s cubic-bezier(.2,.8,.3,1), visibility 0s linear .26s; }
+#bigSheet.on { transition: transform .26s cubic-bezier(.2,.8,.3,1), visibility 0s; }
+#bigSheet.drag { transition: none; }
+@media (prefers-reduced-motion: reduce) { #bigSheet, #bigSheet.on { transition: none; } }
 .tag.pend { background: transparent; border: 1.5px dashed var(--text); color: var(--text); font-family: inherit; cursor: pointer; }
 .sheet-body { flex: 1; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 4px 12px calc(16px + env(safe-area-inset-bottom)); }
 .sheet .pad { margin-top: 0; border: none; padding: 0; }
@@ -342,7 +348,7 @@ main .combo-row .pbtn.open-big { font-size: 17px; }
 
 <!-- いまの現場のでかぶつ -->
 <div class="sheet tall" id="bigSheet">
-  <div class="sheet-head"><h1 id="bigTitle"></h1><button class="ok" id="bigOk" aria-label="登録して閉じる"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5L19.5 7"/></svg></button><button class="burger" data-close aria-label="登録せずに閉じる">✕</button></div>
+  <div class="sheet-head"><h1 id="bigTitle"></h1><button class="ok" id="bigOk" aria-label="登録して閉じる">登録</button></div>
   <div class="sheet-body">
     <div class="hero-big" id="siteBig"></div>
     <div id="groups"></div>
@@ -362,9 +368,9 @@ const GROUPS = [
     title: 'ベッドマット',
     items: [
       { name: 'ベッドマット', short: 'ベマ', tiers: [
+        { price: 900,  cond: '低反発', label: '低反発ベッドマット' },
         { price: 1300, cond: '幅120以下' },
         { price: 2300, cond: '幅140以上' },
-        { price: 900,  cond: '低反発', label: '低反発ベッドマット' },
       ]},
     ],
   },
@@ -385,6 +391,7 @@ const GROUPS = [
       { name: 'ベッド', short: 'ベッド', tiers: [
         { price: 1300, cond: 'シングル' },
         { price: 2300, cond: 'セミダブル〜' },
+        { price: 3200, cond: '3200' },
       ]},
       { name: 'ソファー', short: 'ソファー', tiers: [
         { price: 900,  cond: '幅100未満' },
@@ -393,6 +400,7 @@ const GROUPS = [
       { name: '机', short: '机', tiers: [
         { price: 900,  cond: '袖なし' },
         { price: 1300, cond: '片袖' },
+        { price: 2300, cond: '2300' },
         { price: 3200, cond: '両袖' },
       ]},
       { name: 'テーブル', short: 'テーブル', tiers: [
@@ -774,6 +782,30 @@ document.getElementById('bigOk').onclick = () => {
   save(); closeAll();
 };
 scrim.onclick = closeAll;
+
+// でかぶつ登録は下に払うと閉じる（登録せずに閉じる）。中身がスクロールしてる時はスクロールを優先
+const bigSheet = document.getElementById('bigSheet');
+const bigBody = bigSheet.querySelector('.sheet-body');
+let dragY = null, dragDy = 0;
+bigSheet.addEventListener('touchstart', e => {
+  dragY = (bigBody.contains(e.target) && bigBody.scrollTop > 0) ? null : e.touches[0].clientY;
+  dragDy = 0;
+}, { passive: true });
+bigSheet.addEventListener('touchmove', e => {
+  if (dragY === null) return;
+  dragDy = e.touches[0].clientY - dragY;
+  if (dragDy <= 0) { bigSheet.classList.remove('drag'); bigSheet.style.transform = ''; return; }
+  e.preventDefault();
+  bigSheet.classList.add('drag');
+  bigSheet.style.transform = `translateY(${dragDy}px)`;
+}, { passive: false });
+bigSheet.addEventListener('touchend', () => {
+  if (dragY === null) return;
+  dragY = null;
+  bigSheet.classList.remove('drag');
+  bigSheet.style.transform = '';
+  if (dragDy > 80) closeAll();
+});
 
 // アプリに戻ってきた時に日付をまたいでいたら新しい日にする
 document.addEventListener('visibilitychange', () => {
