@@ -133,11 +133,9 @@ main { padding: 12px; max-width: 560px; margin: 0 auto; }
 /* セクション */
 section { margin-bottom: 16px; }
 h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; }
-/* 全部同じ大きさ（6等分）で小さい順に並べる。料金そのものは色だけグレー */
-.combo-row { display: flex; flex-wrap: wrap; gap: 5px; align-content: flex-start; align-items: flex-end; }
-.combo-row .pbtn { flex: none; width: calc((100% - 25px) / 6); }
+/* 全部同じ大きさで小さい順に並べる。7列×5行で、最後の行はテンキーのあとをでかぶつが右端まで埋める。料金そのものは色だけグレー */
+.combo-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
 .combo-row .pbtn.base { background: var(--card2); }
-.combo-row .pbtn.open-big { width: calc((100% - 25px) / 6 * 2 + 5px); }
 .pbtn small, .tbtn .p small, .dai-chip b small { font-size: 0.7em; font-weight: 600; margin-left: 1px; }
 .combo-row .pbtn { height: 42px; font-size: 15px; border-radius: 10px; background: var(--card); }
 
@@ -145,7 +143,9 @@ h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; 
 body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 main { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; }
 main > section { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-bottom: 0; }
-main .combo-row .pbtn { height: 52px; font-size: 17px; }
+/* 残りの高さを5行で分けて、ボタンを縦に大きくする */
+main .combo-row { flex: 1; min-height: 0; grid-template-rows: repeat(5, 1fr); padding-bottom: 8px; }
+main .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
 
 /* テンキー */
 .pad { margin-top: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 10px; }
@@ -325,7 +325,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
 /* 青＝テンキー、ピンク＝でかぶつ */
 .combo-row .pbtn.open-pad { font-size: 14px; }
-main .combo-row .pbtn.open-big { font-size: 17px; }
+main .combo-row .pbtn.open-big { font-size: 17px; grid-column: span 4; }
 .combo-row .pbtn.open-pad { display: grid; place-items: center; }
 .combo-row .pbtn.open-big { grid-column: span 2; font-size: 14px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
