@@ -64,12 +64,12 @@ main { padding: 12px; max-width: 560px; margin: 0 auto; }
   padding: 14px 16px 12px; margin-bottom: 10px;
 }
 .hero-label { font-size: 13px; color: var(--text2); display: flex; justify-content: space-between; }
-.hero-amount { font-size: 52px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; margin-top: 2px; }
+.hero-amount { font-size: 52px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.hero-amount .ph { visibility: hidden; font-style: normal; }
 .hero-amount small { font-size: 22px; font-weight: 700; margin-left: 2px; }
 /* 数字のカウンター：変わった桁だけ、新しい数字が上から降りてきて、今の数字は下へ落ちる */
 .dg { display: inline-block; height: 1.1em; overflow: hidden; vertical-align: bottom; }
 /* 桁が減る・増える時は、その桁の幅も一緒に動かす（あとからガクッとずれないように） */
-.dg.out, .dg.in { transition: width .28s cubic-bezier(.2,.8,.3,1); }
 .dg .track { display: flex; flex-direction: column; animation: drop .28s cubic-bezier(.2,.8,.3,1) both; }
 .dg .track span { height: 1.1em; }
 @keyframes drop { from { transform: translateY(-1.1em); } to { transform: translateY(0); } }
@@ -611,26 +611,20 @@ function bigLabel(e) {
 }
 
 let shownAmount = null, amountTimer;
+// 3桁ぶんの場所を最初から取っておく（空いた桁は見えない0で埋める）。桁が増えても「p」が横に動かない
+const AMOUNT_W = 3;
 function setAmount(str) {
   const el = document.getElementById('heroAmount');
-  const still = t => [...t].map(c => `<span class="dg">${c}</span>`).join('') + '<small>p</small>';
+  const ch = c => c === ' ' ? '<i class="ph">0</i>' : c;
+  const still = t => [...t.padStart(AMOUNT_W, ' ')].map(c => `<span class="dg">${ch(c)}</span>`).join('') + '<small>p</small>';
   if (shownAmount === null || shownAmount === str) { shownAmount = str; el.innerHTML = still(str); return; }
-  // 桁数が違う時は左を空白で埋めて、右から桁をそろえる
-  const len = Math.max(str.length, shownAmount.length);
+  // 右から桁をそろえて、変わった桁だけ上から降りてくる
+  const len = Math.max(AMOUNT_W, str.length, shownAmount.length);
   const a = shownAmount.padStart(len, ' '), b = str.padStart(len, ' ');
-  const ch = c => c === ' ' ? '&#8203;' : c;
-  el.innerHTML = [...b].map((c, i) => {
-    if (c === a[i]) return `<span class="dg">${c}</span>`;
-    const cls = c === ' ' ? 'dg out' : a[i] === ' ' ? 'dg in' : 'dg';
-    return `<span class="${cls}"><span class="track"><span>${ch(c)}</span><span>${ch(a[i])}</span></span></span>`;
-  }).join('') + '<small>p</small>';
-  // 消える桁は幅を0へ、増える桁は0から。落ちる動きと同時に幅が変わる
-  el.querySelectorAll('.dg.out, .dg.in').forEach(d => {
-    const out = d.classList.contains('out'), w = d.firstElementChild.offsetWidth;
-    d.style.width = (out ? w : 0) + 'px';
-    void d.offsetWidth; // ここで一度幅を確定させないと、transitionが始まらない
-    d.style.width = (out ? 0 : w) + 'px';
-  });
+  el.innerHTML = [...b].map((c, i) => c === a[i]
+    ? `<span class="dg">${ch(c)}</span>`
+    : `<span class="dg"><span class="track"><span>${ch(c)}</span><span>${ch(a[i])}</span></span></span>`
+  ).join('') + '<small>p</small>';
   shownAmount = str;
   clearTimeout(amountTimer);
   amountTimer = setTimeout(() => { el.innerHTML = still(str); }, 320); // 落ちきったら普通の数字に戻す
