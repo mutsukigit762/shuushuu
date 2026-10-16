@@ -66,6 +66,8 @@ main { padding: 12px; max-width: 560px; margin: 0 auto; }
 .hero-amount small { font-size: 22px; font-weight: 700; margin-left: 2px; }
 /* 数字のカウンター：変わった桁だけ、新しい数字が上から降りてきて、今の数字は下へ落ちる */
 .dg { display: inline-block; height: 1.1em; overflow: hidden; vertical-align: bottom; }
+/* 桁が減る・増える時は、その桁の幅も一緒に動かす（あとからガクッとずれないように） */
+.dg.out, .dg.in { transition: width .28s cubic-bezier(.2,.8,.3,1); }
 .dg .track { display: flex; flex-direction: column; animation: drop .28s cubic-bezier(.2,.8,.3,1) both; }
 .dg .track span { height: 1.1em; }
 @keyframes drop { from { transform: translateY(-1.1em); } to { transform: translateY(0); } }
@@ -523,10 +525,19 @@ function setAmount(str) {
   // 桁数が違う時は左を空白で埋めて、右から桁をそろえる
   const len = Math.max(str.length, shownAmount.length);
   const a = shownAmount.padStart(len, ' '), b = str.padStart(len, ' ');
-  el.innerHTML = [...b].map((c, i) => c === a[i]
-    ? `<span class="dg">${c}</span>`
-    : `<span class="dg"><span class="track"><span>${c.trim() || '&#8203;'}</span><span>${a[i].trim() || '&#8203;'}</span></span></span>`
-  ).join('') + '<small>p</small>';
+  const ch = c => c === ' ' ? '&#8203;' : c;
+  el.innerHTML = [...b].map((c, i) => {
+    if (c === a[i]) return `<span class="dg">${c}</span>`;
+    const cls = c === ' ' ? 'dg out' : a[i] === ' ' ? 'dg in' : 'dg';
+    return `<span class="${cls}"><span class="track"><span>${ch(c)}</span><span>${ch(a[i])}</span></span></span>`;
+  }).join('') + '<small>p</small>';
+  // 消える桁は幅を0へ、増える桁は0から。落ちる動きと同時に幅が変わる
+  el.querySelectorAll('.dg.out, .dg.in').forEach(d => {
+    const out = d.classList.contains('out'), w = d.firstElementChild.offsetWidth;
+    d.style.width = (out ? w : 0) + 'px';
+    void d.offsetWidth; // ここで一度幅を確定させないと、transitionが始まらない
+    d.style.width = (out ? 0 : w) + 'px';
+  });
   shownAmount = str;
   clearTimeout(amountTimer);
   amountTimer = setTimeout(() => { el.innerHTML = still(str); }, 320); // 落ちきったら普通の数字に戻す
@@ -583,6 +594,7 @@ document.addEventListener('click', e => {
     pendingBigs.splice(+b.dataset.unpend, 1);
     render();
   } else if (b.dataset.dai != null) {
+    shownAmount = null; // 台を変える時は数字をパッと切り替える
     state.cur = +b.dataset.dai;
     save(); render();
   }
