@@ -306,7 +306,6 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 main .combo-row .pbtn.open-big { font-size: 17px; }
 .combo-row .pbtn.open-pad { display: grid; place-items: center; }
 .combo-row .pbtn.open-big { grid-column: span 2; font-size: 14px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-.open-big .badge { display: inline-block; min-width: 20px; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: var(--on-accent); color: var(--accent); font-size: 12px; line-height: 20px; }
 
 </style>
 </head>
@@ -498,9 +497,6 @@ function render() {
   // ピンクのボタンとでかぶつ画面：いまの現場（最後にポイントを入れた現場）
   const last = ss[ss.length - 1];
   const lastBigs = last ? [...last.labels] : [];
-  const lastN = lastBigs.reduce((a, [, n]) => a + n, 0);
-  document.getElementById('bigBadge').textContent = lastN || '';
-  document.getElementById('bigBadge').style.display = lastN ? '' : 'none';
   // 登録済みは塗り、☑️待ちは枠だけ（押すと取り消し）
   document.getElementById('siteBig').innerHTML = (lastBigs.length || pendingBigs.length)
     ? lastBigs.map(([k, n]) => `<span class="tag">${k}${n > 1 ? '×' + n : ''}</span>`).join('') +
@@ -580,7 +576,7 @@ function buildButtons() {
   document.getElementById('comboRow').innerHTML = comboPoints(41).map(n =>
     `<button class="pbtn" data-price="${n * 100}">${n}<small>p</small></button>`).join('') +
     '<button class="pbtn open-pad" data-open="padSheet" aria-label="テンキー"><svg viewBox="0 0 24 26" width="22" height="24" fill="currentColor"><circle cx="6" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="11" r="2"/><circle cx="12" cy="11" r="2"/><circle cx="18" cy="11" r="2"/><circle cx="6" cy="17" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="18" cy="17" r="2"/><circle cx="12" cy="23" r="2"/></svg></button>' +
-    '<button class="pbtn open-big" data-open="bigSheet">でかぶつ<span class="badge" id="bigBadge"></span></button>';
+    '<button class="pbtn open-big" data-open="bigSheet">でかぶつ</button>';
 
   // 見出しで分けず、どの品目も同じ形のカードで並べる
   document.getElementById('groups').innerHTML = GROUPS.map((g, gi) =>
