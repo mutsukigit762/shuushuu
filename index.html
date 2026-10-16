@@ -185,8 +185,11 @@ main .combo-row .pbtn { font-size: 17px; }
   height: 56px; border-radius: 14px; border: 1px solid var(--border); background: var(--card2);
   color: var(--text); font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit;
 }
-.bbtn.undo { width: 96px; }
-.bbtn.next { flex: 1; background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.bottom .bbtn { flex: 1; font-size: 14px; white-space: nowrap; padding: 0 4px; }
+.bottom .bbtn.undo { flex: 0 0 84px; }
+.bbtn.undo { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.bbtn:disabled { opacity: 0.35; }
+.bbtn.reset-all { border-color: var(--red); color: var(--red); background: transparent; }
 
 /* ドロワー（料金表） */
 .scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 20; opacity: 0; pointer-events: none; }
@@ -218,11 +221,6 @@ td.g { color: var(--text); font-weight: 700; }
 tr.cont td.g { color: transparent; }
 tr.cont td { border-top-color: #f0f0ee; }
 .note { font-size: 12px; color: var(--text2); margin-top: 6px; line-height: 1.6; }
-.menu-btn {
-  width: 100%; margin-top: 24px; height: 48px; border-radius: 12px;
-  border: 1px solid var(--red); background: transparent; color: var(--red);
-  font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer;
-}
 
 /* 下から出る画面 */
 .sheet {
@@ -297,7 +295,8 @@ main .combo-row .pbtn.open-big { font-size: 17px; }
 
 <div class="bottom"><div>
   <button class="bbtn undo" id="undo">1つ戻す</button>
-  <button class="bbtn next" id="next">次の台へ</button>
+  <button class="bbtn" id="resetDai">この台をリセット</button>
+  <button class="bbtn reset-all" id="resetAll">全てリセット</button>
 </div></div>
 
 <div class="scrim" id="scrim"></div>
@@ -486,6 +485,8 @@ function render() {
   document.getElementById('bigOk').disabled = !pendingBigs.length;
 
   document.getElementById('undo').disabled = !list.length;
+  document.getElementById('resetDai').disabled = !list.length;
+  document.getElementById('resetAll').disabled = !state.dais.some(l => l.length);
 }
 
 // 1行目のポイントを2つ以上組み合わせて作れる合計（max以下）。8, 12, 13, 16, 17 …
@@ -617,13 +618,16 @@ document.getElementById('undo').onclick = () => {
   toast(e.big ? `${e.name} 取り消し` : `−${pt(e.price)}p 取り消し`);
 };
 
-document.getElementById('next').onclick = () => {
-  if (!cur().length) { toast('この台はまだ空だよ'); return; }
-  // ひとつ先の台へ。5台目より先は台を足す
-  if (state.cur === state.dais.length - 1) state.dais.push([]);
-  state.cur++;
+// 台の行き来は①〜⑤のチップで。リセットは押し間違いが怖いので確認を挟む
+document.getElementById('resetDai').onclick = () => {
+  if (!cur().length) return;
+  if (!confirm(`${maru(state.cur)}台目を空にする？`)) return;
+  state.dais[state.cur] = [];
   save(); render();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+document.getElementById('resetAll').onclick = () => {
+  if (!confirm('①〜⑤を全部消す？')) return;
+  state = newDay(); save(); render();
 };
 
 // ===== 料金表（マニュアル p.6〜9 と束品目一覧から） =====
@@ -702,7 +706,6 @@ const TABLES = `
 </table>
 <p class="note">最大辺30cm以下は不燃ごみ（可燃ごみ）。傘、蛍光管、フライパン、フロアポンプは30cm超でも不燃ごみ。ダンベルは5kg以下は不燃ごみ。</p>
 
-<button class="menu-btn" id="resetDay">今日の記録を全部消す</button>
 `;
 
 const scrim = document.getElementById('scrim');
@@ -730,10 +733,6 @@ document.getElementById('bigOk').onclick = () => {
   toast(`でかぶつ ${n}点 登録`);
 };
 scrim.onclick = closeAll;
-document.getElementById('resetDay').onclick = () => {
-  if (!confirm('今日の台をぜんぶ消す？')) return;
-  state = newDay(); save(); render(); closeAll();
-};
 
 // アプリに戻ってきた時に日付をまたいでいたら新しい日にする
 document.addEventListener('visibilitychange', () => {
