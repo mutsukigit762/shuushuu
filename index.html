@@ -146,18 +146,20 @@ h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; 
   display: flex; flex-direction: column;
 }
 .drawer.on { transform: none; }
+body.lock { overflow: hidden; }
 .drawer-head {
   padding: calc(env(safe-area-inset-top) + 10px) 12px 10px;
   display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border);
 }
 .drawer-head h1 { flex: 1; font-size: 18px; }
-.drawer-body { flex: 1; overflow-y: auto; padding: 12px 12px calc(24px + env(safe-area-inset-bottom)); -webkit-user-select: text; user-select: text; }
+.drawer-body { flex: 1; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y; padding: 12px 12px calc(24px + env(safe-area-inset-bottom)); -webkit-user-select: text; user-select: text; }
 .drawer-body h3 { font-size: 15px; margin: 18px 0 8px; color: var(--accent); }
 .drawer-body h3:first-child { margin-top: 4px; }
-table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px var(--border); }
+table { width: 100%; max-width: 100%; border-collapse: collapse; font-size: 14px; background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px var(--border); }
 th { background: var(--card2); color: var(--text2); font-weight: 600; font-size: 12px; text-align: left; padding: 7px 8px; }
 td { padding: 8px; border-top: 1px solid var(--border); vertical-align: top; }
 td:first-child { white-space: nowrap; }
+table.wrap td:first-child { white-space: normal; }
 td.yen { white-space: nowrap; font-weight: 700; text-align: right; }
 td.g { color: var(--text); font-weight: 700; }
 tr.cont td.g { color: transparent; }
@@ -456,7 +458,7 @@ const TABLES = `
 <p class="note">箱物系：タンス、チェスト、食器棚、本棚、スチール棚、テレビ台、レンジ台、キャビネット、カラーボックス、下駄箱、鏡台、ロッカー、ペット小屋 など。<br>こたつも100cm以上は900円テーブル扱い。</p>
 
 <h3>種別で変わるもの</h3>
-<table>
+<table class="wrap">
 <tr><th>品目</th><th style="text-align:right">料金</th><th>備考</th></tr>
 <tr><td class="g">電子レンジ（単機能）</td><td class="yen">400円</td><td></td></tr>
 <tr><td class="g">オーブンレンジ</td><td class="yen">900円</td><td>「電熱装置の定格消費電力」の記載あり</td></tr>
@@ -500,8 +502,8 @@ const TABLES = `
 
 const drawer = document.getElementById('drawer'), scrim = document.getElementById('scrim');
 document.getElementById('drawerBody').innerHTML = TABLES;
-const openDrawer = () => { drawer.classList.add('on'); scrim.classList.add('on'); };
-const closeDrawer = () => { drawer.classList.remove('on'); scrim.classList.remove('on'); };
+const openDrawer = () => { drawer.classList.add('on'); scrim.classList.add('on'); document.body.classList.add('lock'); };
+const closeDrawer = () => { drawer.classList.remove('on'); scrim.classList.remove('on'); document.body.classList.remove('lock'); };
 document.getElementById('burger').onclick = openDrawer;
 document.getElementById('closeDrawer').onclick = closeDrawer;
 scrim.onclick = closeDrawer;
