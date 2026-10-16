@@ -233,6 +233,7 @@ td.yen { white-space: nowrap; font-weight: 700; text-align: right; }
 td.g { color: var(--text); font-weight: 700; }
 tr.cont td.g { color: transparent; }
 tr.cont td { border-top-color: #f0f0ee; }
+tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目名は違うので消さない */
 .note { font-size: 12px; color: var(--text2); margin-top: 6px; line-height: 1.6; }
 
 /* 下から出る画面 */
@@ -669,7 +670,7 @@ const TABLES = `
 <tr class="cont"><td class="g">箱物系</td><td class="yen">1,300円</td><td>三辺合計 225cm以上</td></tr>
 <tr class="cont"><td class="g">箱物系</td><td class="yen">2,300円</td><td>三辺合計 315cm以上</td></tr>
 <tr class="cont"><td class="g">箱物系</td><td class="yen">3,200円</td><td>三辺合計 405cm以上</td></tr>
-<tr><td class="g">ベッドマット</td><td class="yen">1,300円</td><td>幅 120cm以下（セミシングル〜セミダブル）</td></tr>
+<tr class="sub"><td class="g">ベッドマット</td><td class="yen">1,300円</td><td>幅 120cm以下（セミシングル〜セミダブル）</td></tr>
 <tr class="cont"><td class="g">ベッドマット</td><td class="yen">2,300円</td><td>幅 140cm以上（ダブル〜キング）</td></tr>
 <tr><td class="g">ソファー</td><td class="yen">900円</td><td>幅 100cm未満（一人用扱い）</td></tr>
 <tr class="cont"><td class="g">ソファー</td><td class="yen">2,300円</td><td>幅 100cm以上（二人用以上扱い）</td></tr>
@@ -684,27 +685,27 @@ const TABLES = `
 <table class="wrap">
 <tr><th>品目</th><th style="text-align:right">料金</th><th>備考</th></tr>
 <tr><td class="g">電子レンジ（単機能）</td><td class="yen">400円</td><td></td></tr>
-<tr><td class="g">オーブンレンジ</td><td class="yen">900円</td><td>「電熱装置の定格消費電力」の記載あり</td></tr>
+<tr class="sub"><td class="g">オーブンレンジ</td><td class="yen">900円</td><td>「電熱装置の定格消費電力」の記載あり</td></tr>
 <tr><td class="g">椅子</td><td class="yen">400円</td><td></td></tr>
-<tr><td class="g">ゲーミングチェア</td><td class="yen">900円</td><td>20kg超は1,300円</td></tr>
+<tr class="sub"><td class="g">ゲーミングチェア</td><td class="yen">900円</td><td>20kg超は1,300円</td></tr>
 <tr><td class="g">ストーブ</td><td class="yen">400円</td><td></td></tr>
-<tr><td class="g">オイル/パネルヒーター</td><td class="yen">900円</td><td></td></tr>
+<tr class="sub"><td class="g">オイル/パネルヒーター</td><td class="yen">900円</td><td></td></tr>
 <tr><td class="g">子ども用遊具</td><td class="yen">400円</td><td>乗物玩具、三輪車など</td></tr>
-<tr><td class="g">滑り台/ブランコ/スライダージム</td><td class="yen">900円</td><td></td></tr>
+<tr class="sub"><td class="g">滑り台/ブランコ/スライダージム</td><td class="yen">900円</td><td></td></tr>
 <tr><td class="g">マットレス</td><td class="yen">400円</td><td>三つ折り・丸められるもの</td></tr>
-<tr><td class="g">低反発ベッドマット</td><td class="yen">900円</td><td>スプリングなし。幅は問わず</td></tr>
+<tr class="sub"><td class="g">低反発ベッドマット</td><td class="yen">900円</td><td>スプリングなし。幅は問わず</td></tr>
 <tr><td class="g">ベッドマット</td><td class="yen">1,300円</td><td>スプリングあり。幅120以下</td></tr>
 <tr class="cont"><td class="g">ベッドマット</td><td class="yen">2,300円</td><td>スプリングあり。幅140以上</td></tr>
 <tr><td class="g">ペット用品</td><td class="yen">400円</td><td>ケージ、トイレ、キャリーなど</td></tr>
-<tr><td class="g">キャットタワー</td><td class="yen">400円</td><td>10kg以下</td></tr>
+<tr class="sub"><td class="g">キャットタワー</td><td class="yen">400円</td><td>10kg以下</td></tr>
 <tr class="cont"><td class="g">キャットタワー</td><td class="yen">900円</td><td>10kg超（高さ130cm程度）</td></tr>
 <tr class="cont"><td class="g">キャットタワー</td><td class="yen">1,300円</td><td>20kg超</td></tr>
 <tr><td class="g">文机</td><td class="yen">400円</td><td>床に座って使う机</td></tr>
-<tr><td class="g">袖なし机</td><td class="yen">900円</td><td></td></tr>
-<tr><td class="g">片袖机</td><td class="yen">1,300円</td><td></td></tr>
-<tr><td class="g">両袖机</td><td class="yen">3,200円</td><td></td></tr>
+<tr class="sub"><td class="g">袖なし机</td><td class="yen">900円</td><td></td></tr>
+<tr class="sub"><td class="g">片袖机</td><td class="yen">1,300円</td><td></td></tr>
+<tr class="sub"><td class="g">両袖机</td><td class="yen">3,200円</td><td></td></tr>
 <tr><td class="g">ミシン（卓上式）</td><td class="yen">900円</td><td></td></tr>
-<tr><td class="g">ミシン（卓上式を除く）</td><td class="yen">2,300円</td><td></td></tr>
+<tr class="sub"><td class="g">ミシン（卓上式を除く）</td><td class="yen">2,300円</td><td></td></tr>
 </table>
 
 <h3>束で400円</h3>
