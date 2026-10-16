@@ -240,7 +240,8 @@ tr.cont td { border-top-color: #f0f0ee; }
   border-radius: 20px; transform: translate(-50%, -50%);
 }
 .sheet.center.on { transform: translate(-50%, -50%); }
-.sheet.center .sheet-body { padding-bottom: 16px; }
+.sheet.center .sheet-body { padding: 16px; }
+.sheet.center .sites { margin-bottom: 0; }
 .sheet-head { display: flex; align-items: center; gap: 10px; padding: 12px 12px 8px; }
 .sheet-head h1 { flex: 1; font-size: 17px; }
 .sheet-head .ok {
@@ -258,8 +259,8 @@ tr.cont td { border-top-color: #f0f0ee; }
 .combo-row .pbtn.open-pad { font-size: 14px; border: 2px solid var(--accent); background: var(--accent-dim); }
 main .combo-row .pbtn.open-pad { font-size: 16px; }
 main .combo-row .pbtn.open-big { font-size: 17px; }
-.combo-row .pbtn.open-pad { grid-column: span 2; }
-.combo-row .pbtn.open-big { grid-column: 1 / -1; font-size: 14px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.combo-row .pbtn.open-pad { display: grid; place-items: center; }
+.combo-row .pbtn.open-big { grid-column: span 2; font-size: 14px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .open-big .badge { display: inline-block; min-width: 20px; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: var(--on-accent); color: var(--accent); font-size: 12px; line-height: 20px; }
 
 .toast {
@@ -331,7 +332,6 @@ main .combo-row .pbtn.open-big { font-size: 17px; }
 
 <!-- でかぶつのある現場の一覧 -->
 <div class="sheet center" id="sitesSheet">
-  <div class="sheet-head"><h1 id="sitesTitle"></h1><button class="burger" data-close aria-label="閉じる">✕</button></div>
   <div class="sheet-body"><div class="sites" id="sites"></div></div>
 </div>
 
@@ -465,7 +465,6 @@ function render() {
   const sb = document.getElementById('sitesBtn');
   sb.textContent = `でかぶつ${withBig.length}箇所`;
   sb.disabled = !withBig.length;
-  document.getElementById('sitesTitle').textContent = `でかぶつのある現場 ${withBig.length}箇所 / ${ss.length}現場`;
   document.getElementById('sites').innerHTML = withBig.map(x =>
     `<div class="site"><span class="no">${x.no}箇所目</span><span class="bg">${
       [...x.labels].map(([k, n]) => k + (n > 1 ? `×${n}` : '')).join('、')
@@ -529,10 +528,10 @@ function bigLabel(e) {
 function buildButtons() {
   document.getElementById('priceRow').innerHTML = PRICES.map(p =>
     `<button class="pbtn" data-price="${p}">${pt(p)}<small>p</small></button>`).join('');
-  // 36pまでボタンで出す（4行目の残り2マスが青）。37p から先はテンキー。ピンクは最後の行を1本まるごと使う
-  document.getElementById('comboRow').innerHTML = comboPoints(36).map(n =>
+  // 41pまでボタンで出す（6列×5行の最後に、テンキー1マスとでかぶつ2マスがちょうど収まる）。42p から先はテンキー
+  document.getElementById('comboRow').innerHTML = comboPoints(41).map(n =>
     `<button class="pbtn" data-price="${n * 100}">${n}<small>p</small></button>`).join('') +
-    '<button class="pbtn open-pad" data-open="padSheet">37p〜</button>' +
+    '<button class="pbtn open-pad" data-open="padSheet" aria-label="テンキー"><svg viewBox="0 0 24 26" width="22" height="24" fill="currentColor"><circle cx="6" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="11" r="2"/><circle cx="12" cy="11" r="2"/><circle cx="18" cy="11" r="2"/><circle cx="6" cy="17" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="18" cy="17" r="2"/><circle cx="12" cy="23" r="2"/></svg></button>' +
     '<button class="pbtn open-big" data-open="bigSheet">でかぶつ<span class="badge" id="bigBadge"></span></button>';
 
   document.getElementById('groups').innerHTML = GROUPS.map((g, gi) =>
