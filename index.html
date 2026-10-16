@@ -98,9 +98,8 @@ h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; 
 body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 main { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; }
 main > section { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-bottom: 0; }
-main .price-row { flex: 1; max-height: 92px; }
-main .combo-row { flex: 2; max-height: 170px; grid-template-rows: 1fr 1fr; }
-main .pbtn, main .combo-row .pbtn { height: auto; min-height: 44px; }
+main .price-row .pbtn { height: 62px; }
+main .combo-row .pbtn { height: 52px; }
 main .price-row .pbtn { font-size: 21px; }
 main .combo-row .pbtn { font-size: 17px; }
 
@@ -164,18 +163,6 @@ main .combo-row .pbtn { font-size: 17px; }
 .pbtn:active, .tbtn:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .tbtn:active .c { color: var(--on-accent); }
 
-/* 積んだもの */
-.log { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
-.log-row { display: flex; align-items: center; padding: 10px 12px; border-top: 1px solid var(--border); font-size: 15px; }
-.log-row:first-child { border-top: none; }
-.log-row .n { flex: 1; color: var(--text2); }
-.log-row .n b { color: var(--text); font-weight: 600; }
-.log-row .y { font-weight: 700; margin-right: 10px; }
-.del {
-  width: 34px; height: 34px; border-radius: 8px; border: none; background: var(--card2);
-  color: var(--text2); font-size: 16px; cursor: pointer;
-}
-.empty { padding: 14px; color: var(--text2); font-size: 14px; text-align: center; }
 
 /* 下の固定ボタン */
 .bottom {
@@ -253,8 +240,10 @@ tr.cont td { border-top-color: #f0f0ee; }
 
 /* 青＝テンキー、ピンク＝でかぶつ */
 .combo-row .pbtn.open-pad { font-size: 14px; border: 2px solid var(--accent); background: var(--accent-dim); }
-main .combo-row .pbtn.open-pad { font-size: 15px; }
-.combo-row .pbtn.open-big { grid-column: span 2; font-size: 14px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+main .combo-row .pbtn.open-pad { font-size: 16px; }
+main .combo-row .pbtn.open-big { font-size: 17px; }
+.combo-row .pbtn.open-pad { grid-column: span 2; }
+.combo-row .pbtn.open-big { grid-column: 1 / -1; font-size: 14px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .open-big .badge { display: inline-block; min-width: 20px; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: var(--on-accent); color: var(--accent); font-size: 12px; line-height: 20px; }
 
 .toast {
@@ -298,12 +287,10 @@ main .combo-row .pbtn.open-pad { font-size: 15px; }
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer">
   <div class="drawer-head">
-    <h1>メニュー</h1>
+    <h1>料金表</h1>
     <button class="burger" data-close aria-label="閉じる">✕</button>
   </div>
   <div class="drawer-body">
-    <h3>この台に積んだもの</h3>
-    <div class="log" id="log"></div>
     <div id="drawerBody"></div>
   </div>
 </aside>
@@ -487,17 +474,6 @@ function render() {
     : '<span class="tag none">この現場はまだ無し</span>';
   document.getElementById('bigOk').disabled = !pendingBigs.length;
 
-  // 積んだもの（新しい順）
-  const log = document.getElementById('log');
-  log.innerHTML = list.length
-    ? list.map((e, i) => ({ e, i })).reverse().map(({ e, i }) =>
-        `<div class="log-row">
-          <span class="n">${e.name ? `<b>${e.name}</b>　${e.cond}` : 'ポイント'}</span>
-          <span class="y">${e.big ? 'でかぶつ' : pt(e.price) + 'p'}</span>
-          <button class="del" data-del="${i}" aria-label="消す">✕</button>
-        </div>`).join('')
-    : '<div class="empty">まだ何も積んでない</div>';
-
   document.getElementById('undo').disabled = !list.length;
 }
 
@@ -529,10 +505,10 @@ function sites(list) {
 function buildButtons() {
   document.getElementById('priceRow').innerHTML = PRICES.map(p =>
     `<button class="pbtn" data-price="${p}">${pt(p)}<small>p</small></button>`).join('');
-  // 24p から先は全部つながっていてテンキーで足りるので、飛び飛びの23pまでだけ出す（4と9で作れない最大が 4×9−4−9＝23）
-  document.getElementById('comboRow').innerHTML = comboPoints(23).map(n =>
+  // 36pまでボタンで出す（4行目の残り2マスが青）。37p から先はテンキー。ピンクは最後の行を1本まるごと使う
+  document.getElementById('comboRow').innerHTML = comboPoints(36).map(n =>
     `<button class="pbtn" data-price="${n * 100}">${n}<small>p</small></button>`).join('') +
-    '<button class="pbtn open-pad" data-open="padSheet">24p〜</button>' +
+    '<button class="pbtn open-pad" data-open="padSheet">37p〜</button>' +
     '<button class="pbtn open-big" data-open="bigSheet">でかぶつ<span class="badge" id="bigBadge"></span></button>';
 
   document.getElementById('groups').innerHTML = GROUPS.map((g, gi) =>
@@ -583,9 +559,6 @@ document.addEventListener('click', e => {
   } else if (b.dataset.unpend != null) {
     pendingBigs.splice(+b.dataset.unpend, 1);
     render();
-  } else if (b.dataset.del != null) {
-    cur().splice(+b.dataset.del, 1);
-    save(); render();
   } else if (b.dataset.dai != null) {
     state.cur = +b.dataset.dai;
     save(); render();
