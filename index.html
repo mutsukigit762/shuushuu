@@ -212,9 +212,18 @@ body.lock { overflow: hidden; }
   display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border);
 }
 .drawer-head h1 { flex: 1; font-size: 18px; }
-.drawer-body { flex: 1; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y; padding: 12px 12px calc(24px + env(safe-area-inset-bottom)); -webkit-user-select: text; user-select: text; }
-.drawer-body h3 { font-size: 15px; margin: 18px 0 8px; color: var(--accent); }
-.drawer-body h3:first-child { margin-top: 4px; }
+/* 料金表は3ページを横スワイプで送る。前後に写しを置いて、端まで行ったら黙って入れ替える */
+.pager { flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.pager::-webkit-scrollbar { display: none; }
+.page {
+  flex: 0 0 100%; scroll-snap-align: start; overflow-y: auto; overscroll-behavior: contain;
+  padding: 4px 12px 16px; -webkit-user-select: text; user-select: text;
+}
+.page h3 { font-size: 15px; margin: 0 0 8px; color: var(--accent); }
+.pager-foot {
+  flex: none; text-align: center; font-size: 13px; color: var(--text2);
+  padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border);
+}
 table { width: 100%; max-width: 100%; border-collapse: collapse; font-size: 14px; background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px var(--border); }
 th { background: var(--card2); color: var(--text2); font-weight: 600; font-size: 12px; text-align: left; padding: 7px 8px; }
 td { padding: 8px; border-top: 1px solid var(--border); vertical-align: top; }
@@ -300,9 +309,8 @@ main .combo-row .pbtn.open-big { font-size: 17px; }
     <h1>料金表</h1>
     <button class="burger" data-close aria-label="閉じる">✕</button>
   </div>
-  <div class="drawer-body">
-    <div id="drawerBody"></div>
-  </div>
+  <div class="pager" id="pager"></div>
+  <div class="pager-foot" id="pagerFoot"></div>
 </aside>
 
 <!-- 24p以上を打つ画面 -->
@@ -715,7 +723,30 @@ const TABLES = `
 `;
 
 const scrim = document.getElementById('scrim');
-document.getElementById('drawerBody').innerHTML = TABLES;
+// 3ページに切り分けて、[3][1][2][3][1] の順に並べる（両端は写し）
+const PAGES = TABLES.split('<h3>').filter(t => t.trim()).map(t => '<h3>' + t.trim());
+const ORDER = [2, 0, 1, 2, 0];
+const pager = document.getElementById('pager');
+pager.innerHTML = ORDER.map(i => `<div class="page">${PAGES[i]}</div>`).join('');
+
+let pagerTimer;
+function showPage(i, smooth) {
+  pager.scrollTo({ left: pager.clientWidth * i, behavior: smooth ? 'smooth' : 'auto' });
+  document.getElementById('pagerFoot').textContent = `${ORDER[i] + 1} / ${PAGES.length}`;
+}
+pager.addEventListener('scroll', () => {
+  const w = pager.clientWidth;
+  if (!w) return;
+  const i = Math.round(pager.scrollLeft / w);
+  document.getElementById('pagerFoot').textContent = `${ORDER[i] + 1} / ${PAGES.length}`;
+  clearTimeout(pagerTimer);
+  // 指が止まってから、写しのページなら本物の位置へ黙って飛ぶ
+  pagerTimer = setTimeout(() => {
+    if (Math.abs(pager.scrollLeft - w * i) > 1) return;
+    if (i === 0) showPage(3);
+    else if (i === ORDER.length - 1) showPage(1);
+  }, 120);
+});
 // メニュー（左から）とテンキー・でかぶつ（下から）を開け閉めする
 function openPanel(id) {
   closeAll();
@@ -728,7 +759,11 @@ function closeAll() {
   document.querySelectorAll('.drawer.on, .sheet.on').forEach(el => el.classList.remove('on'));
   scrim.classList.remove('on'); document.body.classList.remove('lock');
 }
-document.getElementById('burger').onclick = () => openPanel('drawer');
+document.getElementById('burger').onclick = () => {
+  openPanel('drawer');
+  pager.querySelectorAll('.page').forEach(p => p.scrollTop = 0);
+  showPage(1); // いつも1ページ目から
+};
 document.getElementById('bigOk').onclick = () => {
   if (!pendingBigs.length) return;
   if (state.date !== today()) state = newDay();
