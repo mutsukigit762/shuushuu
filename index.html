@@ -307,13 +307,11 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .big-head { padding: 14px 12px 10px; flex-direction: column; align-items: stretch; gap: 10px; }
 .big-head h1 { font-size: 17px; }
 .big-head #siteBig { flex: none; width: 100%; }
-.toast {
-  position: fixed; left: 50%; bottom: calc(40px + env(safe-area-inset-bottom)); transform: translateX(-50%);
-  background: var(--text); color: var(--bg); white-space: nowrap;
-  padding: 10px 18px; border-radius: 999px; font-size: 15px; font-weight: 700; z-index: 30;
-  opacity: 0; pointer-events: none; transition: opacity .15s;
-}
-.toast.on { opacity: 1; }
+.tbtn.ng { animation: shake .32s ease, ngred .6s ease; }
+#bigTitle.ng { animation: ngtext .9s ease; }
+@keyframes shake { 0%,100% { translate: 0; } 20% { translate: -6px; } 40% { translate: 6px; } 60% { translate: -4px; } 80% { translate: 4px; } }
+@keyframes ngred { 0%,40% { border-color: var(--red); background: #fdecec; color: var(--red); } }
+@keyframes ngtext { 0%,50% { color: var(--red); } }
 
 /* 青＝テンキー、ピンク＝でかぶつ */
 .combo-row .pbtn.open-pad { font-size: 14px; }
@@ -380,8 +378,6 @@ main .combo-row .pbtn.open-big { font-size: 17px; }
     </div>
   </div>
 </div>
-
-<div class="toast" id="toast"></div>
 
 <!-- でかぶつのある現場の一覧 -->
 <div class="sheet center" id="sitesSheet">
@@ -575,12 +571,11 @@ function curSite() {
   const es = i < 0 ? [] : l.slice(i);
   return { yen: i < 0 ? 0 : l[i].price, bigYen: es.reduce((a, e) => a + (e.short ? bigYen(e) : 0), 0) };
 }
-let toastTimer;
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('on');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('on'), 1400);
+// 金額が合わない時：押したボタンが赤くブルッと震えて、見出しの金額も赤く光る
+function refuse(btn) {
+  const h = document.getElementById('bigTitle');
+  for (const el of [btn, h]) { el.classList.remove('ng'); void el.offsetWidth; el.classList.add('ng'); }
+  if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
 }
 
 // 一覧用の書き方：「900円テーブル」。料金は品目ボタンの定義から引く
@@ -681,7 +676,7 @@ document.addEventListener('click', e => {
     const it = GROUPS[gi].items[ii], t = it.tiers[ti];
     // 押したらその場で登録。現場の金額を超える分は入れない
     const cs = curSite();
-    if (cs.bigYen + t.price > cs.yen) { toast('金額が合いません'); return; }
+    if (cs.bigYen + t.price > cs.yen) { refuse(b); return; }
     const kind = it.kinds ? document.querySelector(`[data-kind="${gi}-${ii}"]`).dataset.value : '';
     add({ price: 0, big: true, name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }) });
   } else if (b.dataset.unbig != null) {
