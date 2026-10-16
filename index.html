@@ -178,6 +178,12 @@ main .combo-row .pbtn { font-size: 17px; }
   border: 1px solid var(--border); background: var(--card2); color: var(--text);
   border-radius: 10px; padding: 8px 4px; cursor: pointer; font-family: inherit; text-align: center;
 }
+.tbtn { position: relative; }
+.tbtn.has { background: #e6e6e4; color: #b4b4b0; border-color: #e6e6e4; }
+.tbtn.has::after {
+  content: attr(data-n); position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 22px; font-weight: 800; color: var(--text);
+}
 .tbtn .p { display: block; font-size: 15px; font-weight: 700; padding: 6px 0; white-space: nowrap; letter-spacing: -0.02em; }
 .block-title { font-size: 18px; font-weight: 800; margin: 24px 2px 10px; padding-top: 14px; border-top: 1px solid var(--border); }
 
@@ -292,7 +298,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 #bigSheet.on { transition: transform .26s cubic-bezier(.2,.8,.3,1), visibility 0s; }
 #bigSheet.drag { transition: none; }
 @media (prefers-reduced-motion: reduce) { #bigSheet, #bigSheet.on { transition: none; } }
-.tag.pend { background: transparent; border: 1.5px dashed var(--text); color: var(--text); font-family: inherit; cursor: pointer; }
+.tag.pend { background: transparent; border: 1.5px solid var(--text); color: var(--text); font-family: inherit; cursor: pointer; }
 .sheet-body { flex: 1; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 4px 12px calc(16px + env(safe-area-inset-bottom)); }
 .sheet .pad { margin-top: 0; border: none; padding: 0; }
 .sheet .kbtn { height: 58px; }
@@ -374,7 +380,7 @@ main .combo-row .pbtn.open-big { font-size: 17px; }
 
 <!-- いまの現場のでかぶつ -->
 <div class="sheet tall" id="bigSheet">
-  <div class="sheet-head big-head"><div class="hero-big" id="siteBig"></div><button class="ok" id="bigOk" aria-label="登録して閉じる">登録</button></div>
+  <div class="sheet-head big-head"><div class="hero-big" id="siteBig"></div></div>
   <div class="sheet-body">
     <div id="groups"></div>
   </div>
@@ -443,7 +449,6 @@ const DAIS = 5; // 最初から並べておく台の数
 const newDay = () => ({ date: today(), cur: 0, dais: Array.from({ length: DAIS }, () => []) });
 
 let state;
-let pendingBigs = []; // でかぶつ画面で押したけど、まだ☑️していない分
 let beforeReset = null; // リセット直前の状態（1つ戻すで戻せるように）
 function load() {
   try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
@@ -497,13 +502,21 @@ function render() {
   // ピンクのボタンとでかぶつ画面：いまの現場（最後にポイントを入れた現場）
   const last = ss[ss.length - 1];
   const lastBigs = last ? [...last.labels] : [];
-  // 登録済みは塗り、☑️待ちは枠だけ（押すと取り消し）
-  document.getElementById('siteBig').innerHTML = (lastBigs.length || pendingBigs.length)
-    ? lastBigs.map(([k, n]) => `<span class="tag">${k}${n > 1 ? '×' + n : ''}</span>`).join('') +
-      // 同じものは「×2」とまとめる。✕を押すと1つ減る
-      [...pendingBigs.reduce((m, e) => m.set(bigLabel(e), (m.get(bigLabel(e)) || 0) + 1), new Map())]
-        .map(([l, n]) => `<button class="tag pend" data-unpend="${l}">${l}${n > 1 ? '×' + n : ''} ✕</button>`).join('')
-    : '';
+  // いまの現場のでかぶつ。1個でも「×1」と書く。✕を押すと1つ減る
+  document.getElementById('siteBig').innerHTML = lastBigs.map(([l, n]) =>
+    `<button class="tag pend" data-unbig="${l}">${l}×${n} ✕</button>`).join('');
+  // 押したボタンはグレーにして、上から「×n」を重ねる（いまの現場の分だけ数える）
+  const siteStart = list.findLastIndex(e => e.price > 0);
+  const counts = new Map();
+  for (const e of list.slice(Math.max(siteStart, 0))) if (e.short) {
+    const k = e.name + '|' + e.cond; counts.set(k, (counts.get(k) || 0) + 1);
+  }
+  document.querySelectorAll('[data-tier]').forEach(el => {
+    const [gi, ii, ti] = el.dataset.tier.split('-').map(Number);
+    const it = GROUPS[gi].items[ii], n = counts.get(it.name + '|' + it.tiers[ti].cond) || 0;
+    el.classList.toggle('has', n > 0);
+    el.dataset.n = n ? `×${n}` : '';
+  });
 
 }
 
@@ -631,13 +644,13 @@ document.addEventListener('click', e => {
   } else if (b.dataset.tier) {
     const [gi, ii, ti] = b.dataset.tier.split('-').map(Number);
     const it = GROUPS[gi].items[ii], t = it.tiers[ti];
-    // でかぶつ画面では、☑️を押すまで登録しない
+    // 押したらその場で登録
     const kind = it.kinds ? document.querySelector(`[data-kind="${gi}-${ii}"]`).dataset.value : '';
-    pendingBigs.push({ price: 0, big: true, name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }) });
-    render(); buzz();
-  } else if (b.dataset.unpend != null) {
-    pendingBigs.splice(pendingBigs.findLastIndex(e => bigLabel(e) === b.dataset.unpend), 1);
-    render();
+    add({ price: 0, big: true, name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }) });
+  } else if (b.dataset.unbig != null) {
+    // いまの現場の分は列の最後にあるので、後ろから探して1つ消す
+    const l = cur(), i = l.findLastIndex(e => e.short && bigLabel(e) === b.dataset.unbig);
+    if (i >= 0) { beforeReset = null; l.splice(i, 1); save(); render(); }
   } else if (b.dataset.dai != null) {
     shownAmount = null; // 台を変える時は数字をパッと切り替える
     state.cur = +b.dataset.dai;
@@ -800,7 +813,6 @@ function openPanel(id) {
   scrim.classList.add('on'); document.body.classList.add('lock');
 }
 function closeAll() {
-  pendingBigs = []; // ☑️を押さずに閉じたら捨てる
   document.querySelectorAll('.kind').forEach(el => setKind(el, '')); // 箱物の種類も毎回選び直す
   closeKindPops();
   render();
@@ -812,18 +824,9 @@ document.getElementById('burger').onclick = () => {
   pager.querySelectorAll('.page').forEach(p => p.scrollTop = 0);
   showPage(1); // いつも1ページ目から
 };
-document.getElementById('bigOk').onclick = () => {
-  if (!pendingBigs.length) return;
-  if (state.date !== today()) state = newDay();
-  const n = pendingBigs.length;
-  beforeReset = null;
-  pendingBigs.forEach(e => cur().push(e));
-  pendingBigs = [];
-  save(); closeAll();
-};
 scrim.onclick = closeAll;
 
-// でかぶつ登録は下に払うと閉じる（登録せずに閉じる）。中身がスクロールしてる時はスクロールを優先
+// でかぶつ登録は下に払うと閉じる。中身がスクロールしてる時はスクロールを優先
 const bigSheet = document.getElementById('bigSheet');
 const bigBody = bigSheet.querySelector('.sheet-body');
 let dragY = null, dragDy = 0;
