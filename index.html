@@ -75,6 +75,8 @@ main { padding: 12px; max-width: 560px; margin: 0 auto; }
 @keyframes drop { from { transform: translateY(-1.1em); } to { transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .dg .track { animation: none; } }
 .hero-big { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; }
+#siteBig:empty { display: none; }
+#groups section { margin-bottom: 0; }
 /* 最初の画面ではタグを1行に（増えたら横にスクロール） */
 .hero .hero-big { flex-wrap: nowrap; overflow-x: auto; }
 .hero .tag { flex: none; }
@@ -377,7 +379,7 @@ const GROUPS = [
   {
     title: '箱物系',
     items: [
-      { name: '箱物', short: '箱物', tiers: [
+      { name: '箱物', title: '箱物系', short: '箱物', tiers: [
         { price: 900,  cond: '180〜' },
         { price: 1300, cond: '225〜' },
         { price: 2300, cond: '315〜' },
@@ -492,7 +494,7 @@ function render() {
   document.getElementById('siteBig').innerHTML = (lastBigs.length || pendingBigs.length)
     ? lastBigs.map(([k, n]) => `<span class="tag">${k}${n > 1 ? '×' + n : ''}</span>`).join('') +
       pendingBigs.map((e, i) => `<button class="tag pend" data-unpend="${i}">${bigLabel(e)} ✕</button>`).join('')
-    : '<span class="tag none">この現場はまだ無し</span>';
+    : '';
 
 }
 
@@ -567,10 +569,11 @@ function buildButtons() {
     '<button class="pbtn open-pad" data-open="padSheet" aria-label="テンキー"><svg viewBox="0 0 24 26" width="22" height="24" fill="currentColor"><circle cx="6" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="11" r="2"/><circle cx="12" cy="11" r="2"/><circle cx="18" cy="11" r="2"/><circle cx="6" cy="17" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="18" cy="17" r="2"/><circle cx="12" cy="23" r="2"/></svg></button>' +
     '<button class="pbtn open-big" data-open="bigSheet">でかぶつ<span class="badge" id="bigBadge"></span></button>';
 
+  // 見出しで分けず、どの品目も同じ形のカードで並べる
   document.getElementById('groups').innerHTML = GROUPS.map((g, gi) =>
-    `<section><h2>${g.title}</h2>${g.items.map((it, ii) =>
+    `<section>${g.items.map((it, ii) =>
       `<div class="item">
-        <div class="item-name"><span>${g.items.length > 1 ? it.name : ''}</span><span class="cnt" data-cnt="${it.name}"></span></div>
+        <div class="item-name"><span>${it.title || it.name}</span><span class="cnt" data-cnt="${it.name}"></span></div>
         <div class="tiers" style="grid-template-columns:repeat(${it.tiers.length},1fr)">${it.tiers.map((t, ti) =>
           `<button class="tbtn" data-tier="${gi}-${ii}-${ti}"><span class="p">${t.price.toLocaleString('ja-JP')}円</span></button>`
         ).join('')}</div>
