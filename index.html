@@ -4,25 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="収集">
-<meta name="theme-color" content="#14171f">
+<meta name="theme-color" content="#ffffff">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="manifest" href="manifest.json">
 <title>収集</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 :root {
-  --bg: #14171f;
-  --card: #1d212c;
-  --card2: #262b38;
-  --border: #343a4a;
-  --text: #eef0f5;
-  --text2: #9aa2b5;
-  --accent: #f5a524;
-  --accent-dim: #3a2e17;
-  --red: #ef5350;
-  --green: #3ecf8e;
+  --bg: #ffffff;
+  --card: #ffffff;
+  --card2: #f5f5f4;
+  --border: #e4e4e2;
+  --text: #1a1a1a;
+  --text2: #8c8c8a;
+  --accent: #1a1a1a;
+  --accent-dim: #f0f0ee;
+  --on-accent: #ffffff;
+  --red: #d64541;
 }
 html, body { background: var(--bg); }
 body {
@@ -37,7 +37,7 @@ body {
 /* ヘッダー */
 header {
   position: sticky; top: 0; z-index: 10;
-  background: rgba(20,23,31,0.96);
+  background: rgba(255,255,255,0.94);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   padding: calc(env(safe-area-inset-top) + 8px) 12px 8px;
   display: flex; align-items: center; gap: 10px;
@@ -103,8 +103,8 @@ h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; 
 }
 .tbtn .p { display: block; font-size: 17px; font-weight: 700; }
 .tbtn .c { display: block; font-size: 11px; color: var(--text2); margin-top: 2px; }
-.pbtn:active, .tbtn:active { background: var(--accent); color: #1a1205; border-color: var(--accent); }
-.tbtn:active .c { color: #1a1205; }
+.pbtn:active, .tbtn:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.tbtn:active .c { color: var(--on-accent); }
 
 /* 積んだもの */
 .log { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
@@ -122,7 +122,7 @@ h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; 
 /* 下の固定ボタン */
 .bottom {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-  background: rgba(20,23,31,0.96); border-top: 1px solid var(--border);
+  background: rgba(255,255,255,0.94); border-top: 1px solid var(--border);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
   display: flex; gap: 8px;
@@ -133,15 +133,16 @@ h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; 
   color: var(--text); font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit;
 }
 .bbtn.undo { width: 96px; }
-.bbtn.next { flex: 1; background: var(--accent); border-color: var(--accent); color: #1a1205; }
+.bbtn.next { flex: 1; background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
 /* ドロワー（料金表） */
-.scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 20; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 20; opacity: 0; pointer-events: none; transition: opacity .2s; }
 .scrim.on { opacity: 1; pointer-events: auto; }
 .drawer {
   position: fixed; top: 0; bottom: 0; left: 0; z-index: 21;
   width: min(92vw, 520px); background: var(--bg); border-right: 1px solid var(--border);
   transform: translateX(-100%); transition: transform .22s ease;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.08);
   display: flex; flex-direction: column;
 }
 .drawer.on { transform: none; }
@@ -153,14 +154,14 @@ h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; 
 .drawer-body { flex: 1; overflow-y: auto; padding: 12px 12px calc(24px + env(safe-area-inset-bottom)); -webkit-user-select: text; user-select: text; }
 .drawer-body h3 { font-size: 15px; margin: 18px 0 8px; color: var(--accent); }
 .drawer-body h3:first-child { margin-top: 4px; }
-table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--card); border-radius: 12px; overflow: hidden; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px var(--border); }
 th { background: var(--card2); color: var(--text2); font-weight: 600; font-size: 12px; text-align: left; padding: 7px 8px; }
 td { padding: 8px; border-top: 1px solid var(--border); vertical-align: top; }
 td:first-child { white-space: nowrap; }
 td.yen { white-space: nowrap; font-weight: 700; text-align: right; }
 td.g { color: var(--text); font-weight: 700; }
 tr.cont td.g { color: transparent; }
-tr.cont td { border-top-color: #2a2f3c; }
+tr.cont td { border-top-color: #f0f0ee; }
 .note { font-size: 12px; color: var(--text2); margin-top: 6px; line-height: 1.6; }
 .menu-btn {
   width: 100%; margin-top: 24px; height: 48px; border-radius: 12px;
