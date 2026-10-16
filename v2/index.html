@@ -497,6 +497,8 @@ function load() {
   // 日付が変わっていたら新しい日として始める
   if (state.date !== today()) state = newDay();
   while (state.dais.length < DAIS) state.dais.push(newDai());
+  // 現場ごとに分けていた版で残っていたら、1列に戻す
+  for (const d of state.dais) if (!d.bigs) { d.bigs = (d.sites || []).flatMap(x => x.bigs); delete d.sites; }
 }
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
