@@ -133,6 +133,18 @@ h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; 
 }
 .tbtn .p { display: block; font-size: 15px; font-weight: 700; padding: 6px 0; }
 .block-title { font-size: 18px; font-weight: 800; margin: 24px 2px 10px; padding-top: 14px; border-top: 1px solid var(--border); }
+
+/* 現場ごとのでかぶつ */
+.sites { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-bottom: 12px; }
+.sites-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; color: var(--text2); }
+.sites-head b { font-size: 22px; color: var(--text); margin: 0 2px; }
+.site { display: flex; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); font-size: 14px; line-height: 1.5; }
+.site:first-of-type { margin-top: 8px; }
+.site .no { color: var(--text2); width: 22px; flex: none; }
+.site .sp { width: 40px; flex: none; text-align: right; color: var(--text2); }
+.site .bg { flex: 1; font-weight: 600; }
+.now { font-size: 13px; color: var(--text2); margin: 0 2px 10px; }
+.now b { color: var(--text); }
 .tbtn .c { display: block; font-size: 11px; color: var(--text2); margin-top: 2px; }
 .pbtn:active, .tbtn:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .tbtn:active .c { color: var(--on-accent); }
@@ -247,6 +259,8 @@ tr.cont td { border-top-color: #f0f0ee; }
   </section>
 
   <div class="block-title">でかぶつカウント</div>
+  <div class="sites" id="sites"></div>
+  <div class="now" id="nowSite"></div>
   <div id="groups"></div>
 
   <section>
@@ -392,6 +406,19 @@ function render() {
     el.textContent = n ? `${n}点` : '';
   });
 
+  // 現場ごとのでかぶつ
+  const ss = sites(list), withBig = ss.filter(x => x.bigs.size);
+  document.getElementById('sites').innerHTML =
+    `<div class="sites-head"><span>でかぶつのある現場</span><span><b>${withBig.length}</b>箇所 / ${ss.length}現場</span></div>` +
+    withBig.map((x, i) =>
+      `<div class="site"><span class="no">${i + 1}.</span><span class="bg">${
+        [...x.bigs].map(([k, n]) => k + (n > 1 ? ` ×${n}` : '')).join('、')
+      }</span><span class="sp">${x.pts ? pt(x.pts) + 'p' : '—'}</span></div>`).join('');
+  const last = ss[ss.length - 1];
+  document.getElementById('nowSite').innerHTML = last
+    ? `いま押すと → <b>${ss.length}現場目${last.pts ? `（${pt(last.pts)}p）` : ''}</b> に入る`
+    : 'ポイントを入れると現場が始まる';
+
   // 積んだもの（新しい順）
   const log = document.getElementById('log');
   log.innerHTML = list.length
@@ -417,6 +444,18 @@ function comboPoints(max) {
     if (reach[n - b] >= 1) two.add(n); // 2個以上で作れる
   }
   return [...two].sort((a, b) => a - b);
+}
+
+// ポイントを入れるたびに新しい現場。でかぶつは直前の現場に入る（ポイントより先に押した分は、それだけで1現場）
+function sites(list) {
+  const out = [];
+  for (const e of list) {
+    if (e.price > 0 || !out.length) out.push({ pts: 0, bigs: new Map() });
+    const x = out[out.length - 1];
+    x.pts += e.price;
+    if (e.short) { const k = `${e.short.split(' ')[0]} ${e.cond}`; x.bigs.set(k, (x.bigs.get(k) || 0) + 1); }
+  }
+  return out;
 }
 
 function buildButtons() {
