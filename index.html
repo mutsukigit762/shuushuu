@@ -134,7 +134,7 @@ main { padding: 12px; max-width: 560px; margin: 0 auto; }
 section { margin-bottom: 16px; }
 h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; }
 /* 大きさは前のまま（料金そのもの＝5等分、組み合わせ＝6等分）で、小さい順に詰めて並べる。行の端はそろわなくていい */
-.combo-row { display: flex; flex-wrap: wrap; gap: 5px; align-content: flex-start; }
+.combo-row { display: flex; flex-wrap: wrap; gap: 5px; align-content: flex-start; align-items: flex-end; }
 .combo-row .pbtn { flex: none; width: calc((100% - 25px) / 6); }
 .combo-row .pbtn.base { width: calc((100% - 20px) / 5); background: var(--card2); }
 .combo-row .pbtn.open-big { width: calc((100% - 25px) / 6 * 2 + 5px); }
