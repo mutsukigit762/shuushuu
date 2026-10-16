@@ -153,9 +153,16 @@ main .combo-row .pbtn { font-size: 17px; }
 .sites-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; color: var(--text2); }
 .sites-head b { font-size: 22px; color: var(--text); margin: 0 2px; }
 .site { display: flex; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); font-size: 14px; line-height: 1.5; }
-.site:first-of-type { margin-top: 8px; }
-.site .no { color: var(--text2); width: 22px; flex: none; }
-.site .sp { width: 40px; flex: none; text-align: right; color: var(--text2); }
+.site:first-child { border-top: none; padding-top: 0; }
+.site:last-child { padding-bottom: 0; }
+.site .no { color: var(--text2); width: 64px; flex: none; }
+.hero { position: relative; }
+.hero-side { position: absolute; top: 14px; right: 16px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.sites-btn {
+  border: 1px solid var(--text); background: var(--card); color: var(--text); border-radius: 999px;
+  padding: 5px 12px; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer;
+}
+.sites-btn:disabled { border-color: var(--border); color: var(--text2); font-weight: 400; }
 .site .bg { flex: 1; font-weight: 600; }
 .now { font-size: 13px; color: var(--text2); margin: 0 2px 10px; }
 .now b { color: var(--text); }
@@ -265,9 +272,8 @@ main .combo-row .pbtn.open-big { font-size: 17px; }
 
 <main>
   <div class="hero">
-    <div class="hero-label"><span>この台の容積ポイント</span><span id="heroCount"></span></div>
+    <div class="hero-label"><span>この台の容積ポイント</span><span class="hero-side"><span id="heroCount"></span><button class="sites-btn" id="sitesBtn" data-open="sitesSheet"></button></span></div>
     <div class="hero-amount" id="heroAmount"></div>
-    <div class="hero-big" id="heroBig"></div>
   </div>
 
   <div class="dais" id="dais"></div>
@@ -314,14 +320,18 @@ main .combo-row .pbtn.open-big { font-size: 17px; }
   </div>
 </div>
 
+<!-- でかぶつのある現場の一覧 -->
+<div class="sheet" id="sitesSheet">
+  <div class="sheet-head"><h1 id="sitesTitle"></h1><button class="burger" data-close aria-label="閉じる">✕</button></div>
+  <div class="sheet-body"><div class="sites" id="sites"></div></div>
+</div>
+
 <!-- いまの現場のでかぶつ -->
 <div class="sheet tall" id="bigSheet">
   <div class="sheet-head"><h1 id="bigTitle"></h1><button class="ok" id="bigOk" aria-label="登録して閉じる"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5L19.5 7"/></svg></button><button class="burger" data-close aria-label="登録せずに閉じる">✕</button></div>
   <div class="sheet-body">
     <div class="hero-big" id="siteBig"></div>
     <div id="groups"></div>
-    <div class="block-title">この台のでかぶつ</div>
-    <div class="sites" id="sites"></div>
   </div>
 </div>
 
@@ -427,16 +437,7 @@ function render() {
   document.getElementById('dayTotal').textContent = pt(dayTotal) + 'p';
   document.getElementById('heroAmount').innerHTML = `${pt(total)}<small>p</small>`;
   // 件数はポイントを入れた回数。でかぶつは数えない
-  document.getElementById('heroCount').textContent = `${list.filter(e => e.price > 0).length}件`; // でかぶつの箇所数は下で足す
-
-  // おおきいもの・箱物・ベマのタグ（メモの下の行にあたる）
-  const counts = new Map();
-  // 古い記録は short に金額が入っているので、頭の略称だけ使う
-  list.forEach(e => { if (e.short) { const k = `${e.short.split(' ')[0]} ${e.cond}`; counts.set(k, (counts.get(k) || 0) + 1); } });
-  const big = document.getElementById('heroBig');
-  big.innerHTML = counts.size
-    ? [...counts].map(([s, n]) => `<span class="tag">${s}${n > 1 ? '×' + n : ''}</span>`).join('')
-    : '<span class="tag none">でかぶつはまだ無し</span>';
+  document.getElementById('heroCount').textContent = `${list.filter(e => e.price > 0).length}件`;
 
   // 台の切り替え
   document.getElementById('dais').innerHTML = state.dais.map((l, i) =>
@@ -450,14 +451,16 @@ function render() {
   });
 
   // 現場ごとのでかぶつ
-  const ss = sites(list), withBig = ss.filter(x => x.bigs.size);
-  if (withBig.length) document.getElementById('heroCount').textContent += `・でかぶつ${withBig.length}箇所`;
-  document.getElementById('sites').innerHTML =
-    `<div class="sites-head"><span>でかぶつのある現場</span><span><b>${withBig.length}</b>箇所 / ${ss.length}現場</span></div>` +
-    withBig.map((x, i) =>
-      `<div class="site"><span class="no">${i + 1}.</span><span class="bg">${
-        [...x.bigs].map(([k, n]) => k + (n > 1 ? ` ×${n}` : '')).join('、')
-      }</span><span class="sp">${x.pts ? pt(x.pts) + 'p' : '—'}</span></div>`).join('');
+  // 現場の番号（何箇所目か）は、でかぶつの無い現場も含めて数える。まとめるのは同じ現場の中だけ
+  const ss = sites(list), withBig = ss.map((x, i) => ({ ...x, no: i + 1 })).filter(x => x.bigs.size);
+  const sb = document.getElementById('sitesBtn');
+  sb.textContent = `でかぶつ${withBig.length}箇所`;
+  sb.disabled = !withBig.length;
+  document.getElementById('sitesTitle').textContent = `でかぶつのある現場 ${withBig.length}箇所 / ${ss.length}現場`;
+  document.getElementById('sites').innerHTML = withBig.map(x =>
+    `<div class="site"><span class="no">${x.no}箇所目</span><span class="bg">${
+      [...x.labels].map(([k, n]) => k + (n > 1 ? `×${n}` : '')).join('、')
+    }</span></div>`).join('');
   // ピンクのボタンとでかぶつ画面：いまの現場（最後にポイントを入れた現場）
   const last = ss[ss.length - 1];
   const lastBigs = last ? [...last.bigs] : [];
@@ -494,12 +497,24 @@ function comboPoints(max) {
 function sites(list) {
   const out = [];
   for (const e of list) {
-    if (e.price > 0 || !out.length) out.push({ pts: 0, bigs: new Map() });
+    if (e.price > 0 || !out.length) out.push({ pts: 0, bigs: new Map(), labels: new Map() });
     const x = out[out.length - 1];
     x.pts += e.price;
-    if (e.short) { const k = `${e.short.split(' ')[0]} ${e.cond}`; x.bigs.set(k, (x.bigs.get(k) || 0) + 1); }
+    if (e.short) {
+      const k = `${e.short.split(' ')[0]} ${e.cond}`; x.bigs.set(k, (x.bigs.get(k) || 0) + 1);
+      const l = bigLabel(e); x.labels.set(l, (x.labels.get(l) || 0) + 1);
+    }
   }
   return out;
+}
+
+// 一覧用の書き方：「900円テーブル」。料金は品目ボタンの定義から引く
+function bigLabel(e) {
+  let yenv = e.price;
+  for (const g of GROUPS) for (const it of g.items) if (it.name === e.name)
+    for (const t of it.tiers) if (t.cond === e.cond) yenv = t.price;
+  const name = e.cond === '低反発' ? '低反発ベッドマット' : e.name;
+  return yenv ? `${yenv.toLocaleString('ja-JP')}円${name}` : name;
 }
 
 function buildButtons() {
