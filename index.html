@@ -133,8 +133,10 @@ main { padding: 12px; max-width: 560px; margin: 0 auto; }
 /* セクション */
 section { margin-bottom: 16px; }
 h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; }
-/* 全部同じ大きさで小さい順に並べる。5列で、最後の行はテンキーのあとをでかぶつが右端まで埋める。料金そのものは色だけグレー */
-.combo-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+/* 12分割の格子で、23pまでは3マス（4列）、24pからは2マス（6列）。料金そのものは色だけグレー */
+.combo-row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 5px; }
+.combo-row .pbtn { grid-column: span 2; }
+.combo-row .pbtn.wide, .combo-row .pbtn.open-pad { grid-column: span 3; }
 .combo-row .pbtn.base { background: var(--card2); }
 .pbtn small, .tbtn .p small, .dai-chip b small { font-size: 0.7em; font-weight: 600; margin-left: 1px; }
 .combo-row .pbtn { height: 42px; font-size: 15px; border-radius: 10px; background: var(--card); }
@@ -325,7 +327,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
 /* 青＝テンキー、ピンク＝でかぶつ */
 .combo-row .pbtn.open-pad { font-size: 14px; }
-main .combo-row .pbtn.open-big { font-size: 17px; grid-column: span 4; }
+main .combo-row .pbtn.open-big { font-size: 17px; grid-column: span 9; }
 .combo-row .pbtn.open-pad { display: grid; place-items: center; }
 .combo-row .pbtn.open-big { grid-column: span 2; font-size: 14px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
@@ -653,11 +655,11 @@ function buildButtons() {
   // 41pまでを小さい順に並べる（4→8→9→12→13→16…）。料金そのもの（4・9・13・23・32p）は色だけ変える。42p から先はテンキー
   const base = PRICES.map(p => p / 100);
   const pts = [...new Set([...base, ...comboPoints(41)])].sort((a, b) => a - b);
-  // 5つずつの行にして、小さい数が右下（テンキー・でかぶつのすぐ上）。上に行くほど大きく、行の中は右から左へ増える
-  const rows = [];
-  for (let i = 0; i < pts.length; i += 5) rows.push(pts.slice(i, i + 5).reverse());
-  document.getElementById('comboRow').innerHTML = rows.reverse().flat().map(n =>
-    `<button class="pbtn${base.includes(n) ? ' base' : ''}" data-price="${n * 100}">${n}<small>p</small></button>`).join('') +
+  // 23pまでは4列（大きいボタン）、24pからは6列。小さい数が右下（テンキー・でかぶつのすぐ上）で、上に行くほど大きく、行の中は右から左へ増える
+  const chunk = (list, w) => { const out = []; for (let i = 0; i < list.length; i += w) out.push(list.slice(i, i + w).reverse()); return out; };
+  const rows = [...chunk(pts.filter(n => n > 23), 6).reverse(), ...chunk(pts.filter(n => n <= 23), 4).reverse()];
+  document.getElementById('comboRow').innerHTML = rows.flat().map(n =>
+    `<button class="pbtn${base.includes(n) ? ' base' : ''}${n <= 23 ? ' wide' : ''}" data-price="${n * 100}">${n}<small>p</small></button>`).join('') +
     '<button class="pbtn open-pad" data-open="padSheet" aria-label="テンキー"><svg viewBox="0 0 24 26" width="22" height="24" fill="currentColor"><circle cx="6" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="11" r="2"/><circle cx="12" cy="11" r="2"/><circle cx="18" cy="11" r="2"/><circle cx="6" cy="17" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="18" cy="17" r="2"/><circle cx="12" cy="23" r="2"/></svg></button>' +
     '<button class="pbtn open-big" data-open="bigSheet">でかぶつ</button>';
 
