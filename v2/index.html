@@ -320,7 +320,8 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .big-head { padding: 14px 12px 10px; flex-direction: column; align-items: stretch; gap: 10px; }
 .big-head h1 { font-size: 17px; flex: 1; }
 .big-top { display: flex; align-items: center; gap: 10px; }
-.big-head .ok { height: 36px; padding: 0 16px; border-radius: 10px; font-size: 15px; flex: none; }
+.big-foot { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--bg); }
+.big-foot .ok { width: 100%; height: 54px; border: none; border-radius: 14px; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 17px; font-weight: 700; cursor: pointer; }
 .big-head #siteBig { flex: none; width: 100%; }
 .tbtn.ng, .pbtn.ng, .pad-add.ng { animation: shake .32s ease, ngred .6s ease; }
 .tbtn.mad { animation: bigshake .6s ease, ngred 1.2s ease; z-index: 2; }
@@ -339,8 +340,13 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .hero-btn:active { background: var(--card2); }
 .big-sec { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .big-list { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
-.grp { list-style: none; margin: 0 0 14px; padding: 0; }
-.grp + .grp { border-top: 2px dashed var(--border); padding-top: 14px; }
+/* 同じ現場はくっつけて1つの塊に、別の現場とはすき間をあける */
+.grp { list-style: none; margin: 0 0 12px; padding: 0; }
+.grp .brow { margin: 0; border-radius: 0; }
+.grp .brow + .brow { border-top-color: #eeeeec; margin-top: -1px; }
+.grp .brow:first-child { border-radius: 12px 12px 0 0; }
+.grp .brow:last-child { border-radius: 0 0 12px 12px; }
+.grp .brow:only-child { border-radius: 12px; }
 .big-list:empty::before { content: 'まだ無し'; display: block; color: var(--text2); font-size: 14px; padding: 6px 2px; }
 .brow {
   display: flex; align-items: center; gap: 6px; background: var(--card); border: 1px solid var(--border);
@@ -421,10 +427,11 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
 <!-- この台のでかぶつを登録する -->
 <div class="sheet tall" id="bigSheet">
-  <div class="sheet-head big-head"><div class="big-top"><h1 id="bigTitle"></h1><button class="ok" id="bigDone">完了</button></div><div class="hero-big" id="siteBig"></div></div>
+  <div class="sheet-head big-head"><div class="big-top"><h1 id="bigTitle"></h1></div><div class="hero-big" id="siteBig"></div></div>
   <div class="sheet-body">
     <div id="groups"></div>
   </div>
+  <div class="big-foot"><button class="ok" id="bigDone">完了</button></div>
 </div>
 
 
@@ -875,7 +882,7 @@ bigList.addEventListener('pointerdown', e => {
   if (!grip) return;
   e.preventDefault();
   const row = grip.closest('.brow'), rows = [...row.parentElement.children];
-  const step = row.offsetHeight + 6; // 行の高さ＋すき間
+  const step = row.offsetHeight - 1; // 同じ現場の行は線を重ねてくっついている
   drag = { row, rows, from: rows.indexOf(row), to: rows.indexOf(row), y0: e.clientY, step, id: e.pointerId };
   try { grip.setPointerCapture(e.pointerId); } catch (err) {}
   row.classList.add('lift');
