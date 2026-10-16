@@ -64,6 +64,9 @@ main { padding: 12px; max-width: 560px; margin: 0 auto; }
 .hero-amount { font-size: 52px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; margin-top: 2px; }
 .hero-amount small { font-size: 22px; font-weight: 700; margin-left: 2px; }
 .hero-big { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; }
+/* 最初の画面ではタグを1行に（増えたら横にスクロール） */
+.hero .hero-big { flex-wrap: nowrap; overflow-x: auto; }
+.hero .tag { flex: none; }
 .tag {
   background: var(--accent-dim); color: var(--accent); border-radius: 999px;
   padding: 4px 10px; font-size: 14px; font-weight: 700;
@@ -90,6 +93,16 @@ h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; 
 .combo-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-top: 8px; }
 .pbtn small, .tbtn .p small, .dai-chip b small { font-size: 0.7em; font-weight: 600; margin-left: 1px; }
 .combo-row .pbtn { height: 42px; font-size: 15px; border-radius: 10px; background: var(--card); }
+
+/* 最初の画面はスクロールなし：余った高さはボタンを大きくして埋める */
+body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+main { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; }
+main > section { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-bottom: 0; }
+main .price-row { flex: 1; max-height: 92px; }
+main .combo-row { flex: 2; max-height: 170px; grid-template-rows: 1fr 1fr; }
+main .pbtn, main .combo-row .pbtn { height: auto; min-height: 44px; }
+main .price-row .pbtn { font-size: 21px; }
+main .combo-row .pbtn { font-size: 17px; }
 
 /* テンキー */
 .pad { margin-top: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 10px; }
@@ -214,6 +227,27 @@ tr.cont td { border-top-color: #f0f0ee; }
   font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer;
 }
 
+/* 下から出る画面 */
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 21;
+  background: var(--bg); border-radius: 20px 20px 0 0; box-shadow: 0 -4px 24px rgba(0,0,0,0.1);
+  transform: translateY(105%); transition: transform .22s ease;
+  display: flex; flex-direction: column; max-height: 88vh; max-width: 560px; margin: 0 auto;
+}
+.sheet.tall { height: 88vh; }
+.sheet.on { transform: none; }
+.sheet-head { display: flex; align-items: center; gap: 10px; padding: 12px 12px 8px; }
+.sheet-head h1 { flex: 1; font-size: 17px; }
+.sheet-body { flex: 1; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 4px 12px calc(16px + env(safe-area-inset-bottom)); }
+.sheet .pad { margin-top: 0; border: none; padding: 0; }
+.sheet .kbtn { height: 58px; }
+#siteBig { margin: 0 2px 12px; }
+
+/* 青＝テンキー、ピンク＝でかぶつ */
+.combo-row .pbtn.open-pad { font-size: 14px; }
+.combo-row .pbtn.open-big { grid-column: span 2; font-size: 14px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.open-big .badge { display: inline-block; min-width: 20px; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: var(--on-accent); color: var(--accent); font-size: 12px; line-height: 20px; }
+
 .toast {
   position: fixed; left: 50%; bottom: calc(86px + env(safe-area-inset-bottom)); transform: translateX(-50%);
   background: var(--card2); border: 1px solid var(--border); color: var(--text);
@@ -244,6 +278,31 @@ tr.cont td { border-top-color: #f0f0ee; }
     <h2>容積ポイント</h2>
     <div class="price-row" id="priceRow"></div>
     <div class="combo-row" id="comboRow"></div>
+  </section>
+</main>
+
+<div class="bottom"><div>
+  <button class="bbtn undo" id="undo">1つ戻す</button>
+  <button class="bbtn next" id="next">次の台へ</button>
+</div></div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h1>メニュー</h1>
+    <button class="burger" data-close aria-label="閉じる">✕</button>
+  </div>
+  <div class="drawer-body">
+    <h3>この台に積んだもの</h3>
+    <div class="log" id="log"></div>
+    <div id="drawerBody"></div>
+  </div>
+</aside>
+
+<!-- 24p以上を打つ画面 -->
+<div class="sheet" id="padSheet">
+  <div class="sheet-head"><h1>容積ポイントを打つ</h1><button class="burger" data-close aria-label="閉じる">✕</button></div>
+  <div class="sheet-body">
     <div class="pad">
       <div class="pad-top">
         <div class="pad-disp" id="padDisp"></div>
@@ -256,32 +315,19 @@ tr.cont td { border-top-color: #f0f0ee; }
         <button class="kbtn fn" data-key="C">C</button><button class="kbtn" data-key="0">0</button><button class="kbtn fn" data-key="BS">⌫</button>
       </div>
     </div>
-  </section>
-
-  <div class="block-title">でかぶつカウント</div>
-  <div class="sites" id="sites"></div>
-  <div class="now" id="nowSite"></div>
-  <div id="groups"></div>
-
-  <section>
-    <h2>この台に積んだもの</h2>
-    <div class="log" id="log"></div>
-  </section>
-</main>
-
-<div class="bottom"><div>
-  <button class="bbtn undo" id="undo">1つ戻す</button>
-  <button class="bbtn next" id="next">次の台へ</button>
-</div></div>
-
-<div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer">
-  <div class="drawer-head">
-    <h1>料金表</h1>
-    <button class="burger" id="closeDrawer" aria-label="閉じる">✕</button>
   </div>
-  <div class="drawer-body" id="drawerBody"></div>
-</aside>
+</div>
+
+<!-- いまの現場のでかぶつ -->
+<div class="sheet tall" id="bigSheet">
+  <div class="sheet-head"><h1 id="bigTitle"></h1><button class="burger" data-close aria-label="閉じる">✕</button></div>
+  <div class="sheet-body">
+    <div class="hero-big" id="siteBig"></div>
+    <div id="groups"></div>
+    <div class="block-title">この台のでかぶつ</div>
+    <div class="sites" id="sites"></div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -384,7 +430,7 @@ function render() {
   document.getElementById('dayTotal').textContent = pt(dayTotal) + 'p';
   document.getElementById('heroAmount').innerHTML = `${pt(total)}<small>p</small>`;
   // 件数はポイントを入れた回数。でかぶつは数えない
-  document.getElementById('heroCount').textContent = `${list.filter(e => e.price > 0).length}件`;
+  document.getElementById('heroCount').textContent = `${list.filter(e => e.price > 0).length}件`; // でかぶつの箇所数は下で足す
 
   // おおきいもの・箱物・ベマのタグ（メモの下の行にあたる）
   const counts = new Map();
@@ -408,16 +454,25 @@ function render() {
 
   // 現場ごとのでかぶつ
   const ss = sites(list), withBig = ss.filter(x => x.bigs.size);
+  if (withBig.length) document.getElementById('heroCount').textContent += `・でかぶつ${withBig.length}箇所`;
   document.getElementById('sites').innerHTML =
     `<div class="sites-head"><span>でかぶつのある現場</span><span><b>${withBig.length}</b>箇所 / ${ss.length}現場</span></div>` +
     withBig.map((x, i) =>
       `<div class="site"><span class="no">${i + 1}.</span><span class="bg">${
         [...x.bigs].map(([k, n]) => k + (n > 1 ? ` ×${n}` : '')).join('、')
       }</span><span class="sp">${x.pts ? pt(x.pts) + 'p' : '—'}</span></div>`).join('');
+  // ピンクのボタンとでかぶつ画面：いまの現場（最後にポイントを入れた現場）
   const last = ss[ss.length - 1];
-  document.getElementById('nowSite').innerHTML = last
-    ? `いま押すと → <b>${ss.length}現場目${last.pts ? `（${pt(last.pts)}p）` : ''}</b> に入る`
-    : 'ポイントを入れると現場が始まる';
+  const lastBigs = last ? [...last.bigs] : [];
+  const lastN = lastBigs.reduce((a, [, n]) => a + n, 0);
+  document.getElementById('bigBadge').textContent = lastN || '';
+  document.getElementById('bigBadge').style.display = lastN ? '' : 'none';
+  document.getElementById('bigTitle').textContent = last
+    ? `${ss.length}現場目${last.pts ? `（${pt(last.pts)}p）` : ''}のでかぶつ`
+    : 'でかぶつ（先にポイントを入れると現場が始まる）';
+  document.getElementById('siteBig').innerHTML = lastBigs.length
+    ? lastBigs.map(([k, n]) => `<span class="tag">${k}${n > 1 ? '×' + n : ''}</span>`).join('')
+    : '<span class="tag none">この現場はまだ無し</span>';
 
   // 積んだもの（新しい順）
   const log = document.getElementById('log');
@@ -463,7 +518,9 @@ function buildButtons() {
     `<button class="pbtn" data-price="${p}">${pt(p)}<small>p</small></button>`).join('');
   // 24p から先は全部つながっていてテンキーで足りるので、飛び飛びの23pまでだけ出す（4と9で作れない最大が 4×9−4−9＝23）
   document.getElementById('comboRow').innerHTML = comboPoints(23).map(n =>
-    `<button class="pbtn" data-price="${n * 100}">${n}<small>p</small></button>`).join('');
+    `<button class="pbtn" data-price="${n * 100}">${n}<small>p</small></button>`).join('') +
+    '<button class="pbtn open-pad" data-open="padSheet">24p〜</button>' +
+    '<button class="pbtn open-big" data-open="bigSheet">でかぶつ<span class="badge" id="bigBadge"></span></button>';
 
   document.getElementById('groups').innerHTML = GROUPS.map((g, gi) =>
     `<section><h2>${g.title}</h2>${g.items.map((it, ii) =>
@@ -496,7 +553,11 @@ function add(entry) {
 document.addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b) return;
-  if (b.dataset.key) {
+  if (b.hasAttribute('data-close')) {
+    closeAll();
+  } else if (b.dataset.open) {
+    openPanel(b.dataset.open);
+  } else if (b.dataset.key) {
     padPress(b.dataset.key);
   } else if (b.dataset.price) {
     add({ price: +b.dataset.price });
@@ -532,6 +593,7 @@ document.getElementById('padAdd').onclick = () => {
   if (!n) return;
   padVal = ''; renderPad();
   add({ price: n * 100 });
+  closeAll();
 };
 
 document.getElementById('undo').onclick = () => {
@@ -629,16 +691,23 @@ const TABLES = `
 <button class="menu-btn" id="resetDay">今日の記録を全部消す</button>
 `;
 
-const drawer = document.getElementById('drawer'), scrim = document.getElementById('scrim');
+const scrim = document.getElementById('scrim');
 document.getElementById('drawerBody').innerHTML = TABLES;
-const openDrawer = () => { drawer.classList.add('on'); scrim.classList.add('on'); document.body.classList.add('lock'); };
-const closeDrawer = () => { drawer.classList.remove('on'); scrim.classList.remove('on'); document.body.classList.remove('lock'); };
-document.getElementById('burger').onclick = openDrawer;
-document.getElementById('closeDrawer').onclick = closeDrawer;
-scrim.onclick = closeDrawer;
+// メニュー（左から）とテンキー・でかぶつ（下から）を開け閉めする
+function openPanel(id) {
+  closeAll();
+  document.getElementById(id).classList.add('on');
+  scrim.classList.add('on'); document.body.classList.add('lock');
+}
+function closeAll() {
+  document.querySelectorAll('.drawer.on, .sheet.on').forEach(el => el.classList.remove('on'));
+  scrim.classList.remove('on'); document.body.classList.remove('lock');
+}
+document.getElementById('burger').onclick = () => openPanel('drawer');
+scrim.onclick = closeAll;
 document.getElementById('resetDay').onclick = () => {
   if (!confirm('今日の台をぜんぶ消す？')) return;
-  state = newDay(); save(); render(); closeDrawer();
+  state = newDay(); save(); render(); closeAll();
 };
 
 // アプリに戻ってきた時に日付をまたいでいたら新しい日にする
