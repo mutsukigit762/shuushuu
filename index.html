@@ -64,6 +64,12 @@ main { padding: 12px; max-width: 560px; margin: 0 auto; }
 .hero-label { font-size: 13px; color: var(--text2); display: flex; justify-content: space-between; }
 .hero-amount { font-size: 52px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; margin-top: 2px; }
 .hero-amount small { font-size: 22px; font-weight: 700; margin-left: 2px; }
+/* 数字のカウンター：変わった桁だけ、新しい数字が上から降りてきて、今の数字は下へ落ちる */
+.dg { display: inline-block; height: 1.1em; overflow: hidden; vertical-align: bottom; }
+.dg .track { display: flex; flex-direction: column; animation: drop .28s cubic-bezier(.2,.8,.3,1) both; }
+.dg .track span { height: 1.1em; }
+@keyframes drop { from { transform: translateY(-1.1em); } to { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .dg .track { animation: none; } }
 .hero-big { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; }
 /* 最初の画面ではタグを1行に（増えたら横にスクロール） */
 .hero .hero-big { flex-wrap: nowrap; overflow-x: auto; }
@@ -439,7 +445,7 @@ function render() {
   document.getElementById('headTitle').innerHTML =
     `<b>${maru(state.cur)}台目</b>　${d.getMonth()+1}/${d.getDate()}(${wd})`;
   document.getElementById('dayTotal').textContent = pt(dayTotal) + 'p';
-  document.getElementById('heroAmount').innerHTML = `${pt(total)}<small>p</small>`;
+  setAmount(pt(total));
   // 件数はポイントを入れた回数。でかぶつは数えない
   document.getElementById('heroCount').textContent = `${list.filter(e => e.price > 0).length}件`;
 
@@ -516,6 +522,23 @@ function bigLabel(e) {
     for (const t of it.tiers) if (t.cond === e.cond) yenv = t.price;
   const name = e.cond === '低反発' ? '低反発ベッドマット' : e.name;
   return yenv ? `${yenv.toLocaleString('ja-JP')}円${name}` : name;
+}
+
+let shownAmount = null, amountTimer;
+function setAmount(str) {
+  const el = document.getElementById('heroAmount');
+  const still = t => [...t].map(c => `<span class="dg">${c}</span>`).join('') + '<small>p</small>';
+  if (shownAmount === null || shownAmount === str) { shownAmount = str; el.innerHTML = still(str); return; }
+  // 桁数が違う時は左を空白で埋めて、右から桁をそろえる
+  const len = Math.max(str.length, shownAmount.length);
+  const a = shownAmount.padStart(len, ' '), b = str.padStart(len, ' ');
+  el.innerHTML = [...b].map((c, i) => c === a[i]
+    ? `<span class="dg">${c}</span>`
+    : `<span class="dg"><span class="track"><span>${c.trim() || '&#8203;'}</span><span>${a[i].trim() || '&#8203;'}</span></span></span>`
+  ).join('') + '<small>p</small>';
+  shownAmount = str;
+  clearTimeout(amountTimer);
+  amountTimer = setTimeout(() => { el.innerHTML = still(str); }, 320); // 落ちきったら普通の数字に戻す
 }
 
 function buildButtons() {
