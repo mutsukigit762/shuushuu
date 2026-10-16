@@ -193,7 +193,7 @@ tr.cont td { border-top-color: #f0f0ee; }
 
 <main>
   <div class="hero">
-    <div class="hero-label"><span>この台の金額</span><span id="heroCount"></span></div>
+    <div class="hero-label"><span>この台の容積ポイント</span><span id="heroCount"></span></div>
     <div class="hero-amount" id="heroAmount"></div>
     <div class="hero-big" id="heroBig"></div>
   </div>
@@ -201,7 +201,7 @@ tr.cont td { border-top-color: #f0f0ee; }
   <div class="dais" id="dais"></div>
 
   <section>
-    <h2>金額だけ足す</h2>
+    <h2>ポイントだけ足す</h2>
     <div class="price-row" id="priceRow"></div>
   </section>
 
@@ -231,7 +231,8 @@ tr.cont td { border-top-color: #f0f0ee; }
 
 <script>
 // ===== 品目ボタンの定義 =====
-// short は台のタグ表示用の略称。タグは「略称＋金額」で出す。
+// short は台のタグ表示用の略称。タグは「略称＋ポイント」で出す。
+// price は円で持つ（料金表と同じ数字）。画面にはポイントで出す
 const PRICES = [400, 900, 1300, 2300, 3200];
 
 const GROUPS = [
@@ -308,7 +309,8 @@ function save() {
 
 const MARU = '①②③④⑤⑥⑦⑧⑨⑩';
 const maru = i => MARU[i] || `(${i+1})`;
-const yen = n => n.toLocaleString('ja-JP');
+// 容積ポイント：料金の百円単位（1,300円→13p）。メモの「④216」と同じ数え方
+const pt = n => (n / 100).toLocaleString('ja-JP');
 const sum = list => list.reduce((a, e) => a + e.price, 0);
 const cur = () => state.dais[state.cur];
 
@@ -322,13 +324,14 @@ function render() {
 
   document.getElementById('headTitle').innerHTML =
     `<b>${maru(state.cur)}台目</b>　${d.getMonth()+1}/${d.getDate()}(${wd})`;
-  document.getElementById('dayTotal').textContent = yen(dayTotal) + '円';
-  document.getElementById('heroAmount').innerHTML = `${yen(total)}<small>円</small>`;
+  document.getElementById('dayTotal').textContent = pt(dayTotal) + 'p';
+  document.getElementById('heroAmount').innerHTML = `${pt(total)}<small>p</small>`;
   document.getElementById('heroCount').textContent = `${list.length}点`;
 
   // おおきいもの・箱物・ベマのタグ（メモの下の行にあたる）
   const counts = new Map();
-  list.forEach(e => { if (e.short) counts.set(e.short, (counts.get(e.short) || 0) + 1); });
+  // 古い記録は short に金額が入っているので、頭の略称だけ使う
+  list.forEach(e => { if (e.short) { const k = `${e.short.split(' ')[0]} ${pt(e.price)}`; counts.set(k, (counts.get(k) || 0) + 1); } });
   const big = document.getElementById('heroBig');
   big.innerHTML = counts.size
     ? [...counts].map(([s, n]) => `<span class="tag">${s}${n > 1 ? '×' + n : ''}</span>`).join('')
@@ -336,7 +339,7 @@ function render() {
 
   // 台の切り替え
   document.getElementById('dais').innerHTML = state.dais.map((l, i) =>
-    `<button class="dai-chip${i === state.cur ? ' on' : ''}${l.length ? '' : ' empty'}" data-dai="${i}">${maru(i)}<b>${yen(sum(l))}</b></button>`
+    `<button class="dai-chip${i === state.cur ? ' on' : ''}${l.length ? '' : ' empty'}" data-dai="${i}">${maru(i)}<b>${pt(sum(l))}</b></button>`
   ).join('');
 
   // 品目ごとの点数
@@ -351,7 +354,7 @@ function render() {
     ? list.map((e, i) => ({ e, i })).reverse().map(({ e, i }) =>
         `<div class="log-row">
           <span class="n">${e.name ? `<b>${e.name}</b>　${e.cond}` : '金額のみ'}</span>
-          <span class="y">${yen(e.price)}円</span>
+          <span class="y">${pt(e.price)}p</span>
           <button class="del" data-del="${i}" aria-label="消す">✕</button>
         </div>`).join('')
     : '<div class="empty">まだ何も積んでない</div>';
@@ -361,14 +364,14 @@ function render() {
 
 function buildButtons() {
   document.getElementById('priceRow').innerHTML = PRICES.map(p =>
-    `<button class="pbtn" data-price="${p}">${yen(p)}</button>`).join('');
+    `<button class="pbtn" data-price="${p}">${pt(p)}</button>`).join('');
 
   document.getElementById('groups').innerHTML = GROUPS.map((g, gi) =>
     `<section><h2>${g.title}</h2>${g.items.map((it, ii) =>
       `<div class="item">
         <div class="item-name"><span>${g.items.length > 1 ? it.name : ''}</span><span class="cnt" data-cnt="${it.name}"></span></div>
         <div class="tiers" style="grid-template-columns:repeat(${it.tiers.length},1fr)">${it.tiers.map((t, ti) =>
-          `<button class="tbtn" data-tier="${gi}-${ii}-${ti}"><span class="p">${yen(t.price)}</span><span class="c">${t.cond}</span></button>`
+          `<button class="tbtn" data-tier="${gi}-${ii}-${ti}"><span class="p">${pt(t.price)}</span><span class="c">${t.cond}</span></button>`
         ).join('')}</div>
       </div>`).join('')}</section>`
   ).join('');
@@ -388,7 +391,7 @@ function add(entry) {
   if (state.date !== today()) { state = newDay(); }
   cur().push(entry);
   save(); render(); buzz();
-  toast(`${entry.name ? entry.name + ' ' : ''}+${yen(entry.price)}円`);
+  toast(`${entry.name ? entry.name + ' ' : ''}+${pt(entry.price)}p`);
 }
 
 document.addEventListener('click', e => {
@@ -399,7 +402,7 @@ document.addEventListener('click', e => {
   } else if (b.dataset.tier) {
     const [gi, ii, ti] = b.dataset.tier.split('-').map(Number);
     const it = GROUPS[gi].items[ii], t = it.tiers[ti];
-    add({ price: t.price, name: it.name, cond: t.cond, short: `${it.short} ${yen(t.price)}` });
+    add({ price: t.price, name: it.name, cond: t.cond, short: it.short });
   } else if (b.dataset.del != null) {
     cur().splice(+b.dataset.del, 1);
     save(); render();
@@ -413,7 +416,7 @@ document.getElementById('undo').onclick = () => {
   const e = cur().pop();
   if (!e) return;
   save(); render();
-  toast(`−${yen(e.price)}円 取り消し`);
+  toast(`−${pt(e.price)}p 取り消し`);
 };
 
 document.getElementById('next').onclick = () => {
