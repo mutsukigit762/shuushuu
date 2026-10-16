@@ -26,6 +26,8 @@
 }
 html, body { background: var(--bg); }
 html { height: 100%; overflow: hidden; }
+/* Safariでボタンを素早く押した時のダブルタップ拡大を止める（二本指の拡大は残る） */
+html, body, button { touch-action: manipulation; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
   color: var(--text);
