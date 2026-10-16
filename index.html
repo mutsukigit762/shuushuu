@@ -298,7 +298,10 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .sheet-body { flex: 1; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 4px 12px calc(16px + env(safe-area-inset-bottom)); }
 .sheet .pad { margin-top: 0; border: none; padding: 0; }
 .sheet .kbtn { height: 58px; }
-#siteBig { margin: 0 2px 12px; }
+#siteBig { margin: 0; flex: 1; min-width: 0; }
+/* でかぶつ登録の上の段：仮置き（左いっぱい）と登録ボタン（右）を同じ高さで並べる */
+.big-head { padding: 14px 12px 10px; }
+.big-head .ok { height: 32px; padding: 0 14px; border-radius: 999px; font-size: 14px; flex: none; }
 
 /* 青＝テンキー、ピンク＝でかぶつ */
 .combo-row .pbtn.open-pad { font-size: 14px; }
@@ -374,9 +377,8 @@ main .combo-row .pbtn.open-big { font-size: 17px; }
 
 <!-- いまの現場のでかぶつ -->
 <div class="sheet tall" id="bigSheet">
-  <div class="sheet-head"><h1 id="bigTitle"></h1><button class="ok" id="bigOk" aria-label="登録して閉じる">登録</button></div>
+  <div class="sheet-head big-head"><div class="hero-big" id="siteBig"></div><button class="ok" id="bigOk" aria-label="登録して閉じる">登録</button></div>
   <div class="sheet-body">
-    <div class="hero-big" id="siteBig"></div>
     <div id="groups"></div>
   </div>
 </div>
@@ -505,9 +507,6 @@ function render() {
   const lastN = lastBigs.reduce((a, [, n]) => a + n, 0);
   document.getElementById('bigBadge').textContent = lastN || '';
   document.getElementById('bigBadge').style.display = lastN ? '' : 'none';
-  document.getElementById('bigTitle').textContent = last
-    ? `${ss.length}現場目${last.pts ? `（${pt(last.pts)}p）` : ''}のでかぶつ`
-    : 'でかぶつ（先にポイントを入れると現場が始まる）';
   // 登録済みは塗り、☑️待ちは枠だけ（押すと取り消し）
   document.getElementById('siteBig').innerHTML = (lastBigs.length || pendingBigs.length)
     ? lastBigs.map(([k, n]) => `<span class="tag">${k}${n > 1 ? '×' + n : ''}</span>`).join('') +
@@ -841,8 +840,8 @@ let dragY = null, dragDy = 0;
 const siteBig = document.getElementById('siteBig');
 bigSheet.addEventListener('touchstart', e => {
   // 仮置きの段（上下に少し余裕をもって）に指を置いた時は、横スクロールを優先して払っても閉じない
-  const y = e.touches[0].clientY, r = siteBig.getBoundingClientRect();
-  const onPend = y > r.top - 8 && y < r.bottom + 8;
+  const x = e.touches[0].clientX, y = e.touches[0].clientY, r = siteBig.getBoundingClientRect();
+  const onPend = y > r.top - 8 && y < r.bottom + 8 && x < r.right;
   dragY = (onPend || (bigBody.contains(e.target) && bigBody.scrollTop > 0)) ? null : y;
   dragDy = 0;
 }, { passive: true });
