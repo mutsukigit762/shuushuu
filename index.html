@@ -409,6 +409,7 @@ const newDay = () => ({ date: today(), cur: 0, dais: Array.from({ length: DAIS }
 
 let state;
 let pendingBigs = []; // でかぶつ画面で押したけど、まだ☑️していない分
+let beforeReset = null; // リセット直前の状態（1つ戻すで戻せるように）
 function load() {
   try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
   if (!state || !Array.isArray(state.dais)) state = newDay();
@@ -548,6 +549,7 @@ function toast(msg) {
 function buzz() { if (navigator.vibrate) navigator.vibrate(15); }
 
 function add(entry) {
+  beforeReset = null;
   if (state.date !== today()) { state = newDay(); }
   cur().push(entry);
   save(); render(); buzz();
@@ -602,23 +604,29 @@ document.getElementById('padAdd').onclick = () => {
 };
 
 document.getElementById('undo').onclick = () => {
+  // 直前がリセットなら、リセットを取り消す
+  if (beforeReset) {
+    state = beforeReset; beforeReset = null;
+    save(); render(); toast('リセットを取り消し');
+    return;
+  }
   const e = cur().pop();
   if (!e) return;
   save(); render();
   toast(e.big ? `${e.name} 取り消し` : `−${pt(e.price)}p 取り消し`);
 };
 
-// 台の行き来は①〜⑤のチップで。リセットは押し間違いが怖いので確認を挟む
+// 台の行き来は①〜⑤のチップで。リセットは確認なし。押し間違えたら「1つ戻す」で元に戻る
 document.getElementById('resetDai').onclick = () => {
   if (!cur().length) return;
-  if (!confirm(`${maru(state.cur)}台目を空にする？`)) return;
+  beforeReset = JSON.parse(JSON.stringify(state));
   state.dais[state.cur] = [];
-  save(); render();
+  save(); render(); toast(`${maru(state.cur)}台目をリセット`);
 };
 document.getElementById('resetAll').onclick = () => {
   if (!state.dais.some(l => l.length)) return;
-  if (!confirm('①〜⑤を全部消す？')) return;
-  state = newDay(); save(); render();
+  beforeReset = JSON.parse(JSON.stringify(state));
+  state = newDay(); save(); render(); toast('全てリセット');
 };
 
 // ===== 料金表（マニュアル p.6〜9 と束品目一覧から） =====
@@ -718,6 +726,7 @@ document.getElementById('bigOk').onclick = () => {
   if (!pendingBigs.length) return;
   if (state.date !== today()) state = newDay();
   const n = pendingBigs.length;
+  beforeReset = null;
   pendingBigs.forEach(e => cur().push(e));
   pendingBigs = [];
   save(); closeAll();
