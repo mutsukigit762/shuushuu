@@ -81,7 +81,7 @@ main { padding: 12px; max-width: 560px; margin: 0 auto; }
   border-radius: 10px; padding: 6px 2px; font-size: 13px; cursor: pointer; font-family: inherit;
   display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0;
 }
-.dai-chip.empty b { color: var(--border); }
+.dai-chip.blank b { color: var(--border); }
 .dai-chip b { color: var(--text); font-size: 14px; }
 .dai-chip.on { border-color: var(--accent); color: var(--accent); }
 .dai-chip.on b { color: var(--accent); }
@@ -113,7 +113,7 @@ main .combo-row .pbtn { font-size: 17px; }
   font-size: 30px; font-weight: 800;
 }
 .pad-disp small { font-size: 0.55em; font-weight: 600; margin-left: 2px; }
-.pad-disp.empty { color: var(--text2); font-weight: 600; }
+.pad-disp.blank { color: var(--text2); font-weight: 600; }
 .pad-add {
   width: 96px; height: 54px; border-radius: 12px; border: none;
   background: var(--accent); color: var(--on-accent); font-size: 26px; font-weight: 700;
@@ -242,7 +242,7 @@ tr.cont td { border-top-color: #f0f0ee; }
 .sheet-head h1 { flex: 1; font-size: 17px; }
 .sheet-head .ok {
   height: 44px; padding: 0 18px; border-radius: 10px; border: none; cursor: pointer;
-  background: var(--accent); font-size: 22px; line-height: 1;
+  background: var(--accent); color: var(--on-accent); display: grid; place-items: center;
 }
 .sheet-head .ok:disabled { opacity: 0.25; }
 .tag.pend { background: transparent; border: 1.5px dashed var(--text); color: var(--text); font-family: inherit; cursor: pointer; }
@@ -329,7 +329,7 @@ main .combo-row .pbtn.open-pad { font-size: 15px; }
 
 <!-- いまの現場のでかぶつ -->
 <div class="sheet tall" id="bigSheet">
-  <div class="sheet-head"><h1 id="bigTitle"></h1><button class="ok" id="bigOk" aria-label="登録して閉じる">☑️</button><button class="burger" data-close aria-label="登録せずに閉じる">✕</button></div>
+  <div class="sheet-head"><h1 id="bigTitle"></h1><button class="ok" id="bigOk" aria-label="登録して閉じる"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5L19.5 7"/></svg></button><button class="burger" data-close aria-label="登録せずに閉じる">✕</button></div>
   <div class="sheet-body">
     <div class="hero-big" id="siteBig"></div>
     <div id="groups"></div>
@@ -453,7 +453,7 @@ function render() {
 
   // 台の切り替え
   document.getElementById('dais').innerHTML = state.dais.map((l, i) =>
-    `<button class="dai-chip${i === state.cur ? ' on' : ''}${l.length ? '' : ' empty'}" data-dai="${i}">${maru(i)}<b>${pt(sum(l))}<small>p</small></b></button>`
+    `<button class="dai-chip${i === state.cur ? ' on' : ''}${l.length ? '' : ' blank'}" data-dai="${i}">${maru(i)}<b>${pt(sum(l))}<small>p</small></b></button>`
   ).join('');
 
   // 品目ごとの点数
@@ -596,7 +596,7 @@ document.addEventListener('click', e => {
 let padVal = '';
 function renderPad() {
   const d = document.getElementById('padDisp');
-  d.className = 'pad-disp' + (padVal ? '' : ' empty');
+  d.className = 'pad-disp' + (padVal ? '' : ' blank');
   d.innerHTML = padVal ? `${padVal}<small>p</small>` : '0<small>p</small>';
   document.getElementById('padAdd').disabled = !+padVal;
 }
