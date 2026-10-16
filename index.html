@@ -492,7 +492,9 @@ function render() {
   // 登録済みは塗り、☑️待ちは枠だけ（押すと取り消し）
   document.getElementById('siteBig').innerHTML = (lastBigs.length || pendingBigs.length)
     ? lastBigs.map(([k, n]) => `<span class="tag">${k}${n > 1 ? '×' + n : ''}</span>`).join('') +
-      pendingBigs.map((e, i) => `<button class="tag pend" data-unpend="${i}">${bigLabel(e)} ✕</button>`).join('')
+      // 同じものは「×2」とまとめる。✕を押すと1つ減る
+      [...pendingBigs.reduce((m, e) => m.set(bigLabel(e), (m.get(bigLabel(e)) || 0) + 1), new Map())]
+        .map(([l, n]) => `<button class="tag pend" data-unpend="${l}">${l}${n > 1 ? '×' + n : ''} ✕</button>`).join('')
     : '';
 
 }
@@ -609,7 +611,7 @@ document.addEventListener('click', e => {
     pendingBigs.push({ price: 0, big: true, name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }) });
     render(); buzz();
   } else if (b.dataset.unpend != null) {
-    pendingBigs.splice(+b.dataset.unpend, 1);
+    pendingBigs.splice(pendingBigs.findLastIndex(e => bigLabel(e) === b.dataset.unpend), 1);
     render();
   } else if (b.dataset.dai != null) {
     shownAmount = null; // 台を変える時は数字をパッと切り替える
