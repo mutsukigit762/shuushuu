@@ -262,13 +262,6 @@ main .combo-row .pbtn.open-big { font-size: 17px; }
 .combo-row .pbtn.open-big { grid-column: span 2; font-size: 14px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .open-big .badge { display: inline-block; min-width: 20px; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: var(--on-accent); color: var(--accent); font-size: 12px; line-height: 20px; }
 
-.toast {
-  position: fixed; left: 50%; bottom: calc(86px + env(safe-area-inset-bottom)); transform: translateX(-50%);
-  background: var(--card2); border: 1px solid var(--border); color: var(--text);
-  padding: 8px 14px; border-radius: 999px; font-size: 14px; z-index: 30;
-  opacity: 0; transition: opacity .15s; pointer-events: none; white-space: nowrap;
-}
-.toast.on { opacity: 1; }
 </style>
 </head>
 <body>
@@ -344,7 +337,6 @@ main .combo-row .pbtn.open-big { font-size: 17px; }
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
 
 <script>
 // ===== 品目ボタンの定義 =====
@@ -562,13 +554,6 @@ function buildButtons() {
 }
 
 // ===== 操作 =====
-let toastTimer;
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('on');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('on'), 1200);
-}
 function buzz() { if (navigator.vibrate) navigator.vibrate(15); }
 
 function add(entry) {
@@ -576,7 +561,6 @@ function add(entry) {
   if (state.date !== today()) { state = newDay(); }
   cur().push(entry);
   save(); render(); buzz();
-  toast(entry.big ? `${entry.name} ${entry.cond} ＋1` : `+${pt(entry.price)}p`);
 }
 
 document.addEventListener('click', e => {
@@ -630,13 +614,12 @@ document.getElementById('undo').onclick = () => {
   // 直前がリセットなら、リセットを取り消す
   if (beforeReset) {
     state = beforeReset; beforeReset = null;
-    save(); render(); toast('リセットを取り消し');
+    save(); render(); 
     return;
   }
   const e = cur().pop();
   if (!e) return;
   save(); render();
-  toast(e.big ? `${e.name} 取り消し` : `−${pt(e.price)}p 取り消し`);
 };
 
 // 台の行き来は①〜⑤のチップで。リセットは確認なし。押し間違えたら「1つ戻す」で元に戻る
@@ -644,12 +627,12 @@ document.getElementById('resetDai').onclick = () => {
   if (!cur().length) return;
   beforeReset = JSON.parse(JSON.stringify(state));
   state.dais[state.cur] = [];
-  save(); render(); toast(`${maru(state.cur)}台目をリセット`);
+  save(); render(); 
 };
 document.getElementById('resetAll').onclick = () => {
   if (!state.dais.some(l => l.length)) return;
   beforeReset = JSON.parse(JSON.stringify(state));
-  state = newDay(); save(); render(); toast('全てリセット');
+  state = newDay(); save(); render(); 
 };
 
 // ===== 料金表（マニュアル p.6〜9 と束品目一覧から） =====
@@ -743,7 +726,6 @@ document.getElementById('bigOk').onclick = () => {
   pendingBigs.forEach(e => cur().push(e));
   pendingBigs = [];
   save(); closeAll();
-  toast(`でかぶつ ${n}点 登録`);
 };
 scrim.onclick = closeAll;
 
