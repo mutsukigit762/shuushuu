@@ -125,7 +125,7 @@ main .combo-row .pbtn { font-size: 17px; }
 .pad-disp.blank { color: var(--text2); font-weight: 600; }
 .pad-add {
   width: 96px; height: 54px; border-radius: 12px; border: none;
-  background: var(--accent); color: var(--on-accent); font-size: 26px; font-weight: 700;
+  background: var(--accent); color: var(--on-accent); font-size: 18px; font-weight: 700;
   font-family: inherit; cursor: pointer;
 }
 .pad-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
@@ -323,7 +323,7 @@ main .combo-row .pbtn.open-big { font-size: 17px; }
     <div class="pad">
       <div class="pad-top">
         <div class="pad-disp" id="padDisp"></div>
-        <button class="pad-add" id="padAdd">奠</button>
+        <button class="pad-add" id="padAdd">たす</button>
       </div>
       <div class="pad-keys">
         <button class="kbtn" data-key="1">1</button><button class="kbtn" data-key="2">2</button><button class="kbtn" data-key="3">3</button>
@@ -431,8 +431,7 @@ function save() {
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
 }
 
-const MARU = '①②③④⑤⑥⑦⑧⑨⑩';
-const maru = i => MARU[i] || `(${i+1})`;
+const daime = i => `${i+1}台目`;
 // 容積ポイント：料金の百円単位（1,300円→13p）。メモの「④216」と同じ数え方
 const pt = n => (n / 100).toLocaleString('ja-JP');
 const sum = list => list.reduce((a, e) => a + e.price, 0);
@@ -447,7 +446,7 @@ function render() {
   const wd = '日月火水木金土'[d.getDay()];
 
   document.getElementById('headTitle').innerHTML =
-    `<b>${maru(state.cur)}台目</b>　${d.getMonth()+1}/${d.getDate()}(${wd})`;
+    `<b>${daime(state.cur)}</b>　${d.getMonth()+1}/${d.getDate()}(${wd})`;
   document.getElementById('dayTotal').textContent = pt(dayTotal) + 'p';
   setAmount(pt(total));
   // 件数はポイントを入れた回数。でかぶつは数えない
@@ -455,7 +454,7 @@ function render() {
 
   // 台の切り替え
   document.getElementById('dais').innerHTML = state.dais.map((l, i) =>
-    `<button class="dai-chip${i === state.cur ? ' on' : ''}${l.length ? '' : ' blank'}" data-dai="${i}">${maru(i)}<b>${pt(sum(l))}<small>p</small></b></button>`
+    `<button class="dai-chip${i === state.cur ? ' on' : ''}${l.length ? '' : ' blank'}" data-dai="${i}">${daime(i)}<b>${pt(sum(l))}<small>p</small></b></button>`
   ).join('');
 
   // 品目ごとの点数
@@ -644,7 +643,7 @@ document.getElementById('undo').onclick = () => {
   save(); render();
 };
 
-// 台の行き来は①〜⑤のチップで。リセットは確認なし。押し間違えたら「1つ戻す」で元に戻る
+// 台の行き来は「n台目」のチップで。リセットは確認なし。押し間違えたら「1つ戻す」で元に戻る
 document.getElementById('resetDai').onclick = () => {
   if (!cur().length) return;
   beforeReset = JSON.parse(JSON.stringify(state));
