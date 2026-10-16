@@ -861,8 +861,10 @@ document.addEventListener('visibilitychange', () => {
 
 document.getElementById('bigDone').onclick = () => {
   const d = cur();
+  // 閉じずに、登録の段だけ空にして次の現場へ（箱物の種類も選び直し）
   if (d.bigs.some(b => b.s === d.next)) change(() => { d.next++; });
-  closeAll();
+  document.querySelectorAll('.kind').forEach(el => setKind(el, ''));
+  buzz();
 };
 
 // つまみを押さえたまま上下に動かすと、その行がついてくる。離した所に入る
