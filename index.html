@@ -126,6 +126,8 @@ main .combo-row .pbtn { font-size: 17px; }
   color: var(--text); font-size: 22px; font-weight: 600; font-family: inherit; cursor: pointer;
 }
 .kbtn.fn { font-size: 16px; color: var(--text2); }
+.kbtn.bs { font-size: 24px; color: var(--red); background: #fdecec; border-color: #f5c2c0; }
+.kbtn.bs:active { background: var(--red); color: #fff; border-color: var(--red); }
 .kbtn:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .pbtn {
   border: 1px solid var(--border); background: var(--card2); color: var(--text);
@@ -192,7 +194,7 @@ main .combo-row .pbtn { font-size: 17px; }
 .bbtn.next { flex: 1; background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
 /* ドロワー（料金表） */
-.scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 20; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 20; opacity: 0; pointer-events: none; }
 .scrim.on { opacity: 1; pointer-events: auto; }
 .drawer {
   position: fixed; top: 0; bottom: 0; left: 0; z-index: 21;
@@ -231,11 +233,11 @@ tr.cont td { border-top-color: #f0f0ee; }
 .sheet {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 21;
   background: var(--bg); border-radius: 20px 20px 0 0; box-shadow: 0 -4px 24px rgba(0,0,0,0.1);
-  transform: translateY(105%); transition: transform .22s ease;
+  transform: translateY(105%); visibility: hidden;
   display: flex; flex-direction: column; max-height: 88vh; max-width: 560px; margin: 0 auto;
 }
 .sheet.tall { height: 88vh; }
-.sheet.on { transform: none; }
+.sheet.on { transform: none; visibility: visible; }
 .sheet-head { display: flex; align-items: center; gap: 10px; padding: 12px 12px 8px; }
 .sheet-head h1 { flex: 1; font-size: 17px; }
 .sheet-body { flex: 1; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 4px 12px calc(16px + env(safe-area-inset-bottom)); }
@@ -312,7 +314,7 @@ tr.cont td { border-top-color: #f0f0ee; }
         <button class="kbtn" data-key="1">1</button><button class="kbtn" data-key="2">2</button><button class="kbtn" data-key="3">3</button>
         <button class="kbtn" data-key="4">4</button><button class="kbtn" data-key="5">5</button><button class="kbtn" data-key="6">6</button>
         <button class="kbtn" data-key="7">7</button><button class="kbtn" data-key="8">8</button><button class="kbtn" data-key="9">9</button>
-        <button class="kbtn fn" data-key="C">C</button><button class="kbtn" data-key="0">0</button><button class="kbtn fn" data-key="BS">⌫</button>
+        <button class="kbtn fn" data-key="C">C</button><button class="kbtn" data-key="0">0</button><button class="kbtn bs" data-key="BS" aria-label="1文字消す">⌫</button>
       </div>
     </div>
   </div>
