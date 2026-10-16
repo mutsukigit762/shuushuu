@@ -418,7 +418,8 @@ function comboPoints(max) {
 function buildButtons() {
   document.getElementById('priceRow').innerHTML = PRICES.map(p =>
     `<button class="pbtn" data-price="${p}">${pt(p)}<small>p</small></button>`).join('');
-  document.getElementById('comboRow').innerHTML = comboPoints(50).map(n =>
+  // 24p から先は全部つながっていてテンキーで足りるので、飛び飛びの23pまでだけ出す（4と9で作れない最大が 4×9−4−9＝23）
+  document.getElementById('comboRow').innerHTML = comboPoints(23).map(n =>
     `<button class="pbtn" data-price="${n * 100}">${n}<small>p</small></button>`).join('');
 
   document.getElementById('groups').innerHTML = GROUPS.map((g, gi) =>
