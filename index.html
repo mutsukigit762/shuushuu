@@ -864,9 +864,9 @@ const bigBody = bigSheet.querySelector('.sheet-body');
 let dragY = null, dragDy = 0;
 const siteBig = document.getElementById('siteBig');
 bigSheet.addEventListener('touchstart', e => {
-  // 仮置きの段（上下に少し余裕をもって）に指を置いた時は、横スクロールを優先して払っても閉じない
+  // 計上の段が横にはみ出してスクロールできる時だけ、そこ（上下に少し余裕をもって）に置いた指では閉じない
   const x = e.touches[0].clientX, y = e.touches[0].clientY, r = siteBig.getBoundingClientRect();
-  const onPend = y > r.top - 8 && y < r.bottom + 8 && x < r.right;
+  const onPend = siteBig.scrollWidth > siteBig.clientWidth && y > r.top - 8 && y < r.bottom + 8 && x < r.right;
   dragY = (onPend || (bigBody.contains(e.target) && bigBody.scrollTop > 0)) ? null : y;
   dragDy = 0;
 }, { passive: true });
