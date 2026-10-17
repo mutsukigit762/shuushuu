@@ -789,8 +789,7 @@ document.addEventListener('click', e => {
   } else if (b.dataset.dai != null) {
     // 選んでいる台のチップをもう一度押すと、申告された容積ポイントを打つ
     if (+b.dataset.dai === state.cur) { padMode = 'dai'; openPanel('padSheet'); return; }
-    state.cur = +b.dataset.dai;
-    save(); render();
+    switchDai(+b.dataset.dai);
   }
 });
 
@@ -1137,6 +1136,17 @@ bigList.addEventListener('touchcancel', swipeEnd);
 // 払った直後の「押した」は、編集として扱わない
 bigList.addEventListener('click', e => { if (swallowClick) { e.stopPropagation(); e.preventDefault(); } }, true);
 
+// 台を切りかえる。一覧は、進む時は右から、戻る時は左から滑りこんでくる
+function switchDai(to) {
+  const dir = to > state.cur ? 1 : -1;
+  state.cur = to;
+  save(); render();
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches)
+    document.getElementById('bigList').animate(
+      [{ transform: `translateX(${dir * 70}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }],
+      { duration: 220, easing: 'cubic-bezier(.2,.8,.3,1)' });
+}
+
 // 何もないところを左右に払うと、隣の台へ（左に払うと次の台、右に払うと前の台）
 // 現場の行・チップ・ボタン・台のチップの上から始めた時は何もしない
 let daiSw = null;
@@ -1152,8 +1162,7 @@ mainEl.addEventListener('touchend', e => {
   if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
   const to = state.cur + (dx < 0 ? 1 : -1);
   if (to < 0 || to >= state.dais.length) return;
-  state.cur = to;
-  save(); render(); buzz();
+  switchDai(to); buzz();
 });
 
 load();
