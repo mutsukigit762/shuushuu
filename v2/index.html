@@ -338,6 +338,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .combo-row .pbtn.open-pad { display: grid; place-items: center; }
 
 /* ===== v2 ===== */
+.free { display: block; width: 100%; box-sizing: border-box; margin: 0 0 8px; height: 42px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); font: inherit; font-size: 16px; color: var(--text); }
 .hero-btn { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .hero-btn:active { background: var(--card2); }
 .big-sec { flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -478,7 +479,7 @@ const PRICES = [400, 900, 1300, 2300, 3200];
 // cond は記録の目印なので変えない（変えると、もう入れてある分の料金が引けなくなる）
 // kinds があれば、カードの右のピッカーで何の品目かを選べる
 const BOX_KINDS = ['タンス', 'チェスト', '食器棚', '本棚', 'スチール棚', 'テレビ台', 'リビングボード', 'レンジ台', 'キャビネット',
-  'カラーボックス', '下駄箱', '鏡台', 'ロッカー', '脇机', 'ペット小屋'];
+  'カラーボックス', '下駄箱', '鏡台', 'ロッカー', 'コンテナ', '脇机', 'ペット小屋'];
 const GROUPS = [
   {
     items: [
@@ -514,6 +515,10 @@ const GROUPS = [
       { name: '自転車', short: '自転車', tiers: [
         { price: 900,  cond: '18インチ以上', btn: '18インチ以上' },
         { price: 1300, cond: '電動', btn: '電動自転車', label: '電動自転車' },
+      ]},
+      // ボタンに無いものは、名前を打って金額を押す（free の名前が品目名になる）
+      { name: 'その他', title: 'その他のもの', short: 'その他', yen: true, free: true, tiers: [
+        { price: 900, cond: '900' }, { price: 1300, cond: '1300' }, { price: 2300, cond: '2300' }, { price: 3200, cond: '3200' },
       ]},
     ],
   },
@@ -637,7 +642,7 @@ const ABBR = {
   '本棚': { k: '本', h: 'ほ' }, 'スチール棚': { k: 'ス', h: 'す' }, 'テレビ台': { k: 'テレ', h: 'てれ' },
   'リビングボード': { k: 'リ', h: 'り' }, 'レンジ台': { k: '調', h: '（調）' }, 'キャビネット': { k: 'キャ', h: 'きゃ' },
   'カラーボックス': { k: 'カ', h: 'か' }, '下駄箱': { k: '下', h: '（下）' }, '鏡台': { k: '鏡', h: '（鏡）' },
-  'ロッカー': { k: 'ロ', h: 'ろ' }, '脇机': { k: '脇', h: '（脇）' }, 'ペット小屋': { k: 'ペ', h: 'ぺ' },
+  'ロッカー': { k: 'ロ', h: 'ろ' }, 'コンテナ': { k: 'コ', h: 'こ' }, '脇机': { k: '脇', h: '（脇）' }, 'ペット小屋': { k: 'ペ', h: 'ぺ' },
 };
 // 机と自転車は例外：机は袖なし＝つ・片袖＝片袖・両袖＝両袖、自転車はふつう＝自・電動＝電
 const BY_COND = { '机': { '袖なし': 'つ', '片袖': '片袖', '両袖': '両袖' }, '自転車': { '18インチ以上': '自', '電動': '電' } };
@@ -646,7 +651,8 @@ function abbr(e) {
   let yen = 0;
   for (const g of GROUPS) for (const it of g.items) if (it.name === e.name)
     for (const t of it.tiers) if (t.cond === e.cond) yen = t.price;
-  const a = ABBR[e.kind || e.name] || { k: e.name, h: `（${e.name}）` };
+  const nm = e.free || e.name; // その他のものは、打った名前をそのまま（900円は丸かっこ）
+  const a = ABBR[e.kind || e.name] || { k: nm, h: `（${nm}）` };
   return yen === 900 ? a.h : yen === 2300 ? a.k + "'" : yen === 3200 ? a.k + "''" : a.k;
 }
 
@@ -654,7 +660,7 @@ function abbr(e) {
 function bigLabel(e) {
   let yenv = 0, name = e.name;
   for (const g of GROUPS) for (const it of g.items) if (it.name === e.name)
-    for (const t of it.tiers) if (t.cond === e.cond) { yenv = t.price; name = e.kind || t.label || e.name; }
+    for (const t of it.tiers) if (t.cond === e.cond) { yenv = t.price; name = e.free || e.kind || t.label || e.name; }
   return yenv ? `${yenv.toLocaleString('ja-JP')}円${name}` : name;
 }
 
@@ -685,6 +691,7 @@ function buildButtons() {
     `<section>${g.items.map((it, ii) =>
       `<div class="item">
         <div class="item-name"><span>${it.title || it.name}${it.kinds ? `<button class="kind" data-kind="${gi}-${ii}" data-value="">箱物</button>` : ''}</span></div>
+        ${it.free ? `<input class="free" data-free="${gi}-${ii}" type="text" placeholder="品目の名前" autocomplete="off">` : ''}
         ${it.kinds ? `<div class="kind-pop" data-pop="${gi}-${ii}">${['', ...it.kinds].map(k =>
           `<button data-pick="${k}"${k ? '' : ' class="on"'}>${k || '箱物'}</button>`).join('')}</div>` : ''}
         <div class="tiers" style="grid-template-columns:repeat(${it.tiers.length},1fr)">${it.tiers.map((t, ti) =>
@@ -748,7 +755,8 @@ document.addEventListener('click', e => {
     const [gi, ii, ti] = b.dataset.tier.split('-').map(Number);
     const it = GROUPS[gi].items[ii], t = it.tiers[ti];
     const kind = it.kinds ? document.querySelector(`[data-kind="${gi}-${ii}"]`).dataset.value : '';
-    change(() => cur().bigs.push({ name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }), s: targetS() }));
+    const free = it.free ? document.querySelector(`[data-free="${gi}-${ii}"]`).value.trim() : '';
+    change(() => cur().bigs.push({ name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }), ...(free && { free }), s: targetS() }));
     buzz();
   } else if (b.dataset.unbig != null) {
     const l = cur().bigs, i = l.findLastIndex(e => e.s === targetS() && bigLabel(e) === b.dataset.unbig);
@@ -921,6 +929,7 @@ function openPanel(id) {
 }
 function closeAll() {
   document.querySelectorAll('.kind').forEach(el => setKind(el, '')); // 箱物の種類も毎回選び直す
+  document.querySelectorAll('.free').forEach(el => { el.value = ''; el.blur(); });
   closeKindPops();
   render();
   document.querySelectorAll('.drawer.on, .sheet.on').forEach(el => el.classList.remove('on'));
@@ -973,6 +982,7 @@ document.getElementById('bigDone').onclick = () => {
   // 閉じずに、登録の段だけ空にして次の現場へ（箱物の種類も選び直し）
   if (d.bigs.some(b => b.s === d.next)) change(() => { d.next++; });
   document.querySelectorAll('.kind').forEach(el => setKind(el, ''));
+  document.querySelectorAll('.free').forEach(el => { el.value = ''; });
   buzz();
 };
 
