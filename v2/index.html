@@ -341,10 +341,11 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .big-sec { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .big-list { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 /* 現場ごとの塊。上の段に現場ごとのつまみと✕、その下に1つずつのつまみと✕ */
-.grp { margin: 0 0 12px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; position: relative; }
-.grp-head { display: flex; align-items: center; gap: 6px; padding: 0 4px 0 12px; height: 40px; background: var(--card2); }
-.grp-n { flex: 1; font-size: 13px; font-weight: 700; color: var(--text2); }
-.grp-rows { list-style: none; margin: 0; padding: 0; }
+/* 現場ごとの塊。右端の縦の帯が現場ごとのつまみ */
+.grp { margin: 0 0 12px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; position: relative; display: flex; }
+.grp-rows { list-style: none; margin: 0; padding: 0; flex: 1; min-width: 0; }
+.grp-rows .brow:first-child { border-top: none; }
+.grp > .ggrip { width: 36px; height: auto; align-self: stretch; border-left: 1px solid var(--border); background: var(--card2); }
 .big-list:empty::before { content: 'まだ無し'; display: block; color: var(--text2); font-size: 14px; padding: 6px 2px; }
 .brow { display: flex; align-items: center; gap: 6px; background: var(--card); border-top: 1px solid var(--border); padding: 0 4px 0 10px; position: relative; }
 /* 1つずつの段は、現場の段より一段下げて見せる */
@@ -355,9 +356,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 }
 .brow .lbl:active { color: var(--text2); }
 .del { width: 40px; height: 40px; flex: none; border: none; background: none; color: var(--text2); font-size: 18px; cursor: pointer; }
-.grp-head .del { height: 36px; font-size: 16px; }
 .grip { width: 40px; height: 44px; flex: none; display: grid; place-items: center; color: var(--text2); touch-action: none; cursor: grab; }
-.grp-head .grip { height: 40px; }
 .grip svg { pointer-events: none; }
 /* つかんでいる行・現場 */
 .lift { z-index: 5; box-shadow: 0 8px 24px rgba(0,0,0,0.18); transition: none; }
@@ -550,15 +549,13 @@ function render() {
   });
   // 行を押すとその現場のでかぶつ登録が開く（直す）。積んだら✕で消す
   document.getElementById('bigList').innerHTML = groups.map(g => `<div class="grp" data-s="${g.s}">
-    <div class="grp-head"><span class="grp-n">${g.items.length}点</span>
-      <button class="del" data-gdel="${g.s}" aria-label="この現場をまるごと消す">✕</button>
-      <span class="grip ggrip" aria-label="現場ごと並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span></div>
     <ul class="grp-rows">${g.items.map(([b, i]) =>
     `<li class="brow" data-i="${i}">
       <button class="lbl" data-edit="${b.s}">${bigLabel(b)}</button>
       <button class="del" data-del="${i}" aria-label="消す">✕</button>
       <span class="grip" aria-label="並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span>
-    </li>`).join('')}</ul></div>`).join('');
+    </li>`).join('')}</ul>
+    <span class="grip ggrip" aria-label="現場ごと並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span></div>`).join('');
 
   // でかぶつ登録：見出しと、登録したものの段（同じものは×nでまとめる。✕で1つ減る）
   const ts = targetS();
@@ -677,9 +674,6 @@ document.addEventListener('click', e => {
     openPanel('bigSheet'); editS = +b.dataset.edit; render();
   } else if (b.dataset.del != null) {
     change(() => cur().bigs.splice(+b.dataset.del, 1));
-    buzz();
-  } else if (b.dataset.gdel != null) {
-    change(() => { const d = cur(); d.bigs = d.bigs.filter(x => x.s !== +b.dataset.gdel); });
     buzz();
   } else if (b.dataset.dai != null) {
     shownAmount = null; // 台を変える時は数字をパッと切り替える
