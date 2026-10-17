@@ -338,6 +338,8 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .combo-row .pbtn.open-pad { display: grid; place-items: center; }
 
 /* ===== v2 ===== */
+.big-foot.two { display: flex; gap: 8px; }
+.big-foot .ok.sub { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
 .free { display: block; width: 100%; box-sizing: border-box; margin: 0 0 8px; height: 42px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); font: inherit; font-size: 16px; color: var(--text); }
 .hero-btn { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .hero-btn:active { background: var(--card2); }
@@ -455,7 +457,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 <div class="sheet" id="editSheet">
   <div class="sheet-head"><h1>現場の中身</h1></div>
   <div class="sheet-body"><ul class="edit-list" id="editList"></ul></div>
-  <div class="big-foot"><button class="ok" data-close>閉じる</button></div>
+  <div class="big-foot two"><button class="ok sub" id="editAdd">でかぶつを足す</button><button class="ok" data-close>閉じる</button></div>
 </div>
 
 <!-- この台のでかぶつを登録する -->
@@ -976,6 +978,12 @@ bigSheet.addEventListener('touchend', () => {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && state.date !== today()) { state = newDay(); history = []; save(); render(); }
 });
+
+// 編集から、その現場にでかぶつを足す（登録画面を「現場を直す」で開く）
+document.getElementById('editAdd').onclick = () => {
+  const s = editListS;
+  openPanel('bigSheet'); editS = s; render();
+};
 
 document.getElementById('bigDone').onclick = () => {
   // 直している時は、閉じるだけ
