@@ -596,8 +596,10 @@ function render() {
   const side = g => `<button class="edit-btn" data-editlist="${g.s}">編集</button><span class="grip ggrip" aria-label="現場ごと並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span>`;
   document.getElementById('viewBtn').innerHTML = view === 'ryaku' ? '<b>略</b>/詳' : '略/<b>詳</b>';
   document.getElementById('bigList').innerHTML = groups.map(g => view === 'ryaku'
-    ? `<div class="swipe grp" data-s="${g.s}"><button class="swipe-del" data-sdel="${g.s}">消す</button><div class="srow"><div class="chips">${g.items.map(([b, i]) =>
-        `<span class="chip" data-i="${i}" data-edit="${b.s}">${abbr(b)}</span>`).join('')}</div>${side(g)}</div></div>`
+    ? `<div class="swipe grp" data-s="${g.s}"><button class="swipe-del" data-sdel="${g.s}">消す</button><div class="srow"><div class="chips">${
+        // 同じ書き方のものは1つのチップにまとめて「ベx2」（メモと同じ）
+        [...g.items.reduce((m, [b]) => m.set(abbr(b), (m.get(abbr(b)) || 0) + 1), new Map())].map(([a, n]) =>
+        `<span class="chip" data-edit="${g.s}">${a}${n > 1 ? 'x' + n : ''}</span>`).join('')}</div>${side(g)}</div></div>`
     : `<div class="swipe grp" data-s="${g.s}"><button class="swipe-del" data-sdel="${g.s}">消す</button><div class="srow"><div class="mq" data-edit="${g.s}"><div class="mq-track"><span>${g.items.map(([b]) => bigLabel(b)).join('、')}</span></div></div>${side(g)}</div></div>`
   ).join('');
   // 編集のモーダル：その現場の中身を1行ずつ。✕で消す、右のつまみで並べ替え
