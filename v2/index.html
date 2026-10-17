@@ -340,30 +340,29 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .hero-btn:active { background: var(--card2); }
 .big-sec { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .big-list { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
-/* 同じ現場はくっつけて1つの塊に、別の現場とはすき間をあける */
-.grp { list-style: none; margin: 0 0 12px; padding: 0; }
-.grp .brow { margin: 0; border-radius: 0; }
-.grp .brow + .brow { border-top-color: #eeeeec; margin-top: -1px; }
-.grp .brow:first-child { border-radius: 12px 12px 0 0; }
-.grp .brow:last-child { border-radius: 0 0 12px 12px; }
-.grp .brow:only-child { border-radius: 12px; }
+/* 現場ごとの塊。上の段に現場ごとのつまみと✕、その下に1つずつのつまみと✕ */
+.grp { margin: 0 0 12px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; position: relative; }
+.grp-head { display: flex; align-items: center; gap: 6px; padding: 0 4px 0 12px; height: 40px; background: var(--card2); }
+.grp-n { flex: 1; font-size: 13px; font-weight: 700; color: var(--text2); }
+.grp-rows { list-style: none; margin: 0; padding: 0; }
 .big-list:empty::before { content: 'まだ無し'; display: block; color: var(--text2); font-size: 14px; padding: 6px 2px; }
-.brow {
-  display: flex; align-items: center; gap: 6px; background: var(--card); border: 1px solid var(--border);
-  border-radius: 12px; margin-bottom: 6px; padding: 0 4px 0 0; position: relative;
-}
+.brow { display: flex; align-items: center; gap: 6px; background: var(--card); border-top: 1px solid var(--border); padding: 0 4px 0 10px; position: relative; }
+/* 1つずつの段は、現場の段より一段下げて見せる */
+.brow::before { content: ''; width: 3px; align-self: stretch; margin: 8px 0; border-radius: 2px; background: var(--border); }
 .brow .lbl {
   flex: 1; min-width: 0; text-align: left; font: inherit; font-size: 17px; font-weight: 700; color: var(--text);
-  background: none; border: none; padding: 14px 12px; cursor: pointer;
+  background: none; border: none; padding: 14px 8px; cursor: pointer;
 }
-/* 積んだものは取り消し線 */
-.brow.done .lbl { color: var(--text2); text-decoration: line-through; text-decoration-thickness: 2px; font-weight: 600; }
-.brow .del { width: 40px; height: 40px; border: none; background: none; color: var(--text2); font-size: 18px; cursor: pointer; }
-.brow .grip { width: 40px; height: 44px; display: grid; place-items: center; color: var(--text2); touch-action: none; cursor: grab; }
-.brow .grip svg { pointer-events: none; }
-/* つかんでいる行 */
-.brow.lift { z-index: 5; box-shadow: 0 8px 24px rgba(0,0,0,0.18); transition: none; }
-.brow.shift { transition: transform .15s ease; }
+.brow .lbl:active { color: var(--text2); }
+/* ✕は赤い丸で目立たせる（積んだらこれで消す） */
+.del { width: 36px; height: 36px; flex: none; border-radius: 50%; border: 1.5px solid #f0b9b7; background: #fdecec; color: var(--red); font-size: 17px; font-weight: 800; line-height: 1; cursor: pointer; }
+.grp-head .del { width: 30px; height: 30px; font-size: 14px; }
+.grip { width: 40px; height: 44px; flex: none; display: grid; place-items: center; color: var(--text2); touch-action: none; cursor: grab; }
+.grp-head .grip { height: 40px; }
+.grip svg { pointer-events: none; }
+/* つかんでいる行・現場 */
+.lift { z-index: 5; box-shadow: 0 8px 24px rgba(0,0,0,0.18); transition: none; }
+.shift { transition: transform .15s ease; }
 </style>
 </head>
 <body>
@@ -500,6 +499,9 @@ const newDai = () => ({ yen: 0, bigs: [], next: 0 });
 const newDay = () => ({ date: today(), cur: 0, dais: Array.from({ length: DAIS }, newDai) });
 
 let state;
+// でかぶつ登録で足していく先の現場。直している時（行を押して開いた時）は editS、ふだんは next
+let editS = null;
+const targetS = () => editS != null ? editS : cur().next;
 // 1つ戻す：変える前の状態を積んでおく
 let history = [];
 function snap() { history.push(JSON.stringify(state)); if (history.length > 50) history.shift(); }
@@ -534,8 +536,7 @@ function render() {
   document.getElementById('dayTotal').textContent = pt(dayTotal) + 'p';
   document.getElementById('heroLabel').textContent = `${state.cur + 1}台目の容積ポイント`;
   setAmount(pt(dai.yen));
-  const nDone = dai.bigs.filter(b => b.done).length;
-  document.getElementById('heroCount').textContent = dai.bigs.length ? `でかぶつ ${nDone}/${dai.bigs.length} 積んだ` : '';
+  document.getElementById('heroCount').textContent = dai.bigs.length ? `でかぶつ ${dai.bigs.length}点` : '';
 
   // 台の切り替え
   document.getElementById('dais').innerHTML = state.dais.map((x, i) =>
@@ -548,17 +549,24 @@ function render() {
     const g = groups[groups.length - 1];
     if (g && g.s === b.s) g.items.push([b, i]); else groups.push({ s: b.s, items: [[b, i]] });
   });
-  document.getElementById('bigList').innerHTML = groups.map(g => `<ul class="grp">${g.items.map(([b, i]) =>
-    `<li class="brow${b.done ? ' done' : ''}" data-i="${i}">
-      <button class="lbl" data-done="${i}">${bigLabel(b)}</button>
+  // 行を押すとその現場のでかぶつ登録が開く（直す）。積んだら✕で消す
+  document.getElementById('bigList').innerHTML = groups.map(g => `<div class="grp" data-s="${g.s}">
+    <div class="grp-head"><span class="grp-n">${g.items.length}点</span>
+      <button class="del" data-gdel="${g.s}" aria-label="この現場をまるごと消す">✕</button>
+      <span class="grip ggrip" aria-label="現場ごと並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span></div>
+    <ul class="grp-rows">${g.items.map(([b, i]) =>
+    `<li class="brow" data-i="${i}">
+      <button class="lbl" data-edit="${b.s}">${bigLabel(b)}</button>
       <button class="del" data-del="${i}" aria-label="消す">✕</button>
       <span class="grip" aria-label="並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span>
-    </li>`).join('')}</ul>`).join('');
+    </li>`).join('')}</ul></div>`).join('');
 
   // でかぶつ登録：見出しと、登録したものの段（同じものは×nでまとめる。✕で1つ減る）
-  document.getElementById('bigTitle').textContent = `${state.cur + 1}台目のでかぶつ`;
+  const ts = targetS();
+  document.getElementById('bigTitle').textContent = editS != null ? '現場を直す' : `${state.cur + 1}台目のでかぶつ`;
+  document.getElementById('bigDone').textContent = editS != null ? '閉じる' : '完了';
   const labels = new Map();
-  const now = dai.bigs.filter(b => b.s === dai.next);
+  const now = dai.bigs.filter(b => b.s === ts);
   for (const b of now) labels.set(bigLabel(b), (labels.get(bigLabel(b)) || 0) + 1);
   document.getElementById('siteBig').innerHTML = [...labels].map(([l, n]) =>
     `<button class="tag pend" data-unbig="${l}">${l}×${n} ✕</button>`).join('');
@@ -624,7 +632,11 @@ function buzz() { if (navigator.vibrate) navigator.vibrate(15); }
 // 変える時はいつもここを通す（1つ戻すのため）
 function change(fn) {
   if (state.date !== today()) state = newDay();
-  snap(); fn(); save(); render();
+  snap(); fn();
+  // 同じ現場のでかぶつは、いつも1列の中で隣どうしに並べ直す（あとから足した分も、その現場の最後に入る）
+  const d = cur(), order = [...new Set(d.bigs.map(b => b.s))];
+  d.bigs = order.flatMap(x => d.bigs.filter(b => b.s === x));
+  save(); render();
 }
 
 document.addEventListener('click', e => {
@@ -648,6 +660,7 @@ document.addEventListener('click', e => {
   if (b.hasAttribute('data-close')) {
     closeAll();
   } else if (b.dataset.open) {
+    editS = null; // 下のでかぶつボタンから開いた時は、いま足している現場へ
     openPanel(b.dataset.open);
   } else if (b.dataset.key) {
     padPress(b.dataset.key);
@@ -656,16 +669,19 @@ document.addEventListener('click', e => {
     const [gi, ii, ti] = b.dataset.tier.split('-').map(Number);
     const it = GROUPS[gi].items[ii], t = it.tiers[ti];
     const kind = it.kinds ? document.querySelector(`[data-kind="${gi}-${ii}"]`).dataset.value : '';
-    change(() => cur().bigs.push({ name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }), done: false, s: cur().next }));
+    change(() => cur().bigs.push({ name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }), s: targetS() }));
     buzz();
   } else if (b.dataset.unbig != null) {
-    const l = cur().bigs, i = l.findLastIndex(e => e.s === cur().next && bigLabel(e) === b.dataset.unbig);
+    const l = cur().bigs, i = l.findLastIndex(e => e.s === targetS() && bigLabel(e) === b.dataset.unbig);
     if (i >= 0) change(() => l.splice(i, 1));
-  } else if (b.dataset.done != null) {
-    change(() => { const x = cur().bigs[+b.dataset.done]; x.done = !x.done; });
-    buzz();
+  } else if (b.dataset.edit != null) {
+    openPanel('bigSheet'); editS = +b.dataset.edit; render();
   } else if (b.dataset.del != null) {
     change(() => cur().bigs.splice(+b.dataset.del, 1));
+    buzz();
+  } else if (b.dataset.gdel != null) {
+    change(() => { const d = cur(); d.bigs = d.bigs.filter(x => x.s !== +b.dataset.gdel); });
+    buzz();
   } else if (b.dataset.dai != null) {
     shownAmount = null; // 台を変える時は数字をパッと切り替える
     state.cur = +b.dataset.dai;
@@ -867,6 +883,8 @@ document.addEventListener('visibilitychange', () => {
 });
 
 document.getElementById('bigDone').onclick = () => {
+  // 直している時は、閉じるだけ
+  if (editS != null) { editS = null; closeAll(); return; }
   const d = cur();
   // 閉じずに、登録の段だけ空にして次の現場へ（箱物の種類も選び直し）
   if (d.bigs.some(b => b.s === d.next)) change(() => { d.next++; });
@@ -874,43 +892,57 @@ document.getElementById('bigDone').onclick = () => {
   buzz();
 };
 
-// つまみを押さえたまま上下に動かすと、その行がついてくる。離した所に入る
+// つまみを押さえたまま上下に動かすと、その行（または現場ごと）がついてくる。離した所に入る
+// 1つずつのつまみは同じ現場の中だけ、現場のつまみは現場どうしで入れかわる
 const bigList = document.getElementById('bigList');
 let drag = null;
 bigList.addEventListener('pointerdown', e => {
   const grip = e.target.closest('.grip');
   if (!grip) return;
   e.preventDefault();
-  const row = grip.closest('.brow'), rows = [...row.parentElement.children];
-  const step = row.offsetHeight - 1; // 同じ現場の行は線を重ねてくっついている
-  drag = { row, rows, from: rows.indexOf(row), to: rows.indexOf(row), y0: e.clientY, step, id: e.pointerId };
+  const el = grip.classList.contains('ggrip') ? grip.closest('.grp') : grip.closest('.brow');
+  const els = [...el.parentElement.children];
+  const gap = el.classList.contains('grp') ? 12 : 0;
+  const mids = els.map(x => { const r = x.getBoundingClientRect(); return (r.top + r.bottom) / 2; });
+  drag = { el, els, mids, from: els.indexOf(el), to: els.indexOf(el), y0: e.clientY, h: el.offsetHeight + gap, id: e.pointerId };
   try { grip.setPointerCapture(e.pointerId); } catch (err) {}
-  row.classList.add('lift');
-  rows.forEach(r => r !== row && r.classList.add('shift'));
+  el.classList.add('lift');
+  els.forEach(x => x !== el && x.classList.add('shift'));
 });
 bigList.addEventListener('pointermove', e => {
   if (!drag || e.pointerId !== drag.id) return;
-  const dy = e.clientY - drag.y0;
-  drag.row.style.transform = `translateY(${dy}px)`;
-  const to = Math.max(0, Math.min(drag.rows.length - 1, drag.from + Math.round(dy / drag.step)));
+  const dy = e.clientY - drag.y0, { el, els, mids, from, h } = drag;
+  el.style.transform = `translateY(${dy}px)`;
+  // つかんだものの真ん中が、ほかのものの真ん中をいくつ越えたか
+  const c = mids[from] + dy;
+  let to = from;
+  for (let i = from + 1; i < els.length; i++) if (c > mids[i]) to = i;
+  for (let i = from - 1; i >= 0; i--) if (c < mids[i]) to = i;
   if (to !== drag.to) { drag.to = to; buzz(); }
-  // 間にある行を1つずつずらして、入る場所を空けて見せる
-  drag.rows.forEach((r, i) => {
-    if (r === drag.row) return;
+  // 間にあるものを1つずつずらして、入る場所を空けて見せる
+  els.forEach((x, i) => {
+    if (x === el) return;
     let s = 0;
-    if (drag.from < to && i > drag.from && i <= to) s = -drag.step;
-    if (drag.from > to && i >= to && i < drag.from) s = drag.step;
-    r.style.transform = s ? `translateY(${s}px)` : '';
+    if (from < to && i > from && i <= to) s = -h;
+    if (from > to && i >= to && i < from) s = h;
+    x.style.transform = s ? `translateY(${s}px)` : '';
   });
 });
 function endDrag(e) {
   if (!drag || e.pointerId !== drag.id) return;
-  const { from, to } = drag;
-  const base = +drag.rows[0].dataset.i; // まとまりの先頭が、1列全体の何番目か
+  const { el, els, from, to } = drag;
   drag = null;
-  // まとまりの中の位置を、1列全体の位置に直して入れかえる
-  if (from !== to) change(() => { const l = cur().bigs; l.splice(base + to, 0, l.splice(base + from, 1)[0]); });
-  else render();
+  if (from === to) { render(); return; }
+  if (el.classList.contains('grp')) {
+    // 現場の並びを入れかえて、1列を組み直す
+    const order = els.map(x => +x.dataset.s);
+    order.splice(to, 0, order.splice(from, 1)[0]);
+    change(() => { const d = cur(); d.bigs = order.flatMap(s => d.bigs.filter(b => b.s === s)); });
+  } else {
+    // まとまりの中の位置を、1列全体の位置に直して入れかえる
+    const base = +els[0].dataset.i;
+    change(() => { const l = cur().bigs; l.splice(base + to, 0, l.splice(base + from, 1)[0]); });
+  }
 }
 bigList.addEventListener('pointerup', endDrag);
 bigList.addEventListener('pointercancel', endDrag);
