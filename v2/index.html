@@ -597,9 +597,9 @@ function render() {
   document.getElementById('viewBtn').innerHTML = view === 'ryaku' ? '<b>略</b>/詳' : '略/<b>詳</b>';
   document.getElementById('bigList').innerHTML = groups.map(g => view === 'ryaku'
     ? `<div class="swipe grp" data-s="${g.s}"><button class="swipe-del" data-sdel="${g.s}">消す</button><div class="srow"><div class="chips">${
-        // 同じ書き方のものは1つのチップにまとめて「ベx2」（メモと同じ）
+        // 同じ書き方のものは1つのチップにまとめて「ベ×2」（メモと同じ）
         [...g.items.reduce((m, [b]) => m.set(abbr(b), (m.get(abbr(b)) || 0) + 1), new Map())].map(([a, n]) =>
-        `<span class="chip" data-edit="${g.s}">${a}${n > 1 ? 'x' + n : ''}</span>`).join('')}</div>${side(g)}</div></div>`
+        `<span class="chip" data-edit="${g.s}">${a}${n > 1 ? '×' + n : ''}</span>`).join('')}</div>${side(g)}</div></div>`
     : `<div class="swipe grp" data-s="${g.s}"><button class="swipe-del" data-sdel="${g.s}">消す</button><div class="srow"><div class="mq" data-edit="${g.s}"><div class="mq-track"><span>${g.items.map(([b]) => bigLabel(b)).join('、')}</span></div></div>${side(g)}</div></div>`
   ).join('');
   // 編集のモーダル：その現場の中身を1行ずつ。✕で消す、右のつまみで並べ替え
