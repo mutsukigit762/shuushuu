@@ -138,7 +138,9 @@ h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; 
 .combo-row .pbtn { grid-column: span 2; }
 .combo-row .pbtn.wide { grid-column: span 3; }
 /* でかぶつは並びから少し離して、下の真ん中に */
-.big-wrap { display: flex; justify-content: center; margin-top: 12px; padding-bottom: 8px; }
+.big-wrap { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 12px; padding-bottom: 8px; position: relative; }
+.view-btn { position: absolute; right: 0; height: 54px; padding: 0 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--card); font: inherit; font-size: 16px; font-weight: 700; color: var(--text2); cursor: pointer; }
+.view-btn b { color: var(--text); }
 .big-wrap .pbtn.open-big { width: 50%; height: 54px; font-size: 17px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .combo-row .pbtn.base { background: var(--card2); }
 .pbtn small, .tbtn .p small, .dai-chip b small { font-size: 0.7em; font-weight: 600; margin-left: 1px; }
@@ -365,6 +367,22 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .del { width: 40px; height: 40px; flex: none; border: none; background: none; color: var(--text2); font-size: 18px; cursor: pointer; }
 .grip { width: 40px; height: 44px; flex: none; display: grid; place-items: center; color: var(--text2); touch-action: none; cursor: grab; }
 .grip svg { pointer-events: none; }
+/* 1現場＝1行。左が中身（略はチップ、詳は流れる文字）、右に現場ごとの✕とつまみ */
+.srow { display: flex; align-items: center; margin: 0 0 8px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; height: 52px; position: relative; }
+.srow .del, .srow .grip { height: 50px; }
+.srow .ggrip { border-left: 1px solid var(--border); }
+.chips { flex: 1; min-width: 0; display: flex; gap: 6px; align-items: center; padding: 0 8px; overflow-x: auto; scrollbar-width: none; height: 100%; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; display: inline-flex; align-items: center; gap: 2px; height: 34px; padding: 0 2px 0 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--card2); font-size: 18px; font-weight: 700; white-space: nowrap; position: relative; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; cursor: pointer; }
+.chip .x { width: 26px; height: 30px; border: none; background: none; color: var(--text2); font-size: 14px; cursor: pointer; }
+.chip.lift { background: var(--card); }
+/* 詳：はみ出す時だけ電光掲示板みたいに右から左へ流す */
+.mq { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; padding: 0 10px; font-size: 16px; font-weight: 700; cursor: pointer; height: 100%; display: flex; align-items: center; }
+.mq-track { display: inline-flex; }
+.mq-track span { padding-right: 3em; }
+.mq.run .mq-track { animation: mq var(--dur, 10s) linear infinite; }
+@keyframes mq { to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .mq.run .mq-track { animation: none; } }
 /* つかんでいる行・現場 */
 .lift { z-index: 5; box-shadow: 0 8px 24px rgba(0,0,0,0.18); transition: none; }
 .shift { transition: transform .15s ease; }
@@ -384,7 +402,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
   <section class="big-sec">
     <h2 class="big-h">でかぶつ<span id="heroCount"></span></h2>
     <div class="big-list" id="bigList"></div>
-    <div class="big-wrap"><button class="pbtn open-big" data-open="bigSheet">でかぶつ</button></div>
+    <div class="big-wrap"><button class="pbtn open-big" data-open="bigSheet">でかぶつ</button><button class="view-btn" id="viewBtn" aria-label="略と詳を切り替える"></button></div>
   </section>
 </main>
 
@@ -498,6 +516,9 @@ const newDai = () => ({ yen: 0, bigs: [], next: 0 });
 const newDay = () => ({ date: today(), cur: 0, dais: Array.from({ length: DAIS }, newDai) });
 
 let state;
+// 一覧の見せ方：ryaku（メモの暗号）か shou（くわしく）。端末に覚えておく
+let view = 'ryaku';
+try { view = localStorage.getItem('shuushuu2-view') || 'ryaku'; } catch (e) {}
 // でかぶつ登録で足していく先の現場。直している時（行を押して開いた時）は editS、ふだんは next
 let editS = null;
 const targetS = () => editS != null ? editS : cur().next;
@@ -547,14 +568,23 @@ function render() {
     const g = groups[groups.length - 1];
     if (g && g.s === b.s) g.items.push([b, i]); else groups.push({ s: b.s, items: [[b, i]] });
   });
-  // 行を押すとその現場のでかぶつ登録が開く（直す）。積んだら✕で消す
-  document.getElementById('bigList').innerHTML = groups.map(g => `<div class="grp" data-s="${g.s}">
-    <ul class="grp-rows">${g.items.map(([b, i]) =>
-    `<li class="brow" data-i="${i}">
-      <button class="lbl" data-edit="${b.s}">${bigLabel(b)}</button>
-      <button class="del" data-del="${i}" aria-label="消す">✕</button>
-    </li>`).join('')}</ul>
-    <div class="grp-side"><button class="del" data-gdel="${g.s}" aria-label="この現場をまるごと消す">✕</button><span class="grip ggrip" aria-label="現場ごと並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span></div></div>`).join('');
+  // 1現場＝1行。略はメモの暗号のチップ（✕で1つ消す、長押しで並べ替え）、詳は「1,300円ベッド、…」が流れる
+  // どちらも押すとその現場のでかぶつ登録が開く（直す）。右に現場ごとの✕とつまみ
+  const side = g => `<button class="del" data-gdel="${g.s}" aria-label="この現場をまるごと消す">✕</button><span class="grip ggrip" aria-label="現場ごと並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span>`;
+  document.getElementById('viewBtn').innerHTML = view === 'ryaku' ? '<b>略</b>/詳' : '略/<b>詳</b>';
+  document.getElementById('bigList').innerHTML = groups.map(g => view === 'ryaku'
+    ? `<div class="srow grp" data-s="${g.s}"><div class="chips">${g.items.map(([b, i]) =>
+        `<span class="chip" data-i="${i}" data-edit="${b.s}">${abbr(b)}<button class="x" data-del="${i}" aria-label="消す">✕</button></span>`).join('')}</div>${side(g)}</div>`
+    : `<div class="srow grp" data-s="${g.s}"><div class="mq" data-edit="${g.s}"><div class="mq-track"><span>${g.items.map(([b]) => bigLabel(b)).join('、')}</span></div></div>${side(g)}</div>`
+  ).join('');
+  // 詳：はみ出す行だけ、同じ文を2つ並べて流す（つなぎ目が見えないように）
+  if (view === 'shou') document.querySelectorAll('.mq').forEach(m => {
+    const t = m.querySelector('.mq-track');
+    if (t.scrollWidth <= m.clientWidth - 20) return;
+    t.innerHTML += t.innerHTML;
+    m.style.setProperty('--dur', `${t.scrollWidth / 2 / 40}s`); // 1秒に40pxくらい
+    m.classList.add('run');
+  });
 
   // でかぶつ登録：見出しと、登録したものの段（同じものは×nでまとめる。✕で1つ減る）
   const ts = targetS();
@@ -576,6 +606,28 @@ function render() {
   });
 }
 
+
+// 略の書き方（ムツキのメモの暗号）：k が1,300円の字。900円は h、2,300円は k'、3,200円は k''
+// カタカナはひらがな、漢字は丸かっこ（ひらがなにしても他とかぶらない時はひらがな）
+const ABBR = {
+  'ベッドマット': { k: 'ベマ', h: 'べま' }, 'ベッド': { k: 'ベ', h: 'べ' }, 'ソファー': { k: 'ソ', h: 'そ' },
+  'テーブル': { k: 'テ', h: 'て' }, '自転車': { k: '自', h: '（自）' }, '箱物': { k: '箱', h: '（箱）' },
+  'タンス': { k: 'タ', h: 'た' }, 'チェスト': { k: 'チ', h: 'ち' }, '食器棚': { k: 'タ', h: 'た' }, // 食器棚＝茶箪笥なのでタンス
+  '本棚': { k: '本', h: 'ほ' }, 'スチール棚': { k: 'ス', h: 'す' }, 'テレビ台': { k: 'テレ', h: 'てれ' },
+  'リビングボード': { k: 'リ', h: 'り' }, 'レンジ台': { k: '調', h: '（調）' }, 'キャビネット': { k: 'キャ', h: 'きゃ' },
+  'カラーボックス': { k: 'カ', h: 'か' }, '下駄箱': { k: '下', h: '（下）' }, '鏡台': { k: '鏡', h: '（鏡）' },
+  'ロッカー': { k: 'ロ', h: 'ろ' }, '脇机': { k: '脇', h: '（脇）' }, 'ペット小屋': { k: 'ペ', h: 'ぺ' },
+};
+// 机だけは例外：袖なし＝つ、片袖＝片袖、両袖＝両袖
+const DESK = { '袖なし': 'つ', '片袖': '片袖', '両袖': '両袖' };
+function abbr(e) {
+  if (e.name === '机') return DESK[e.cond] || '机';
+  let yen = 0;
+  for (const g of GROUPS) for (const it of g.items) if (it.name === e.name)
+    for (const t of it.tiers) if (t.cond === e.cond) yen = t.price;
+  const a = ABBR[e.kind || e.name] || { k: e.name, h: `（${e.name}）` };
+  return yen === 900 ? a.h : yen === 2300 ? a.k + "'" : yen === 3200 ? a.k + "''" : a.k;
+}
 
 // 一覧用の書き方：「900円テーブル」。料金は品目ボタンの定義から引く
 function bigLabel(e) {
@@ -633,6 +685,17 @@ function change(fn) {
   d.bigs = order.flatMap(x => d.bigs.filter(b => b.s === x));
   save(); render();
 }
+
+document.getElementById('viewBtn').onclick = () => {
+  view = view === 'ryaku' ? 'shou' : 'ryaku';
+  try { localStorage.setItem('shuushuu2-view', view); } catch (e) {}
+  render();
+};
+document.getElementById('bigList').addEventListener('click', e => {
+  if (e.target.closest('button')) return;
+  const el = e.target.closest('[data-edit]');
+  if (el) { openPanel('bigSheet'); editS = +el.dataset.edit; render(); }
+});
 
 document.addEventListener('click', e => {
   const b = e.target.closest('button');
@@ -892,18 +955,20 @@ document.getElementById('bigDone').onclick = () => {
 // つかんだものは指についてきて、離した所に入る
 const bigList = document.getElementById('bigList');
 let drag = null;
-function startDrag(el, y) {
+// 現場の行は縦に、チップは横に動く（ax が 'y' か 'x'）
+function startDrag(el, y, ax = 'y') {
   const els = [...el.parentElement.children];
-  const gap = el.classList.contains('grp') ? 12 : 0;
-  const mids = els.map(x => { const r = x.getBoundingClientRect(); return (r.top + r.bottom) / 2; });
-  drag = { el, els, mids, from: els.indexOf(el), to: els.indexOf(el), y0: y, h: el.offsetHeight + gap };
+  const gap = ax === 'x' ? 6 : 8;
+  const mids = els.map(x => { const r = x.getBoundingClientRect(); return ax === 'x' ? (r.left + r.right) / 2 : (r.top + r.bottom) / 2; });
+  drag = { el, els, mids, ax, from: els.indexOf(el), to: els.indexOf(el), y0: y, h: (ax === 'x' ? el.offsetWidth : el.offsetHeight) + gap };
   el.classList.add('lift');
   els.forEach(x => x !== el && x.classList.add('shift'));
   buzz();
 }
 function moveDrag(y) {
   const dy = y - drag.y0, { el, els, mids, from, h } = drag;
-  el.style.transform = `translateY(${dy}px)`;
+  const T = drag.ax === 'x' ? 'translateX' : 'translateY';
+  el.style.transform = `${T}(${dy}px)`;
   // つかんだものの真ん中が、ほかのものの真ん中をいくつ越えたか
   const c = mids[from] + dy;
   let to = from;
@@ -916,7 +981,7 @@ function moveDrag(y) {
     let s = 0;
     if (from < to && i > from && i <= to) s = -h;
     if (from > to && i >= to && i < from) s = h;
-    x.style.transform = s ? `translateY(${s}px)` : '';
+    x.style.transform = s ? `${T}(${s}px)` : '';
   });
 }
 function endDrag() {
@@ -949,17 +1014,17 @@ const gripUp = e => { if (drag && drag.id === e.pointerId) endDrag(); };
 bigList.addEventListener('pointerup', gripUp);
 bigList.addEventListener('pointercancel', gripUp);
 
-// 行の長押し（0.4秒）。その前に指が動いたら、ふつうのスクロールとして諦める
+// チップの長押し（0.4秒）で横に並べ替え。その前に指が動いたら、ふつうのスクロールとして諦める
 let press = null, swallowClick = false;
 bigList.addEventListener('touchstart', e => {
-  const row = e.target.closest('.brow');
-  if (!row || e.target.closest('.del') || e.touches.length > 1) return;
-  const y = e.touches[0].clientY;
-  press = { y, timer: setTimeout(() => { startDrag(row, y); drag.touch = true; }, 400) };
+  const chip = e.target.closest('.chip');
+  if (!chip || e.target.closest('button') || e.touches.length > 1) return;
+  const { clientX: x, clientY: y } = e.touches[0];
+  press = { x, y, timer: setTimeout(() => { startDrag(chip, x, 'x'); drag.touch = true; }, 400) };
 }, { passive: true });
 bigList.addEventListener('touchmove', e => {
-  if (drag && drag.touch) { e.preventDefault(); moveDrag(e.touches[0].clientY); return; }
-  if (press && Math.abs(e.touches[0].clientY - press.y) > 8) { clearTimeout(press.timer); press = null; }
+  if (drag && drag.touch) { e.preventDefault(); moveDrag(e.touches[0].clientX); return; }
+  if (press && Math.hypot(e.touches[0].clientX - press.x, e.touches[0].clientY - press.y) > 8) { clearTimeout(press.timer); press = null; }
 }, { passive: false });
 const touchUp = () => {
   if (press) { clearTimeout(press.timer); press = null; }
