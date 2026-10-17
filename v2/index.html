@@ -1011,8 +1011,9 @@ function moveDrag(y) {
   // つかんだものの真ん中が、ほかのものの真ん中をいくつ越えたか
   const c = mids[from] + dy;
   let to = from;
-  for (let i = from + 1; i < els.length; i++) if (c > mids[i]) to = i;
-  for (let i = from - 1; i >= 0; i--) if (c < mids[i]) to = i;
+  // 端まで動かすとちょうど端の真ん中に重なるので、重なったら越えたことにする（でないと端の1つだけ避けない）
+  for (let i = from + 1; i < els.length; i++) if (c >= mids[i]) to = i;
+  for (let i = from - 1; i >= 0; i--) if (c <= mids[i]) to = i;
   if (to !== drag.to) { drag.to = to; buzz(); }
   // 間にあるものを1つずつずらして、入る場所を空けて見せる
   els.forEach((x, i) => {
