@@ -991,7 +991,9 @@ function startDrag(el, y, ax = 'y') {
   buzz();
 }
 function moveDrag(y) {
-  const dy = y - drag.y0, { el, els, mids, from, h } = drag;
+  const { el, els, mids, from, h } = drag;
+  // 並びの外（最初より前・最後より後ろ）には動かさない
+  const dy = Math.max(mids[0] - mids[from], Math.min(mids[els.length - 1] - mids[from], y - drag.y0));
   const T = drag.ax === 'x' ? 'translateX' : 'translateY';
   el.style.transform = `${T}(${dy}px)`;
   // つかんだものの真ん中が、ほかのものの真ん中をいくつ越えたか
