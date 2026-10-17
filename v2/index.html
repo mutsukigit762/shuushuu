@@ -345,7 +345,14 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .grp { margin: 0 0 12px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; position: relative; display: flex; }
 .grp-rows { list-style: none; margin: 0; padding: 0; flex: 1; min-width: 0; }
 .grp-rows .brow:first-child { border-top: none; }
-.grp > .ggrip { width: 36px; height: auto; align-self: stretch; border-left: 1px solid var(--border); background: var(--card2); }
+/* 右端の帯：上に現場ごと消す✕、その下に現場ごとのつまみ */
+.grp-side { width: 40px; flex: none; display: flex; flex-direction: column; align-items: center; border-left: 1px solid var(--border); background: var(--card2); }
+.grp-side .del { height: 32px; font-size: 15px; }
+.grp-side .ggrip { flex: 1; width: 40px; height: auto; min-height: 20px; }
+.big-h { display: flex; justify-content: space-between; }
+/* 長押しでつかめる行。つかむと少し浮く */
+.brow { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.brow.lift { background: var(--card); }
 .big-list:empty::before { content: 'まだ無し'; display: block; color: var(--text2); font-size: 14px; padding: 6px 2px; }
 .brow { display: flex; align-items: center; gap: 6px; background: var(--card); border-top: 1px solid var(--border); padding: 0 4px 0 10px; position: relative; }
 /* 1つずつの段は、現場の段より一段下げて見せる */
@@ -372,16 +379,10 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 </header>
 
 <main>
-  <!-- 申告された容積ポイント。押すとテンキーで打ち直せる -->
-  <button class="hero hero-btn" data-open="padSheet">
-    <div class="hero-label"><span id="heroLabel"></span><span id="heroCount"></span></div>
-    <div class="hero-row"><div class="hero-amount" id="heroAmount"></div></div>
-  </button>
-
   <div class="dais" id="dais"></div>
 
   <section class="big-sec">
-    <h2>でかぶつ</h2>
+    <h2 class="big-h">でかぶつ<span id="heroCount"></span></h2>
     <div class="big-list" id="bigList"></div>
     <div class="big-wrap"><button class="pbtn open-big" data-open="bigSheet">でかぶつ</button></div>
   </section>
@@ -532,10 +533,8 @@ function render() {
   document.getElementById('headTitle').innerHTML =
     `<b>${daime(state.cur)}</b>　${d.getMonth()+1}/${d.getDate()}(${wd})`;
   document.getElementById('dayTotal').textContent = pt(dayTotal) + 'p';
-  document.getElementById('heroLabel').textContent = `${state.cur + 1}台目の容積ポイント`;
-  setAmount(pt(dai.yen));
   const nSites = new Set(dai.bigs.map(b => b.s)).size;
-  document.getElementById('heroCount').textContent = `でかぶつ ${nSites}箇所`;
+  document.getElementById('heroCount').textContent = `${nSites}箇所`;
 
   // 台の切り替え
   document.getElementById('dais').innerHTML = state.dais.map((x, i) =>
@@ -554,9 +553,8 @@ function render() {
     `<li class="brow" data-i="${i}">
       <button class="lbl" data-edit="${b.s}">${bigLabel(b)}</button>
       <button class="del" data-del="${i}" aria-label="消す">✕</button>
-      <span class="grip" aria-label="並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span>
     </li>`).join('')}</ul>
-    <span class="grip ggrip" aria-label="現場ごと並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span></div>`).join('');
+    <div class="grp-side"><button class="del" data-gdel="${g.s}" aria-label="この現場をまるごと消す">✕</button><span class="grip ggrip" aria-label="現場ごと並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span></div></div>`).join('');
 
   // でかぶつ登録：見出しと、登録したものの段（同じものは×nでまとめる。✕で1つ減る）
   const ts = targetS();
@@ -673,11 +671,15 @@ document.addEventListener('click', e => {
     if (i >= 0) change(() => l.splice(i, 1));
   } else if (b.dataset.edit != null) {
     openPanel('bigSheet'); editS = +b.dataset.edit; render();
+  } else if (b.dataset.gdel != null) {
+    change(() => { const d = cur(); d.bigs = d.bigs.filter(x => x.s !== +b.dataset.gdel); });
+    buzz();
   } else if (b.dataset.del != null) {
     change(() => cur().bigs.splice(+b.dataset.del, 1));
     buzz();
   } else if (b.dataset.dai != null) {
-    shownAmount = null; // 台を変える時は数字をパッと切り替える
+    // 選んでいる台のチップをもう一度押すと、申告された容積ポイントを打つ
+    if (+b.dataset.dai === state.cur) { openPanel('padSheet'); return; }
     state.cur = +b.dataset.dai;
     save(); render();
   }
@@ -886,26 +888,21 @@ document.getElementById('bigDone').onclick = () => {
   buzz();
 };
 
-// つまみを押さえたまま上下に動かすと、その行（または現場ごと）がついてくる。離した所に入る
-// 1つずつのつまみは同じ現場の中だけ、現場のつまみは現場どうしで入れかわる
+// 並べ替え：現場ごとは右端のつまみをつかむ。現場の中の1つずつは、行を長押ししてつかむ
+// つかんだものは指についてきて、離した所に入る
 const bigList = document.getElementById('bigList');
 let drag = null;
-bigList.addEventListener('pointerdown', e => {
-  const grip = e.target.closest('.grip');
-  if (!grip) return;
-  e.preventDefault();
-  const el = grip.classList.contains('ggrip') ? grip.closest('.grp') : grip.closest('.brow');
+function startDrag(el, y) {
   const els = [...el.parentElement.children];
   const gap = el.classList.contains('grp') ? 12 : 0;
   const mids = els.map(x => { const r = x.getBoundingClientRect(); return (r.top + r.bottom) / 2; });
-  drag = { el, els, mids, from: els.indexOf(el), to: els.indexOf(el), y0: e.clientY, h: el.offsetHeight + gap, id: e.pointerId };
-  try { grip.setPointerCapture(e.pointerId); } catch (err) {}
+  drag = { el, els, mids, from: els.indexOf(el), to: els.indexOf(el), y0: y, h: el.offsetHeight + gap };
   el.classList.add('lift');
   els.forEach(x => x !== el && x.classList.add('shift'));
-});
-bigList.addEventListener('pointermove', e => {
-  if (!drag || e.pointerId !== drag.id) return;
-  const dy = e.clientY - drag.y0, { el, els, mids, from, h } = drag;
+  buzz();
+}
+function moveDrag(y) {
+  const dy = y - drag.y0, { el, els, mids, from, h } = drag;
   el.style.transform = `translateY(${dy}px)`;
   // つかんだものの真ん中が、ほかのものの真ん中をいくつ越えたか
   const c = mids[from] + dy;
@@ -921,9 +918,8 @@ bigList.addEventListener('pointermove', e => {
     if (from > to && i >= to && i < from) s = h;
     x.style.transform = s ? `translateY(${s}px)` : '';
   });
-});
-function endDrag(e) {
-  if (!drag || e.pointerId !== drag.id) return;
+}
+function endDrag() {
   const { el, els, from, to } = drag;
   drag = null;
   if (from === to) { render(); return; }
@@ -938,8 +934,41 @@ function endDrag(e) {
     change(() => { const l = cur().bigs; l.splice(base + to, 0, l.splice(base + from, 1)[0]); });
   }
 }
-bigList.addEventListener('pointerup', endDrag);
-bigList.addEventListener('pointercancel', endDrag);
+
+// 現場ごとのつまみ
+bigList.addEventListener('pointerdown', e => {
+  const grip = e.target.closest('.ggrip');
+  if (!grip) return;
+  e.preventDefault();
+  try { grip.setPointerCapture(e.pointerId); } catch (err) {}
+  startDrag(grip.closest('.grp'), e.clientY);
+  drag.id = e.pointerId;
+});
+bigList.addEventListener('pointermove', e => { if (drag && drag.id === e.pointerId) moveDrag(e.clientY); });
+const gripUp = e => { if (drag && drag.id === e.pointerId) endDrag(); };
+bigList.addEventListener('pointerup', gripUp);
+bigList.addEventListener('pointercancel', gripUp);
+
+// 行の長押し（0.4秒）。その前に指が動いたら、ふつうのスクロールとして諦める
+let press = null, swallowClick = false;
+bigList.addEventListener('touchstart', e => {
+  const row = e.target.closest('.brow');
+  if (!row || e.target.closest('.del') || e.touches.length > 1) return;
+  const y = e.touches[0].clientY;
+  press = { y, timer: setTimeout(() => { startDrag(row, y); drag.touch = true; }, 400) };
+}, { passive: true });
+bigList.addEventListener('touchmove', e => {
+  if (drag && drag.touch) { e.preventDefault(); moveDrag(e.touches[0].clientY); return; }
+  if (press && Math.abs(e.touches[0].clientY - press.y) > 8) { clearTimeout(press.timer); press = null; }
+}, { passive: false });
+const touchUp = () => {
+  if (press) { clearTimeout(press.timer); press = null; }
+  if (drag && drag.touch) { endDrag(); swallowClick = true; setTimeout(() => swallowClick = false, 400); }
+};
+bigList.addEventListener('touchend', touchUp);
+bigList.addEventListener('touchcancel', touchUp);
+// 長押しで動かした直後の「押した」は、編集として扱わない
+bigList.addEventListener('click', e => { if (swallowClick) { e.stopPropagation(); e.preventDefault(); } }, true);
 
 load();
 buildButtons();
