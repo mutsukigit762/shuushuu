@@ -535,7 +535,7 @@ function render() {
   document.getElementById('heroLabel').textContent = `${state.cur + 1}台目の容積ポイント`;
   setAmount(pt(dai.yen));
   const nSites = new Set(dai.bigs.map(b => b.s)).size;
-  document.getElementById('heroCount').textContent = nSites ? `でかぶつ ${nSites}現場` : '';
+  document.getElementById('heroCount').textContent = `でかぶつ ${nSites}箇所`;
 
   // 台の切り替え
   document.getElementById('dais').innerHTML = state.dais.map((x, i) =>
