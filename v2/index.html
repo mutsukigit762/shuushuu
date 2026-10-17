@@ -380,15 +380,16 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 /* 払うと右から赤い「消す」が出て止まる。押すと消える */
 .swipe-del { position: absolute; right: 0; top: 0; bottom: 0; width: 84px; border: none; border-radius: 0 12px 12px 0; background: var(--red); color: #fff; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; visibility: hidden; }
 .swipe.on .swipe-del { visibility: visible; }
-.srow { display: flex; align-items: center; background: var(--card); border: 1px solid var(--border); border-radius: 12px; height: 52px; position: relative; }
+.srow { display: flex; align-items: stretch; background: var(--card); border: 1px solid var(--border); border-radius: 12px; min-height: 52px; position: relative; }
 .srow.slide { transition: transform .2s ease; }
-.edit-btn { flex: none; height: 50px; padding: 0 10px; border: none; border-left: 1px solid var(--border); background: none; font: inherit; font-size: 14px; font-weight: 700; color: var(--text2); cursor: pointer; }
+.edit-btn { flex: none; min-height: 50px; padding: 0 10px; border: none; border-left: 1px solid var(--border); background: none; font: inherit; font-size: 14px; font-weight: 700; color: var(--text2); cursor: pointer; }
 .edit-list { list-style: none; margin: 0; padding: 0; }
 .edit-list .brow { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 6px; }
 
-.srow .del, .srow .grip { height: 50px; }
+.srow .del, .srow .grip { height: auto; min-height: 50px; }
 .srow .ggrip { border-left: 1px solid var(--border); }
-.chips { flex: 1; min-width: 0; display: flex; gap: 6px; align-items: center; padding: 0 8px; overflow-x: auto; scrollbar-width: none; height: 100%; }
+/* 略：1行に入りきらない時は折り返す */
+.chips { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; align-content: center; padding: 8px; }
 .chips::-webkit-scrollbar { display: none; }
 .chip { flex: none; display: inline-flex; align-items: center; gap: 2px; height: 34px; padding: 0 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--card2); font-size: 18px; font-weight: 700; white-space: nowrap; position: relative; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; cursor: pointer; }
 .chip.lift { background: var(--card); }
