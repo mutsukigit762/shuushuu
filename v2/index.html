@@ -1137,6 +1137,25 @@ bigList.addEventListener('touchcancel', swipeEnd);
 // 払った直後の「押した」は、編集として扱わない
 bigList.addEventListener('click', e => { if (swallowClick) { e.stopPropagation(); e.preventDefault(); } }, true);
 
+// 何もないところを左右に払うと、隣の台へ（左に払うと次の台、右に払うと前の台）
+// 現場の行・チップ・ボタン・台のチップの上から始めた時は何もしない
+let daiSw = null;
+const mainEl = document.querySelector('main');
+mainEl.addEventListener('touchstart', e => {
+  daiSw = (e.touches.length > 1 || e.target.closest('.swipe, .srow, button, .dais, input'))
+    ? null : { x: e.touches[0].clientX, y: e.touches[0].clientY };
+}, { passive: true });
+mainEl.addEventListener('touchend', e => {
+  if (!daiSw) return;
+  const t = e.changedTouches[0], dx = t.clientX - daiSw.x, dy = t.clientY - daiSw.y;
+  daiSw = null;
+  if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+  const to = state.cur + (dx < 0 ? 1 : -1);
+  if (to < 0 || to >= state.dais.length) return;
+  state.cur = to;
+  save(); render(); buzz();
+});
+
 load();
 buildButtons();
 render();
