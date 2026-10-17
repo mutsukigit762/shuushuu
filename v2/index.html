@@ -718,6 +718,18 @@ function buildButtons() {
 // ===== 操作 =====
 function buzz() { if (navigator.vibrate) navigator.vibrate(15); }
 
+// 登録の段で、いま足したものが見えるところまで横にスクロールして、ポンとふくらませる
+function showAdded(label) {
+  const row = document.getElementById('siteBig');
+  const tag = [...row.querySelectorAll('[data-unbig]')].find(x => x.dataset.unbig === label);
+  if (!tag) return;
+  const left = tag.getBoundingClientRect().left - row.getBoundingClientRect().left + row.scrollLeft, right = left + tag.offsetWidth;
+  if (left < row.scrollLeft) row.scrollTo({ left: left - 8, behavior: 'smooth' });
+  else if (right > row.scrollLeft + row.clientWidth) row.scrollTo({ left: right - row.clientWidth + 8, behavior: 'smooth' });
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches)
+    tag.animate([{ transform: 'scale(1.15)', background: 'var(--card2)' }, { transform: 'none' }], { duration: 260, easing: 'ease-out' });
+}
+
 // 変える時はいつもここを通す（1つ戻すのため）
 function change(fn) {
   if (state.date !== today()) state = newDay();
@@ -770,7 +782,9 @@ document.addEventListener('click', e => {
     const it = GROUPS[gi].items[ii], t = it.tiers[ti];
     const kind = it.kinds ? document.querySelector(`[data-kind="${gi}-${ii}"]`).dataset.value : '';
     const free = it.free ? document.querySelector(`[data-free="${gi}-${ii}"]`).value.trim() : '';
-    change(() => cur().bigs.push({ name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }), ...(free && { free }), s: targetS() }));
+    const nb = { name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }), ...(free && { free }), s: targetS() };
+    change(() => cur().bigs.push(nb));
+    showAdded(bigLabel(nb));
     buzz();
   } else if (b.dataset.unbig != null) {
     const l = cur().bigs, i = l.findLastIndex(e => e.s === targetS() && bigLabel(e) === b.dataset.unbig);
