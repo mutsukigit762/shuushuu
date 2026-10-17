@@ -370,9 +370,9 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 /* 1現場＝1行。左が中身（略はチップ、詳は流れる文字）、右に現場ごとの✕とつまみ */
 /* 現場の行は左に払うと消える。払っている間、後ろに赤い「消す」が見える */
 .swipe.grp { display: block; position: relative; margin: 0 0 8px; border: none; border-radius: 12px; overflow: hidden; background: transparent; }
-.swipe.grp.on { background: var(--red); }
-.swipe:not(.on)::before { display: none; }
-.swipe::before { content: '消す'; position: absolute; right: 18px; top: 50%; transform: translateY(-50%); color: #fff; font-weight: 800; font-size: 15px; }
+/* 払うと右から赤い「消す」が出て止まる。押すと消える */
+.swipe-del { position: absolute; right: 0; top: 0; bottom: 0; width: 84px; border: none; border-radius: 0 12px 12px 0; background: var(--red); color: #fff; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; visibility: hidden; }
+.swipe.on .swipe-del { visibility: visible; }
 .srow { display: flex; align-items: center; background: var(--card); border: 1px solid var(--border); border-radius: 12px; height: 52px; position: relative; }
 .srow.slide { transition: transform .2s ease; }
 .edit-btn { flex: none; height: 50px; padding: 0 10px; border: none; border-left: 1px solid var(--border); background: none; font: inherit; font-size: 14px; font-weight: 700; color: var(--text2); cursor: pointer; }
@@ -591,9 +591,9 @@ function render() {
   const side = g => `<button class="edit-btn" data-editlist="${g.s}">編集</button><span class="grip ggrip" aria-label="現場ごと並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span>`;
   document.getElementById('viewBtn').innerHTML = view === 'ryaku' ? '<b>略</b>/詳' : '略/<b>詳</b>';
   document.getElementById('bigList').innerHTML = groups.map(g => view === 'ryaku'
-    ? `<div class="swipe grp" data-s="${g.s}"><div class="srow"><div class="chips">${g.items.map(([b, i]) =>
+    ? `<div class="swipe grp" data-s="${g.s}"><button class="swipe-del" data-sdel="${g.s}">消す</button><div class="srow"><div class="chips">${g.items.map(([b, i]) =>
         `<span class="chip" data-i="${i}" data-edit="${b.s}">${abbr(b)}</span>`).join('')}</div>${side(g)}</div></div>`
-    : `<div class="swipe grp" data-s="${g.s}"><div class="srow"><div class="mq" data-edit="${g.s}"><div class="mq-track"><span>${g.items.map(([b]) => bigLabel(b)).join('、')}</span></div></div>${side(g)}</div></div>`
+    : `<div class="swipe grp" data-s="${g.s}"><button class="swipe-del" data-sdel="${g.s}">消す</button><div class="srow"><div class="mq" data-edit="${g.s}"><div class="mq-track"><span>${g.items.map(([b]) => bigLabel(b)).join('、')}</span></div></div>${side(g)}</div></div>`
   ).join('');
   // 編集のモーダル：その現場の中身を1行ずつ。✕で消す、右のつまみで並べ替え
   document.getElementById('editList').innerHTML = groups.filter(g => g.s === editListS).flatMap(g => g.items).map(([b, i]) =>
@@ -755,6 +755,10 @@ document.addEventListener('click', e => {
     if (i >= 0) change(() => l.splice(i, 1));
   } else if (b.dataset.edit != null) {
     openPanel('bigSheet'); editS = +b.dataset.edit; render();
+  } else if (b.dataset.sdel != null) {
+    openRow = null;
+    change(() => { const d = cur(); d.bigs = d.bigs.filter(x => x.s !== +b.dataset.sdel); });
+    buzz();
   } else if (b.dataset.editlist != null) {
     editListS = +b.dataset.editlist; openPanel('editSheet');
   } else if (b.dataset.del != null) {
@@ -1037,11 +1041,21 @@ for (const list of [bigList, document.getElementById('editList')]) {
   list.addEventListener('pointercancel', gripUp);
 }
 
-// 現場の行を左に払うと消す（1つ戻すで戻せる）
+// 現場の行を左に払うと、右から「消す」が出て止まる。押すと消える（1つ戻すで戻せる）
 // 略でチップが横にはみ出している時は、右の端までスクロールしきってから払う
-let sw = null, swallowClick = false;
+const OPEN_W = 84;
+let sw = null, swallowClick = false, openRow = null;
+function closeSwipe() {
+  if (!openRow) return;
+  const r = openRow; openRow = null;
+  r.classList.add('slide'); r.style.transform = '';
+  setTimeout(() => r.parentElement && r.parentElement.classList.remove('on'), 200);
+}
 bigList.addEventListener('touchstart', e => {
   const row = e.target.closest('.srow');
+  if (e.target.closest('.swipe-del')) return;
+  // 開いている行があれば、どこを触っても先に閉じる（その指では何もしない）
+  if (openRow) { const was = openRow; closeSwipe(); swallowClick = true; setTimeout(() => swallowClick = false, 400); if (row === was) return; }
   if (!row || e.target.closest('.grip') || e.touches.length > 1) return;
   const ch = row.querySelector('.chips');
   const atEnd = !ch || ch.scrollLeft >= ch.scrollWidth - ch.clientWidth - 1;
@@ -1052,14 +1066,14 @@ bigList.addEventListener('touchmove', e => {
   const dx = e.touches[0].clientX - sw.x0, dy = e.touches[0].clientY - sw.y0;
   if (!sw.on) {
     // 横に、左向きに、はっきり動いた時だけ払うとみなす
-    if (Math.abs(dx) < 10 || Math.abs(dx) < Math.abs(dy) * 1.5 || dx > 0 || !sw.atEnd) {
+    if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy) * 1.2 || dx > 0 || !sw.atEnd) {
       if (Math.abs(dy) > 10 || dx > 10) sw = null;
       return;
     }
     sw.on = true; sw.row.classList.remove('slide'); sw.row.parentElement.classList.add('on');
   }
   e.preventDefault();
-  sw.dx = Math.min(0, dx);
+  sw.dx = Math.max(-OPEN_W * 1.5, Math.min(0, dx));
   sw.row.style.transform = `translateX(${sw.dx}px)`;
 }, { passive: false });
 const swipeEnd = () => {
@@ -1069,13 +1083,9 @@ const swipeEnd = () => {
   if (!on) return;
   swallowClick = true; setTimeout(() => swallowClick = false, 300);
   row.classList.add('slide');
-  if (dx < -row.offsetWidth * 0.35) {
-    // 端まで滑らせてから消す
-    row.style.transform = 'translateX(-110%)';
-    const s = +row.closest('.grp').dataset.s;
-    setTimeout(() => change(() => { const d = cur(); d.bigs = d.bigs.filter(x => x.s !== s); }), 180);
-    buzz();
-  } else { row.style.transform = ''; setTimeout(() => row.parentElement.classList.remove('on'), 200); }
+  // 少し（30px）払えば、「消す」が見える所で止まる
+  if (dx < -30) { row.style.transform = `translateX(-${OPEN_W}px)`; openRow = row; buzz(); }
+  else { row.style.transform = ''; setTimeout(() => row.parentElement.classList.remove('on'), 200); }
 };
 bigList.addEventListener('touchend', swipeEnd);
 bigList.addEventListener('touchcancel', swipeEnd);
