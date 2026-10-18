@@ -31,7 +31,6 @@ html, body, button { touch-action: manipulation; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
   color: var(--text);
-  min-height: 100vh;
   font-variant-numeric: tabular-nums;
   -webkit-user-select: none; user-select: none;
 }
@@ -150,7 +149,8 @@ h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; 
 .combo-row .pbtn { height: 42px; font-size: 15px; border-radius: 10px; background: var(--card); }
 
 /* 最初の画面はスクロールなし：余った高さはボタンを大きくして埋める */
-body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+/* 高さは数字で決めず、画面に貼りつけて上下の端に合わせる（iPhoneのホーム画面版は 100dvh も innerHeight もステータスバーの分ずれた） */
+body { position: fixed; inset: 0; display: flex; flex-direction: column; overflow: hidden; }
 main { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; }
 main > section { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-bottom: 0; }
 /* 残りの高さを行の数で分けて、ボタンを縦に大きくする */
@@ -501,13 +501,6 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
 
 <script>
-// 本文の高さを実際の画面の高さに合わせる
-// （iPhoneのホーム画面版は 100dvh が上のステータスバーの分だけ長くなり、下のバーが画面の外に出た）
-(() => {
-  const fit = () => { document.body.style.height = innerHeight + 'px'; };
-  addEventListener('resize', fit);
-  fit();
-})();
 // ===== 品目ボタンの定義 =====
 // short は台のタグ表示用の略称。タグは「略称＋ポイント」で出す。
 // でかぶつのボタンは数えるだけで、ポイントには足さない（ポイントは上のボタンとテンキーで入れる）
