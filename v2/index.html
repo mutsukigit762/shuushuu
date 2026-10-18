@@ -175,9 +175,9 @@ main .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
 }
 .pad-move { margin-bottom: 10px; }
 .pad-move-h { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text2); margin: 0 2px 6px; }
-/* テンキーより背を低くして、テンキーの続きに見えないようにする */
-.pad-tomove { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; margin-top: 10px; }
-.pad-tomove button { height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; padding: 0 2px; }
+/* 横幅を縮めて真ん中に寄せ、テンキーの列とそろわないようにする */
+.pad-tomove { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; width: 82%; margin: 10px auto 0; }
+.pad-tomove button { height: 46px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; padding: 0 2px; }
 /* 5台目は移さないので見えなくするが、場所は取っておく（画面の高さを変えない） */
 .pad-tomove.off { visibility: hidden; }
 .pad-redo { font: inherit; font-size: 12px; color: var(--text2); background: none; border: none; text-decoration: underline; padding: 4px 0; cursor: pointer; }
