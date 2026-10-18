@@ -347,6 +347,10 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .srow { display: flex; align-items: center; background: var(--card); border: 1px solid var(--border); border-radius: 12px; min-height: 52px; margin-bottom: 8px; cursor: pointer; }
 .chips { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; }
 .chip { display: inline-flex; align-items: center; height: 34px; padding: 0 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--card2); font-size: 18px; font-weight: 700; white-space: nowrap; }
+/* 箱物系の「解体済」：押すと、いまの現場で最後に登録した箱物に（解）が付く。もう一度押すと外れる */
+.kai { font: inherit; font-size: 14px; font-weight: 600; color: var(--text2); cursor: pointer; border: 1px solid var(--border); border-radius: 8px; background: var(--card); padding: 3px 8px; }
+.kai.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.kai.ng { animation: shake .32s ease, ngred .6s ease; }
 .shou { flex: 1; min-width: 0; padding: 10px 12px; font-size: 15px; font-weight: 700; line-height: 1.5; }
 </style>
 </head>
@@ -601,6 +605,12 @@ function render() {
     el.classList.toggle('has', n > 0);
     el.dataset.n = n ? `×${n}` : '';
   });
+  // 解体済のボタン：いまの現場で最後に登録した箱物が解体済なら黒く
+  document.querySelectorAll('[data-kai]').forEach(el => {
+    const [gi, ii] = el.dataset.kai.split('-').map(Number);
+    const last = now.findLast(e => e.name === GROUPS[gi].items[ii].name);
+    el.classList.toggle('on', !!(last && last.kai));
+  });
 }
 
 // 1行目のポイントを2つ以上組み合わせて作れる合計（max以下）。8, 12, 13, 16, 17 …
@@ -636,7 +646,9 @@ const ABBR = {
 };
 // 机・自転車・ソファーベッドは例外：机は袖なし＝つ・片袖＝片袖・両袖＝両袖、自転車はふつう＝自・電動＝電、ソファーベッド＝ソベ
 const BY_COND = { '机': { '袖なし': 'つ', '片袖': '片袖', '両袖': '両袖' }, '自転車': { '18インチ以上': '自', '電動': '電' }, 'ソファー': { 'ソファーベッド': 'ソベ' } };
-function abbr(e) {
+const KAI = e => e.kai ? '（解）' : ''; // 解体済の印
+function abbr(e) { return abbr0(e) + KAI(e); }
+function abbr0(e) {
   if (BY_COND[e.name] && BY_COND[e.name][e.cond]) return BY_COND[e.name][e.cond];
   let yen = 0;
   for (const g of GROUPS) for (const it of g.items) if (it.name === e.name)
@@ -651,7 +663,7 @@ function bigLabel(e) {
   let yenv = 0, name = e.name;
   for (const g of GROUPS) for (const it of g.items) if (it.name === e.name)
     for (const t of it.tiers) if (t.cond === e.cond) { yenv = t.price; name = e.free || e.kind || t.label || e.name; }
-  return yenv ? `${yenv.toLocaleString('ja-JP')}円${name}` : name;
+  return (yenv ? `${yenv.toLocaleString('ja-JP')}円${name}` : name) + KAI(e);
 }
 
 let shownAmount = null, amountTimer;
@@ -691,7 +703,7 @@ function buildButtons() {
   document.getElementById('groups').innerHTML = GROUPS.map((g, gi) =>
     `<section>${g.items.map((it, ii) =>
       `<div class="item">
-        <div class="item-name"><span>${it.title || it.name}${it.kinds ? `<button class="kind" data-kind="${gi}-${ii}" data-value="">箱物</button>` : ''}</span></div>
+        <div class="item-name"><span>${it.title || it.name}${it.kinds ? `<button class="kind" data-kind="${gi}-${ii}" data-value="">箱物</button><button class="kai" data-kai="${gi}-${ii}">解体済</button>` : ''}</span></div>
         ${it.free ? `<input class="free" data-free="${gi}-${ii}" type="text" placeholder="品目の名前" autocomplete="off">` : ''}
         ${it.kinds ? `<div class="kind-pop" data-pop="${gi}-${ii}">${['', ...it.kinds].map(k =>
           `<button data-pick="${k}"${k ? '' : ' class="on"'}>${k || '箱物'}</button>`).join('')}</div>` : ''}
@@ -762,6 +774,13 @@ document.addEventListener('click', e => {
     const free = it.free ? document.querySelector(`[data-free="${gi}-${ii}"]`).value.trim() : '';
     const nb = { name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }), ...(free && { free }), s: targetS() };
     change(() => cur().bigs.push(nb));
+    buzz();
+  } else if (b.dataset.kai) {
+    // いまの現場で最後に登録した箱物を、解体済にする／戻す。まだ無ければ震える
+    const [gi, ii] = b.dataset.kai.split('-').map(Number);
+    const l = cur().bigs, i = l.findLastIndex(e => e.s === targetS() && e.name === GROUPS[gi].items[ii].name);
+    if (i < 0) { shakeNg(b); return; }
+    change(() => { if (l[i].kai) delete l[i].kai; else l[i].kai = true; });
     buzz();
   } else if (b.dataset.unbig != null) {
     const l = cur().bigs, i = l.findLastIndex(e => e.s === targetS() && bigLabel(e) === b.dataset.unbig);
