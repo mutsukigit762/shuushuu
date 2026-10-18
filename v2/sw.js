@@ -1,5 +1,5 @@
 // 中身を変えたら CACHE_NAME の数字を上げる（上げないと古いままになる）
-const CACHE_NAME = 'shuushuu2-54'; // v2 は shuushuu2- で始める（元の版と混ざらないように）
+const CACHE_NAME = 'shuushuu2-55'; // v2 は shuushuu2- で始める（元の版と混ざらないように）
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -18,7 +18,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    fetch(e.request).then(r => {
+    // ブラウザの一時保存（GitHub Pages は10分）を飛ばして、毎回サーバーに新しいか聞く
+    fetch(e.request, { cache: 'no-cache' }).then(r => {
       const copy = r.clone();
       caches.open(CACHE_NAME).then(c => c.put(e.request, copy));
       return r;
