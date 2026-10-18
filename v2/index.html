@@ -624,9 +624,11 @@ function render() {
         `<span class="chip" data-edit="${g.s}">${a}${n > 1 ? '×' + n : ''}</span>`).join('')}</div>${side(g)}</div></div>`
     : `<div class="swipe grp" data-s="${g.s}"><button class="swipe-del" data-sdel="${g.s}">消す</button><div class="srow"><div class="mq" data-edit="${g.s}"><div class="mq-track"><span>${g.items.map(([b]) => bigLabel(b)).join('、')}</span></div></div>${side(g)}</div></div>`
   ).join('');
-  // 編集のモーダル：その現場の中身を1行ずつ。✕で消す、右のつまみで並べ替え
-  document.getElementById('editList').innerHTML = groups.filter(g => g.s === editListS).flatMap(g => g.items).map(([b, i]) =>
-    `<li class="brow" data-i="${i}"><span class="lbl">${bigLabel(b)}</span><button class="del" data-del="${i}" aria-label="消す">✕</button><span class="grip" aria-label="並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span></li>`).join('');
+  // 編集のモーダル：その現場の中身を、同じ品目は1行にまとめて「×n」。✕で1つ減る、右のつまみで並べ替え
+  const eRows = new Map();
+  for (const b of dai.bigs) if (b.s === editListS) eRows.set(bigLabel(b), (eRows.get(bigLabel(b)) || 0) + 1);
+  document.getElementById('editList').innerHTML = [...eRows].map(([l, n]) =>
+    `<li class="brow" data-lbl="${l}"><span class="lbl">${l}${n > 1 ? '×' + n : ''}</span><button class="del" data-del="${l}" aria-label="1つ消す">✕</button><span class="grip" aria-label="並べ替え"><svg viewBox="0 0 20 14" width="20" height="14" fill="currentColor"><rect y="0" width="20" height="2.4" rx="1.2"/><rect y="5.8" width="20" height="2.4" rx="1.2"/><rect y="11.6" width="20" height="2.4" rx="1.2"/></svg></span></li>`).join('');
   // 詳：はみ出す行だけ、同じ文を2つ並べて流す（つなぎ目が見えないように）
   if (view === 'shou') document.querySelectorAll('.mq').forEach(m => {
     const t = m.querySelector('.mq-track');
@@ -809,7 +811,9 @@ document.addEventListener('click', e => {
   } else if (b.dataset.editlist != null) {
     editListS = +b.dataset.editlist; openPanel('editSheet');
   } else if (b.dataset.del != null) {
-    change(() => cur().bigs.splice(+b.dataset.del, 1));
+    // 同じ品目のうち、後ろの1つを消す
+    const l = cur().bigs, i = l.findLastIndex(e => e.s === editListS && bigLabel(e) === b.dataset.del);
+    if (i >= 0) change(() => l.splice(i, 1));
     buzz();
     if (!document.querySelector('#editList .brow')) closeAll();
   } else if (b.dataset.dai != null) {
@@ -1087,9 +1091,16 @@ function endDrag() {
     order.splice(to, 0, order.splice(from, 1)[0]);
     change(() => { const d = cur(); d.bigs = order.flatMap(s => d.bigs.filter(b => b.s === s)); });
   } else {
-    // まとまりの中の位置を、1列全体の位置に直して入れかえる
-    const base = +els[0].dataset.i;
-    change(() => { const l = cur().bigs; l.splice(base + to, 0, l.splice(base + from, 1)[0]); });
+    // 品目の並びを入れかえて、その現場の分を並び順に詰め直す（同じ品目は隣どうしにまとまる）
+    const order = els.map(x => x.dataset.lbl);
+    order.splice(to, 0, order.splice(from, 1)[0]);
+    change(() => {
+      const l = cur().bigs;
+      const at = l.map((b, i) => b.s === editListS ? i : -1).filter(i => i >= 0);
+      const mine = at.map(i => l[i]);
+      const sorted = order.flatMap(lb => mine.filter(b => bigLabel(b) === lb));
+      at.forEach((i, k) => { l[i] = sorted[k]; });
+    });
   }
 }
 
