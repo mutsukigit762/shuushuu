@@ -145,7 +145,7 @@ h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; 
 .big-wrap { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 12px; padding-bottom: 8px; position: relative; }
 .view-btn { position: absolute; right: 0; height: 54px; padding: 0 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--card); font: inherit; font-size: 16px; font-weight: 700; color: var(--text2); cursor: pointer; }
 .view-btn b { color: var(--text); }
-.big-wrap .pbtn.open-big { width: 50%; height: 54px; font-size: 17px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.big-wrap .pbtn.open-big { width: 60px; height: 60px; border-radius: 50%; padding: 0; font-size: 30px; line-height: 1; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .combo-row .pbtn.base { background: var(--card2); }
 .pbtn small, .tbtn .p small, .dai-chip b small { font-size: 0.7em; font-weight: 600; margin-left: 1px; }
 .combo-row .pbtn { height: 42px; font-size: 15px; border-radius: 10px; background: var(--card); }
@@ -420,7 +420,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
   <section class="big-sec">
     <h2 class="big-h">でかぶつ<span id="heroCount"></span></h2>
     <div class="big-list" id="bigList"></div>
-    <div class="big-wrap"><button class="pbtn open-big" data-open="bigSheet">でかぶつ</button><button class="view-btn" id="viewBtn" aria-label="略と詳を切り替える"></button></div>
+    <div class="big-wrap"><button class="pbtn open-big" data-open="bigSheet" aria-label="でかぶつを足す">＋</button><button class="view-btn" id="viewBtn" aria-label="略と詳を切り替える"></button></div>
   </section>
 </main>
 
@@ -479,6 +479,14 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
 
 <script>
+// 下の固定バーの高さぶん、本文の下を空ける（iPhoneのホーム画面版は計算どおりに行かず、ボタンがバーの裏に潜った）
+(() => {
+  const bar = document.querySelector('.bottom');
+  const fit = () => { document.body.style.paddingBottom = bar.offsetHeight + 'px'; };
+  new ResizeObserver(fit).observe(bar);
+  addEventListener('resize', fit);
+  fit();
+})();
 // ===== 品目ボタンの定義 =====
 // short は台のタグ表示用の略称。タグは「略称＋ポイント」で出す。
 // でかぶつのボタンは数えるだけで、ポイントには足さない（ポイントは上のボタンとテンキーで入れる）
