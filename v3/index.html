@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="収集3">
+<meta name="theme-color" content="#ffffff">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<title>収集3</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg: #ffffff;
+  --card: #ffffff;
+  --card2: #f5f5f4;
+  --border: #e4e4e2;
+  --text: #1a1a1a;
+  --text2: #8c8c8a;
+  --accent: #1a1a1a;
+  --accent-dim: #f0f0ee;
+  --on-accent: #ffffff;
+  --red: #d64541;
+}
+html, body { background: var(--bg); }
+html { height: 100%; overflow: hidden; }
+/* Safariでボタンを素早く押した時のダブルタップ拡大を止める（二本指の拡大は残る） */
+html, body, button { touch-action: manipulation; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  font-variant-numeric: tabular-nums;
+  -webkit-user-select: none; user-select: none;
+}
+
+/* ヘッダー */
+header {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(255,255,255,0.94);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  padding: calc(env(safe-area-inset-top) + 8px) 12px 8px;
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.burger {
+  width: 44px; height: 44px; border: none; border-radius: 10px;
+  background: var(--card); color: var(--text); font-size: 22px;
+  display: grid; place-items: center; cursor: pointer;
+}
+.head-title { flex: 1; font-size: 15px; color: var(--text2); }
+.head-title b { color: var(--text); font-size: 17px; }
+.head-day { text-align: right; font-size: 12px; color: var(--text2); line-height: 1.2; }
+.head-day b { display: block; font-size: 17px; color: var(--text); }
+
+main { padding: 12px; max-width: 560px; margin: 0 auto; }
+
+/* この台の金額 */
+.hero {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 14px 16px 12px; margin-bottom: 10px;
+}
+.hero-label { font-size: 13px; color: var(--text2); display: flex; justify-content: space-between; }
+.hero-amount { font-size: 52px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; margin-top: 2px; font-variant-numeric: tabular-nums; }
+/* 空いた桁：数字1つ分の幅をとって、グレーの下線「_」だけ見せる */
+.hero-amount .ph { color: transparent; font-style: normal; position: relative; }
+.hero-amount .ph::after { content: ''; position: absolute; left: 10%; right: 10%; bottom: 0.14em; height: 0.07em; border-radius: 2px; background: #cfcfcb; }
+.hero-amount small { font-size: 22px; font-weight: 700; margin-left: 2px; }
+/* 台の数字と、その右のいまの現場。現場は数字とでかぶつボタンの間の空きに置く */
+.hero-row { display: flex; align-items: flex-end; }
+.hero-row .hero-amount { flex: none; white-space: nowrap; }
+.hero-site { flex: 1; min-width: 0; margin-right: 118px; padding-bottom: 4px; display: flex; flex-direction: column; align-items: center; line-height: 1.15; font-size: 12px; color: var(--text2); white-space: nowrap; }
+.hero-site b { font-size: 22px; color: var(--text); font-weight: 800; font-variant-numeric: tabular-nums; }
+.hero-site small { font-size: 13px; font-weight: 700; color: var(--text); margin-left: 1px; }
+/* 数字のカウンター：変わった桁だけ、新しい数字が上から降りてきて、今の数字は下へ落ちる */
+.dg { display: inline-block; height: 1.1em; overflow: hidden; vertical-align: bottom; }
+/* 桁が減る・増える時は、その桁の幅も一緒に動かす（あとからガクッとずれないように） */
+.dg .track { display: flex; flex-direction: column; animation: drop .28s cubic-bezier(.2,.8,.3,1) both; }
+.dg .track span { height: 1.1em; }
+@keyframes drop { from { transform: translateY(-1.1em); } to { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .dg .track { animation: none; } }
+.hero-big { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; }
+/* 仮置きの段は、何も無くても高さを取っておく（出た時に下がらないように）。増えたら横にスクロール */
+#siteBig { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; flex: none; height: 32px; min-height: 0; }
+#siteBig::-webkit-scrollbar { display: none; }
+#siteBig .tag { flex: none; white-space: nowrap; }
+#groups section { margin-bottom: 0; }
+.item-name > span:first-child { display: flex; align-items: center; gap: 8px; }
+/* 箱物の種類を選ぶ自前のピッカー。押すとカードの下に小さい窓が出る */
+.item:has(.kind-pop) { position: relative; }
+.kind {
+  font: inherit; font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--card2); padding: 3px 8px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.kind::after { content: ''; width: 6px; height: 6px; border: solid currentColor; border-width: 0 2px 2px 0; transform: translateY(-2px) rotate(45deg); margin-left: 4px; }
+.kind.open::after { transform: translateY(1px) rotate(-135deg); }
+.kind-pop {
+  display: none; position: absolute; left: 6px; right: 6px; top: 40px; z-index: 5;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12); padding: 10px; flex-wrap: wrap; gap: 6px;
+}
+.kind-pop.on { display: flex; }
+.kind-pop button {
+  font: inherit; font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--card2); padding: 6px 12px;
+}
+.kind-pop button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+/* 最初の画面ではタグを1行に（増えたら横にスクロール） */
+.hero .hero-big { flex-wrap: nowrap; overflow-x: auto; }
+.hero .tag { flex: none; }
+.tag {
+  background: var(--accent-dim); color: var(--accent); border-radius: 999px;
+  padding: 4px 10px; font-size: 14px; font-weight: 700;
+}
+.tag.none { background: transparent; color: var(--text2); font-weight: 400; padding-left: 0; }
+
+/* 台の切り替え */
+/* 5台までは画面幅に5等分で並べる。6台目からは横にはみ出してスクロール */
+.dais { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 24px) / 5); gap: 6px; overflow-x: auto; margin-bottom: 14px; padding-bottom: 2px; }
+.dai-chip {
+  border: 1px solid var(--border); background: var(--card); color: var(--text2);
+  border-radius: 10px; padding: 6px 2px; font-size: 13px; cursor: pointer; font-family: inherit;
+  display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0;
+}
+.dai-chip b { color: var(--text); font-size: 14px; }
+.dai-chip.on { border-color: var(--accent); color: var(--accent); }
+.dai-chip.on b { color: var(--accent); }
+
+/* セクション */
+section { margin-bottom: 16px; }
+h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; }
+/* 12分割の格子で、23pまでは3マス（4列）、24pからは2マス（6列）。料金そのものは色だけグレー */
+.combo-row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 5px; }
+.combo-row .pbtn { grid-column: span 2; }
+.combo-row .pbtn.wide { grid-column: span 3; }
+/* でかぶつは並びから少し離して、下の真ん中に */
+.big-wrap { display: flex; justify-content: center; margin-top: 12px; padding-bottom: 8px; }
+.big-wrap .pbtn.open-big { width: 50%; height: 54px; font-size: 17px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.combo-row .pbtn.base { background: var(--card2); }
+.pbtn small, .tbtn .p small, .dai-chip b small { font-size: 0.7em; font-weight: 600; margin-left: 1px; }
+.combo-row .pbtn { height: 42px; font-size: 15px; border-radius: 10px; background: var(--card); }
+
+/* 最初の画面はスクロールなし：余った高さはボタンを大きくして埋める */
+body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+main { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; }
+main > section { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-bottom: 0; }
+/* 残りの高さを行の数で分けて、ボタンを縦に大きくする */
+main .combo-row { flex: 1; min-height: 0; grid-auto-rows: 1fr; }
+main .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
+
+/* テンキー */
+.pad { margin-top: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 10px; }
+.pad-top { display: flex; gap: 8px; margin-bottom: 8px; }
+.pad-disp {
+  flex: 1; height: 54px; border-radius: 12px; background: var(--card2);
+  display: flex; align-items: center; justify-content: flex-end; padding: 0 14px;
+  font-size: 30px; font-weight: 800;
+}
+.pad-disp small { font-size: 0.55em; font-weight: 600; margin-left: 2px; }
+.pad-disp.blank { color: var(--text2); font-weight: 600; }
+.pad-add {
+  width: 96px; height: 54px; border-radius: 12px; border: none;
+  background: var(--accent); color: var(--on-accent); font-size: 30px; font-weight: 700;
+  font-family: inherit; cursor: pointer;
+}
+.pad-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.kbtn {
+  height: 50px; border-radius: 10px; border: 1px solid var(--border); background: var(--card2);
+  color: var(--text); font-size: 22px; font-weight: 600; font-family: inherit; cursor: pointer;
+}
+.kbtn.fn { font-size: 16px; color: var(--text2); }
+.kbtn.bs { font-size: 24px; color: var(--red); background: #fdecec; border-color: #f5c2c0; }
+.kbtn.bs:active { background: var(--red); color: #fff; border-color: var(--red); }
+.kbtn:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.pbtn {
+  border: 1px solid var(--border); background: var(--card2); color: var(--text);
+  border-radius: 12px; height: 54px; font-size: 17px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+}
+.item {
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 10px; margin-bottom: 8px;
+}
+.item-name { font-size: 15px; font-weight: 700; margin-bottom: 8px; display: flex; justify-content: space-between; }
+.tiers { display: grid; gap: 6px; }
+.tbtn {
+  border: 1px solid var(--border); background: var(--card2); color: var(--text);
+  border-radius: 10px; padding: 8px 4px; cursor: pointer; font-family: inherit; text-align: center;
+}
+.tbtn { position: relative; }
+.tbtn.has { background: #e6e6e4; color: #b4b4b0; border-color: #e6e6e4; }
+.tbtn.has::after {
+  content: attr(data-n); position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 22px; font-weight: 800; color: var(--text);
+}
+.tbtn .p { display: block; font-size: 15px; font-weight: 700; padding: 6px 0; white-space: nowrap; letter-spacing: -0.02em; }
+.block-title { font-size: 18px; font-weight: 800; margin: 24px 2px 10px; padding-top: 14px; border-top: 1px solid var(--border); }
+
+/* 現場ごとのでかぶつ */
+.sites { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-bottom: 12px; }
+.sites-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; color: var(--text2); }
+.sites-head b { font-size: 22px; color: var(--text); margin: 0 2px; }
+.site { display: flex; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); font-size: 14px; line-height: 1.5; }
+.site:first-child { border-top: none; padding-top: 0; }
+.site:last-child { padding-bottom: 0; }
+.site .no { color: var(--text2); width: 64px; flex: none; }
+.hero { position: relative; }
+.hero-side { position: absolute; top: 14px; right: 16px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.sites-btn {
+  border: 1px solid var(--text); background: var(--card); color: var(--text); border-radius: 999px;
+  padding: 5px 12px; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer;
+}
+.site .bg { flex: 1; font-weight: 600; }
+.now { font-size: 13px; color: var(--text2); margin: 0 2px 10px; }
+.now b { color: var(--text); }
+.tbtn .c { display: block; font-size: 11px; color: var(--text2); margin-top: 2px; }
+.pbtn:active, .tbtn:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.tbtn:active .c { color: var(--on-accent); }
+
+
+/* 下の固定ボタン */
+.bottom {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+  background: rgba(255,255,255,0.94); border-top: 1px solid var(--border);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  display: flex; gap: 8px;
+}
+.bottom > div { flex: 1; display: flex; gap: 8px; max-width: 560px; margin: 0 auto; }
+.bbtn {
+  height: 56px; border-radius: 14px; border: 1px solid var(--border); background: var(--card2);
+  color: var(--text); font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.bottom .bbtn { flex: 1; font-size: 14px; white-space: nowrap; padding: 0 4px; }
+.bottom .bbtn.undo { flex: 0 0 84px; }
+.bbtn.undo { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.bbtn.reset-all { border-color: var(--red); color: var(--red); background: transparent; }
+
+/* ドロワー（料金表） */
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 20; opacity: 0; pointer-events: none; }
+.scrim.on { opacity: 1; pointer-events: auto; }
+.drawer {
+  position: fixed; top: 0; bottom: 0; left: 0; z-index: 21;
+  width: min(92vw, 520px); background: var(--bg); border-right: 1px solid var(--border);
+  transform: translateX(-100%); transition: transform .22s ease;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.08);
+  display: flex; flex-direction: column;
+}
+.drawer.on { transform: none; }
+body.lock { overflow: hidden; }
+.drawer-head {
+  padding: calc(env(safe-area-inset-top) + 10px) 12px 10px;
+  display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border);
+}
+.drawer-head h1 { flex: 1; font-size: 18px; }
+/* 料金表は3ページを横スワイプで送る。前後に写しを置いて、端まで行ったら黙って入れ替える */
+.pager { flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.pager::-webkit-scrollbar { display: none; }
+.page {
+  flex: 0 0 100%; scroll-snap-align: start; overflow-y: auto; overscroll-behavior: contain;
+  padding: 4px 12px 16px; -webkit-user-select: text; user-select: text;
+}
+.page h3 { font-size: 15px; margin: 0 0 8px; color: var(--accent); }
+.pager-foot {
+  flex: none; text-align: center; font-size: 13px; color: var(--text2);
+  padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border);
+}
+table { width: 100%; max-width: 100%; border-collapse: collapse; font-size: 14px; background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px var(--border); }
+th { background: var(--card2); color: var(--text2); font-weight: 600; font-size: 12px; text-align: left; padding: 7px 8px; }
+td { padding: 8px; border-top: 1px solid var(--border); vertical-align: top; }
+td:first-child { white-space: nowrap; }
+table.wrap td:first-child { white-space: normal; }
+td.yen { white-space: nowrap; font-weight: 700; text-align: right; }
+td.g { color: var(--text); font-weight: 700; }
+tr.cont td.g { color: transparent; }
+tr.cont td { border-top-color: #f0f0ee; }
+tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目名は違うので消さない */
+.note { font-size: 12px; color: var(--text2); margin-top: 6px; line-height: 1.6; }
+
+/* 下から出る画面 */
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 21;
+  background: var(--bg); border-radius: 20px 20px 0 0; box-shadow: 0 -4px 24px rgba(0,0,0,0.1);
+  transform: translateY(105%); visibility: hidden;
+  display: flex; flex-direction: column; max-height: 88vh; max-width: 560px; margin: 0 auto;
+}
+.sheet.tall { height: 88vh; }
+.sheet.on { transform: none; visibility: visible; }
+/* 真ん中に出す画面 */
+.sheet.center {
+  top: 50%; bottom: auto; left: 50%; right: auto; margin: 0;
+  width: min(calc(100vw - 32px), 520px); max-height: 80vh;
+  border-radius: 20px; transform: translate(-50%, -50%);
+}
+.sheet.center.on { transform: translate(-50%, -50%); }
+.sheet.center .sheet-body { padding: 16px; }
+.sheet.center .sites { margin-bottom: 0; }
+.sheet-head { display: flex; align-items: center; gap: 10px; padding: 12px 12px 8px; }
+.sheet-head h1 { flex: 1; font-size: 17px; }
+.sheet-head .ok {
+  height: 44px; padding: 0 18px; border-radius: 10px; border: none; cursor: pointer;
+  background: var(--accent); color: var(--on-accent); display: grid; place-items: center;
+  font-size: 16px; font-weight: 700; font-family: inherit;
+}
+/* でかぶつ登録だけ、下からニュッと出る。下に払うと閉じる */
+#bigSheet { transition: transform .26s cubic-bezier(.2,.8,.3,1), visibility 0s linear .26s; }
+#bigSheet.on { transition: transform .26s cubic-bezier(.2,.8,.3,1), visibility 0s; }
+#bigSheet.drag { transition: none; }
+@media (prefers-reduced-motion: reduce) { #bigSheet, #bigSheet.on { transition: none; } }
+.tag.pend { background: transparent; border: 1.5px solid var(--text); color: var(--text); font-family: inherit; cursor: pointer; }
+.sheet-body { flex: 1; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 4px 12px calc(16px + env(safe-area-inset-bottom)); }
+.sheet .pad { margin-top: 0; border: none; padding: 0; }
+.sheet .kbtn { height: 58px; }
+#siteBig { margin: 0; flex: 1; min-width: 0; }
+/* でかぶつ登録の上の段：仮置き（左いっぱい）と登録ボタン（右）を同じ高さで並べる */
+.big-head { padding: 14px 12px 10px; flex-direction: column; align-items: stretch; gap: 10px; }
+.big-head h1 { font-size: 17px; }
+.big-head #siteBig { flex: none; width: 100%; }
+.tbtn.ng, .pbtn.ng, .pad-add.ng { animation: shake .32s ease, ngred .6s ease; }
+.tbtn.mad { animation: bigshake .6s ease, ngred 1.2s ease; z-index: 2; }
+.tbtn.mad .p { scale: 1.9; color: var(--text); }
+.tbtn.mad::after { display: none; } /* 😡の間は「×n」を隠す */
+@keyframes bigshake { 0%,100% { translate: 0; scale: 1; } 10% { translate: -14px; scale: 1.12; } 25% { translate: 14px; } 40% { translate: -12px; } 55% { translate: 12px; } 70% { translate: -8px; } 85% { translate: 6px; } }
+@keyframes shake { 0%,100% { translate: 0; } 20% { translate: -6px; } 40% { translate: 6px; } 60% { translate: -4px; } 80% { translate: 4px; } }
+@keyframes ngred { 0%,40% { border-color: var(--red); background: #fdecec; color: var(--red); } }
+
+/* 青＝テンキー、ピンク＝でかぶつ */
+.combo-row .pbtn.open-pad { font-size: 14px; }
+.combo-row .pbtn.open-pad { display: grid; place-items: center; }
+
+/* ===== v3：でかぶつは点数と別に、台の中の1列で持つ（収集2と同じ） ===== */
+.big-top { display: flex; align-items: center; gap: 10px; }
+.big-foot { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--bg); }
+.big-foot.two { display: flex; gap: 8px; }
+.big-foot .ok { flex: 1; width: 100%; height: 54px; border: none; border-radius: 14px; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 17px; font-weight: 700; cursor: pointer; }
+.big-foot .ok.sub { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+.free { display: block; width: 100%; margin: 0 0 8px; height: 42px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); font: inherit; font-size: 16px; color: var(--text); -webkit-user-select: text; user-select: text; }
+/* でかぶつの一覧：1現場＝1行。押すとその現場を直せる */
+.list-head { display: flex; align-items: center; gap: 10px; padding: 14px 12px 8px; }
+.list-head h1 { flex: 1; font-size: 17px; }
+.view-btn { height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); font: inherit; font-size: 15px; font-weight: 700; color: var(--text2); cursor: pointer; }
+.view-btn b { color: var(--text); }
+.srow { display: flex; align-items: center; background: var(--card); border: 1px solid var(--border); border-radius: 12px; min-height: 52px; margin-bottom: 8px; cursor: pointer; }
+.chips { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; }
+.chip { display: inline-flex; align-items: center; height: 34px; padding: 0 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--card2); font-size: 18px; font-weight: 700; white-space: nowrap; }
+.shou { flex: 1; min-width: 0; padding: 10px 12px; font-size: 15px; font-weight: 700; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<header>
+  <button class="burger" id="burger" aria-label="料金表">☰</button>
+  <div class="head-title" id="headTitle"></div>
+  <div class="head-day">今日の合計<b id="dayTotal"></b></div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="hero-label"><span id="heroLabel"></span><span class="hero-side"><span id="heroCount"></span><button class="sites-btn" id="sitesBtn" data-open="sitesSheet"></button></span></div>
+    <div class="hero-row"><div class="hero-amount" id="heroAmount"></div></div>
+  </div>
+
+  <div class="dais" id="dais"></div>
+
+  <section>
+    <h2>容積ポイント</h2>
+    <div class="combo-row" id="comboRow"></div>
+    <div class="big-wrap"><button class="pbtn open-big" data-open="bigSheet">でかぶつ</button></div>
+  </section>
+</main>
+
+<div class="bottom"><div>
+  <button class="bbtn undo" id="undo">1つ戻す</button>
+  <button class="bbtn" id="resetDai">この台をリセット</button>
+  <button class="bbtn reset-all" id="resetAll">全てリセット</button>
+</div></div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h1>料金表</h1>
+    <button class="burger" data-close aria-label="閉じる">✕</button>
+  </div>
+  <div class="pager" id="pager"></div>
+  <div class="pager-foot" id="pagerFoot"></div>
+</aside>
+
+<!-- 24p以上を打つ画面 -->
+<div class="sheet" id="padSheet">
+  <div class="sheet-head"><h1>容積ポイントを打つ</h1><button class="burger" data-close aria-label="閉じる">✕</button></div>
+  <div class="sheet-body">
+    <div class="pad">
+      <div class="pad-top">
+        <div class="pad-disp" id="padDisp"></div>
+        <button class="pad-add" id="padAdd">＋</button>
+      </div>
+      <div class="pad-keys">
+        <button class="kbtn" data-key="1">1</button><button class="kbtn" data-key="2">2</button><button class="kbtn" data-key="3">3</button>
+        <button class="kbtn" data-key="4">4</button><button class="kbtn" data-key="5">5</button><button class="kbtn" data-key="6">6</button>
+        <button class="kbtn" data-key="7">7</button><button class="kbtn" data-key="8">8</button><button class="kbtn" data-key="9">9</button>
+        <button class="kbtn fn" data-key="C">C</button><button class="kbtn" data-key="0">0</button><button class="kbtn bs" data-key="BS" aria-label="1文字消す">⌫</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- この台のでかぶつの一覧（現場ごとに1行） -->
+<div class="sheet tall" id="sitesSheet">
+  <div class="list-head"><h1 id="listTitle"></h1><button class="view-btn" id="viewBtn" aria-label="略と詳を切り替える"></button></div>
+  <div class="sheet-body"><div id="bigList"></div></div>
+  <div class="big-foot two"><button class="ok sub" data-close>閉じる</button></div>
+</div>
+
+<!-- この台のでかぶつを登録する。点数とは関係なく、いつ足してもいい -->
+<div class="sheet tall" id="bigSheet">
+  <div class="sheet-head big-head"><div class="big-top"><h1 id="bigTitle"></h1></div><div class="hero-big" id="siteBig"></div></div>
+  <div class="sheet-body">
+    <div id="groups"></div>
+  </div>
+  <div class="big-foot two"><button class="ok sub" data-close>閉じる</button><button class="ok" id="bigDone">次</button></div>
+</div>
+
+
+<script>
+// ===== 品目ボタンの定義 =====
+// short は台のタグ表示用の略称。タグは「略称＋ポイント」で出す。
+// でかぶつのボタンは数えるだけで、ポイントには足さない（ポイントは上のボタンとテンキーで入れる）
+// price は円で持つ（料金表と同じ数字）。画面にはポイントで出す
+const PRICES = [400, 900, 1300, 2300, 3200];
+
+// yen: true の品目は、ボタンを金額で出す（それ以外は btn の言葉で出す）
+// cond は記録の目印なので変えない（変えると、もう入れてある分の料金が引けなくなる）
+// kinds があれば、カードの右のピッカーで何の品目かを選べる
+const BOX_KINDS = ['タンス', 'チェスト', '食器棚', '本棚', 'スチール棚', '戸棚', 'テレビ台', 'リビングボード', 'レンジ台', 'キャビネット',
+  'カラーボックス', '下駄箱', '鏡台', 'ロッカー', 'コンテナ', '脇机', 'ペット小屋'];
+const GROUPS = [
+  {
+    items: [
+      { name: 'ベッドマット', short: 'ベマ', tiers: [
+        { price: 900,  cond: '低反発', btn: '低反発', label: '低反発ベッドマット' },
+        { price: 1300, cond: '幅120以下', btn: 'シングル' },
+        { price: 2300, cond: '幅140以上', btn: 'ダブル' },
+      ]},
+      { name: 'ベッド', short: 'ベッド', tiers: [
+        { price: 1300, cond: 'シングル', btn: 'シングル' },
+        { price: 2300, cond: 'セミダブル〜', btn: 'ダブル' },
+        { price: 3200, cond: '二段', btn: '二段ベッド', label: '二段ベッド' },
+      ]},
+      { name: '箱物', title: '箱物系', short: '箱物', yen: true, kinds: BOX_KINDS, tiers: [
+        { price: 900,  cond: '180〜' },
+        { price: 1300, cond: '225〜' },
+        { price: 2300, cond: '315〜' },
+        { price: 3200, cond: '405〜' },
+      ]},
+      { name: 'ソファー', short: 'ソファー', tiers: [
+        { price: 900,  cond: '幅100未満', btn: '一人用' },
+        { price: 2300, cond: '幅100以上', btn: '二人用以上' },
+        { price: 2300, cond: 'ソファーベッド', btn: 'ソファーベッド', label: 'ソファーベッド' },
+      ]},
+      { name: '机', short: '机', tiers: [
+        { price: 900,  cond: '袖なし', btn: '袖なし机' },
+        { price: 1300, cond: '片袖', btn: '片袖机' },
+        { price: 3200, cond: '両袖', btn: '両袖机' },
+      ]},
+      { name: 'テーブル', short: 'テーブル', yen: true, tiers: [
+        { price: 900,  cond: '100以上' },
+        { price: 1300, cond: '150以上' },
+      ]},
+      { name: '自転車', short: '自転車', tiers: [
+        { price: 900,  cond: '18インチ以上', btn: '18インチ以上' },
+        { price: 1300, cond: '電動', btn: '電動自転車', label: '電動自転車' },
+      ]},
+      // ボタンに無いものは、名前を打って金額を押す（free の名前が品目名になる）
+      { name: 'その他', title: 'その他のもの', short: 'その他', yen: true, free: true, tiers: [
+        { price: 900, cond: '900' }, { price: 1300, cond: '1300' }, { price: 2300, cond: '2300' }, { price: 3200, cond: '3200' },
+      ]},
+    ],
+  },
+];
+
+// ===== 状態 =====
+const KEY = 'shuushuu3-v1'; // v3 は元の版・v2と記録を分ける
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+const DAIS = 5; // 最初から並べておく台の数
+// 台ごとに「打った容積ポイント（円）の並び」と「でかぶつの並び」を別々に持つ
+// でかぶつは1列。それぞれ現場の番号 s を持ち、next がいま足している現場（「次」で1つ進む）
+const newDai = () => ({ pts: [], bigs: [], next: 0 });
+const newDay = () => ({ date: today(), cur: 0, dais: Array.from({ length: DAIS }, newDai) });
+
+let state;
+// 1つ戻す：変える前の状態を積んでおく
+let history = [];
+function snap() { history.push(JSON.stringify(state)); if (history.length > 50) history.shift(); }
+// 一覧の見せ方：ryaku（メモの暗号）か shou（くわしく）。端末に覚えておく
+let view = 'ryaku';
+try { view = localStorage.getItem('shuushuu3-view') || 'ryaku'; } catch (e) {}
+// でかぶつ登録で足していく先の現場。直している時（一覧の行を押して開いた時）は editS、ふだんは next
+let editS = null;
+const targetS = () => editS != null ? editS : cur().next;
+
+// 初めて開いた日は、元の版（収集1）の今日の記録を引き継ぐ（同じサイトなので読める）
+function fromV1() {
+  let v1;
+  try { v1 = JSON.parse(localStorage.getItem('shuushuu-v1')); } catch (e) { return null; }
+  if (!v1 || v1.date !== today() || !Array.isArray(v1.dais)) return null;
+  const st = newDay(); st.cur = v1.cur || 0;
+  v1.dais.forEach((list, i) => {
+    if (!st.dais[i]) st.dais[i] = newDai();
+    const d = st.dais[i]; let site = -1, last = null;
+    for (const e of list || []) {
+      if (e.price > 0) { d.pts.push(e.price); site++; continue; }
+      if (!e.short) continue;
+      // 元の版の「現場」ごとに、でかぶつの現場を分ける（番号は詰める）
+      if (site !== last) { last = site; if (d.bigs.length) d.next++; }
+      d.bigs.push({ name: e.name, cond: e.cond, short: e.short, ...(e.kind && { kind: e.kind }), s: d.next });
+    }
+    if (d.bigs.length) d.next++;
+  });
+  return st;
+}
+function load() {
+  try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
+  if (!state || !Array.isArray(state.dais)) state = fromV1() || newDay();
+  // 日付が変わっていたら新しい日として始める
+  if (state.date !== today()) state = newDay();
+  while (state.dais.length < DAIS) state.dais.push(newDai());
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+const daime = i => `${i+1}台目`;
+// 容積ポイント：料金の百円単位（1,300円→13p）。メモの「④216」と同じ数え方
+const pt = n => (n / 100).toLocaleString('ja-JP');
+const sum = d => d.pts.reduce((a, p) => a + p, 0);
+const cur = () => state.dais[state.cur];
+
+// ===== 描画 =====
+function render() {
+  const dai = cur();
+  const total = sum(dai);
+  const dayTotal = state.dais.reduce((a, d) => a + sum(d), 0);
+  const d = new Date();
+  const wd = '日月火水木金土'[d.getDay()];
+
+  document.getElementById('headTitle').innerHTML =
+    `<b>${daime(state.cur)}</b>　${d.getMonth()+1}/${d.getDate()}(${wd})`;
+  document.getElementById('dayTotal').textContent = pt(dayTotal) + 'p';
+  setAmount(pt(total));
+  document.getElementById('heroLabel').textContent = `${state.cur + 1}台目の容積ポイント`;
+  // 件数はポイントを入れた回数。でかぶつは数えない
+  document.getElementById('heroCount').textContent = `${dai.pts.length}件`;
+
+  // 台の切り替え
+  document.getElementById('dais').innerHTML = state.dais.map((x, i) =>
+    `<button class="dai-chip${i === state.cur ? ' on' : ''}" data-dai="${i}">${daime(i)}<b>${pt(sum(x))}<small>p</small></b></button>`
+  ).join('');
+
+  // でかぶつの数は現場の数。押すと一覧（0箇所なら何も起こらない）
+  const groups = [];
+  for (const b of dai.bigs) {
+    const g = groups[groups.length - 1];
+    if (g && g.s === b.s) g.items.push(b); else groups.push({ s: b.s, items: [b] });
+  }
+  const sb = document.getElementById('sitesBtn');
+  sb.textContent = `でかぶつ${groups.length}箇所`;
+  sb.dataset.open = groups.length ? 'sitesSheet' : '';
+
+  // 一覧：1現場＝1行。略はメモの暗号のチップ（同じものは「ベ×2」）、詳は「1,300円ベッド、…」
+  document.getElementById('listTitle').textContent = `${daime(state.cur)}のでかぶつ`;
+  document.getElementById('viewBtn').innerHTML = view === 'ryaku' ? '<b>略</b>/詳' : '略/<b>詳</b>';
+  document.getElementById('bigList').innerHTML = groups.map(g => view === 'ryaku'
+    ? `<div class="srow" data-edit="${g.s}"><div class="chips">${
+        [...g.items.reduce((m, b) => m.set(abbr(b), (m.get(abbr(b)) || 0) + 1), new Map())].map(([a, n]) =>
+        `<span class="chip">${a}${n > 1 ? '×' + n : ''}</span>`).join('')}</div></div>`
+    : `<div class="srow" data-edit="${g.s}"><div class="shou">${g.items.map(bigLabel).join('、')}</div></div>`
+  ).join('');
+
+  // でかぶつ登録：見出しと、いまの現場に登録したもの（同じものは×nでまとめる。✕で1つ減る）
+  const ts = targetS();
+  document.getElementById('bigTitle').textContent = editS != null ? '現場を直す' : `${daime(state.cur)}のでかぶつ`;
+  document.getElementById('bigDone').hidden = editS != null; // 直している時は「次」は出さない
+  const labels = new Map();
+  const now = dai.bigs.filter(b => b.s === ts);
+  for (const b of now) labels.set(bigLabel(b), (labels.get(bigLabel(b)) || 0) + 1);
+  document.getElementById('siteBig').innerHTML = [...labels].map(([l, n]) =>
+    `<button class="tag pend" data-unbig="${l}">${l}×${n} ✕</button>`).join('');
+  // 押したボタンはグレーにして、上から「×n」を重ねる（いまの現場の分を数える）
+  const counts = new Map();
+  for (const b of now) { const k = b.name + '|' + b.cond; counts.set(k, (counts.get(k) || 0) + 1); }
+  document.querySelectorAll('[data-tier]').forEach(el => {
+    const [gi, ii, ti] = el.dataset.tier.split('-').map(Number);
+    const it = GROUPS[gi].items[ii], n = counts.get(it.name + '|' + it.tiers[ti].cond) || 0;
+    el.classList.toggle('has', n > 0);
+    el.dataset.n = n ? `×${n}` : '';
+  });
+}
+
+// 1行目のポイントを2つ以上組み合わせて作れる合計（max以下）。8, 12, 13, 16, 17 …
+function comboPoints(max) {
+  const base = PRICES.map(p => p / 100);
+  // reach[n] = n を作るのに要る最少の個数（作れなければ Infinity）
+  const reach = Array(max + 1).fill(Infinity); reach[0] = 0;
+  const two = new Set();
+  for (let n = 1; n <= max; n++) for (const b of base) if (b <= n && reach[n - b] < Infinity) {
+    reach[n] = Math.min(reach[n], reach[n - b] + 1);
+    if (reach[n - b] >= 1) two.add(n); // 2個以上で作れる
+  }
+  return [...two].sort((a, b) => a - b);
+}
+
+// 1台は999pでカンスト。超える分は入れずに、押したボタンが赤く震える
+const over999 = yen => sum(cur()) + yen > 99900;
+function shakeNg(btn) {
+  btn.classList.remove('ng'); void btn.offsetWidth; btn.classList.add('ng');
+  if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
+}
+
+// 略の書き方（ムツキのメモの暗号）：k が1,300円の字。900円は h、2,300円は k'、3,200円は k''
+// カタカナはひらがな、漢字は丸かっこ（ひらがなにしても他とかぶらない時はひらがな）
+const ABBR = {
+  'ベッドマット': { k: 'ベマ', h: 'べま' }, 'ベッド': { k: 'ベ', h: 'べ' }, 'ソファー': { k: 'ソ', h: 'そ' },
+  'テーブル': { k: 'テ', h: 'て' }, '箱物': { k: '箱', h: 'は' },
+  'タンス': { k: 'タ', h: 'た' }, 'チェスト': { k: 'チ', h: 'ち' }, '食器棚': { k: 'タ', h: 'た' }, // 食器棚＝茶箪笥なのでタンス
+  '本棚': { k: '本', h: 'ほ' }, 'スチール棚': { k: 'ス', h: 'す' }, '戸棚': { k: '戸', h: 'と' }, 'テレビ台': { k: 'テレ', h: 'てれ' },
+  'リビングボード': { k: 'リ', h: 'り' }, 'レンジ台': { k: '調', h: '（調）' }, 'キャビネット': { k: 'キャ', h: 'きゃ' },
+  'カラーボックス': { k: 'カ', h: 'か' }, '下駄箱': { k: '下', h: '（下）' }, '鏡台': { k: '鏡', h: '（鏡）' },
+  'ロッカー': { k: 'ロ', h: 'ろ' }, 'コンテナ': { k: 'コ', h: 'こ' }, '脇机': { k: '脇', h: '（脇）' }, 'ペット小屋': { k: 'ペ', h: 'ぺ' },
+};
+// 机・自転車・ソファーベッドは例外：机は袖なし＝つ・片袖＝片袖・両袖＝両袖、自転車はふつう＝自・電動＝電、ソファーベッド＝ソベ
+const BY_COND = { '机': { '袖なし': 'つ', '片袖': '片袖', '両袖': '両袖' }, '自転車': { '18インチ以上': '自', '電動': '電' }, 'ソファー': { 'ソファーベッド': 'ソベ' } };
+function abbr(e) {
+  if (BY_COND[e.name] && BY_COND[e.name][e.cond]) return BY_COND[e.name][e.cond];
+  let yen = 0;
+  for (const g of GROUPS) for (const it of g.items) if (it.name === e.name)
+    for (const t of it.tiers) if (t.cond === e.cond) yen = t.price;
+  const nm = e.free || e.name; // その他のものは、打った名前をそのまま（900円は丸かっこ）
+  const a = ABBR[e.kind || e.name] || { k: nm, h: `（${nm}）` };
+  return yen === 900 ? a.h : yen === 2300 ? a.k + "'" : yen === 3200 ? a.k + "''" : a.k;
+}
+
+// 一覧用の書き方：「900円テーブル」。料金は品目ボタンの定義から引く
+function bigLabel(e) {
+  let yenv = 0, name = e.name;
+  for (const g of GROUPS) for (const it of g.items) if (it.name === e.name)
+    for (const t of it.tiers) if (t.cond === e.cond) { yenv = t.price; name = e.free || e.kind || t.label || e.name; }
+  return yenv ? `${yenv.toLocaleString('ja-JP')}円${name}` : name;
+}
+
+let shownAmount = null, amountTimer;
+// 3桁ぶんの場所を最初から取っておく（空いた桁は見えない0で埋める）。桁が増えても「p」が横に動かない
+const AMOUNT_W = 3;
+function setAmount(str) {
+  const el = document.getElementById('heroAmount');
+  const ch = c => c === ' ' ? '<i class="ph">0</i>' : c;
+  const still = t => [...t.padStart(AMOUNT_W, ' ')].map(c => `<span class="dg">${ch(c)}</span>`).join('') + '<small>p</small>';
+  if (shownAmount === null || shownAmount === str) { shownAmount = str; el.innerHTML = still(str); return; }
+  // 右から桁をそろえて、変わった桁だけ上から降りてくる
+  const len = Math.max(AMOUNT_W, str.length, shownAmount.length);
+  const a = shownAmount.padStart(len, ' '), b = str.padStart(len, ' ');
+  el.innerHTML = [...b].map((c, i) => c === a[i]
+    ? `<span class="dg">${ch(c)}</span>`
+    : `<span class="dg"><span class="track"><span>${ch(c)}</span><span>${ch(a[i])}</span></span></span>`
+  ).join('') + '<small>p</small>';
+  shownAmount = str;
+  clearTimeout(amountTimer);
+  amountTimer = setTimeout(() => { el.innerHTML = still(str); }, 320); // 落ちきったら普通の数字に戻す
+}
+
+function buildButtons() {
+  // 40pまでを小さい順に並べる（4→8→9→12→13→16…）。料金そのもの（4・9・13・23・32p）は色だけ変える。41p から先はテンキー
+  const base = PRICES.map(p => p / 100);
+  const pts = [...new Set([...base, ...comboPoints(40)])].sort((a, b) => a - b);
+  // 23pまでは4列（大きいボタン）、24pからは6列。小さい数が右下で、上に行くほど大きく、行の中は右から左へ増える
+  // テンキーは41pの代わりに、いちばん大きい数の並び（左上）に置く
+  const PAD = 'pad';
+  const chunk = (list, w) => { const out = []; for (let i = 0; i < list.length; i += w) out.push(list.slice(i, i + w).reverse()); return out; };
+  const rows = [...chunk([...pts.filter(n => n > 23), PAD], 6).reverse(), ...chunk(pts.filter(n => n <= 23), 4).reverse()];
+  document.getElementById('comboRow').innerHTML = rows.flat().map(n => n === PAD
+    ? '<button class="pbtn open-pad" data-open="padSheet" aria-label="テンキー"><svg viewBox="0 0 24 26" width="22" height="24" fill="currentColor"><circle cx="6" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="11" r="2"/><circle cx="12" cy="11" r="2"/><circle cx="18" cy="11" r="2"/><circle cx="6" cy="17" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="18" cy="17" r="2"/><circle cx="12" cy="23" r="2"/></svg></button>'
+    : `<button class="pbtn${base.includes(n) ? ' base' : ''}${n <= 23 ? ' wide' : ''}" data-price="${n * 100}">${n}<small>p</small></button>`).join('');
+
+  // 見出しで分けず、どの品目も同じ形のカードで並べる
+  document.getElementById('groups').innerHTML = GROUPS.map((g, gi) =>
+    `<section>${g.items.map((it, ii) =>
+      `<div class="item">
+        <div class="item-name"><span>${it.title || it.name}${it.kinds ? `<button class="kind" data-kind="${gi}-${ii}" data-value="">箱物</button>` : ''}</span></div>
+        ${it.free ? `<input class="free" data-free="${gi}-${ii}" type="text" placeholder="品目の名前" autocomplete="off">` : ''}
+        ${it.kinds ? `<div class="kind-pop" data-pop="${gi}-${ii}">${['', ...it.kinds].map(k =>
+          `<button data-pick="${k}"${k ? '' : ' class="on"'}>${k || '箱物'}</button>`).join('')}</div>` : ''}
+        <div class="tiers" style="grid-template-columns:repeat(${it.tiers.length},1fr)">${it.tiers.map((t, ti) =>
+          `<button class="tbtn" data-tier="${gi}-${ii}-${ti}"><span class="p">${it.yen || t.yen ? t.price.toLocaleString('ja-JP') + '円' : t.btn || t.cond}</span></button>`
+        ).join('')}</div>
+      </div>`).join('')}</section>`
+  ).join('');
+}
+
+// ===== 操作 =====
+function buzz() { if (navigator.vibrate) navigator.vibrate(15); }
+
+// 変える時はいつもここを通す（1つ戻すのため）
+function change(fn) {
+  if (state.date !== today()) { state = newDay(); history = []; }
+  snap(); fn();
+  // 同じ現場のでかぶつは、いつも1列の中で隣どうしに並べ直す（あとから足した分も、その現場の最後に入る）
+  const d = cur(), order = [...new Set(d.bigs.map(b => b.s))];
+  d.bigs = order.flatMap(x => d.bigs.filter(b => b.s === x));
+  save(); render();
+}
+
+document.getElementById('viewBtn').onclick = () => {
+  view = view === 'ryaku' ? 'shou' : 'ryaku';
+  try { localStorage.setItem('shuushuu3-view', view); } catch (e) {}
+  render();
+};
+// 一覧の行を押すと、その現場のでかぶつ登録が開く（直す）
+document.getElementById('bigList').addEventListener('click', e => {
+  const el = e.target.closest('[data-edit]');
+  if (el) { openPanel('bigSheet'); editS = +el.dataset.edit; render(); }
+});
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  // 箱物のピッカー：開け閉めと選ぶのはここで済ませる。窓の外を押したら閉じる
+  if (b && b.dataset.kind) {
+    const pop = document.querySelector(`[data-pop="${b.dataset.kind}"]`);
+    const open = !pop.classList.contains('on');
+    closeKindPops();
+    pop.classList.toggle('on', open); b.classList.toggle('open', open);
+    return;
+  }
+  if (b && b.dataset.pick != null) {
+    const pop = b.closest('.kind-pop'), kb = document.querySelector(`[data-kind="${pop.dataset.pop}"]`);
+    setKind(kb, b.dataset.pick);
+    closeKindPops();
+    return;
+  }
+  if (document.querySelector('.kind-pop.on')) { closeKindPops(); return; }
+  if (!b) return;
+  if (b.hasAttribute('data-close')) {
+    closeAll();
+  } else if (b.dataset.open) {
+    editS = null; // 下のでかぶつボタンから開いた時は、いま足している現場へ
+    openPanel(b.dataset.open);
+  } else if (b.dataset.key) {
+    padPress(b.dataset.key);
+  } else if (b.dataset.price) {
+    if (over999(+b.dataset.price)) { shakeNg(b); return; }
+    change(() => cur().pts.push(+b.dataset.price)); buzz();
+  } else if (b.dataset.tier) {
+    // 押したらその場でこの台に登録。点数とは関係ない
+    const [gi, ii, ti] = b.dataset.tier.split('-').map(Number);
+    const it = GROUPS[gi].items[ii], t = it.tiers[ti];
+    const kind = it.kinds ? document.querySelector(`[data-kind="${gi}-${ii}"]`).dataset.value : '';
+    const free = it.free ? document.querySelector(`[data-free="${gi}-${ii}"]`).value.trim() : '';
+    const nb = { name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }), ...(free && { free }), s: targetS() };
+    change(() => cur().bigs.push(nb));
+    buzz();
+  } else if (b.dataset.unbig != null) {
+    const l = cur().bigs, i = l.findLastIndex(e => e.s === targetS() && bigLabel(e) === b.dataset.unbig);
+    if (i >= 0) change(() => l.splice(i, 1));
+  } else if (b.dataset.dai != null) {
+    shownAmount = null; // 台を変える時は数字をパッと切り替える
+    state.cur = +b.dataset.dai;
+    save(); render();
+  }
+});
+
+// ===== テンキー =====
+let padVal = '';
+function renderPad() {
+  const d = document.getElementById('padDisp');
+  d.className = 'pad-disp' + (padVal ? '' : ' blank');
+  d.innerHTML = padVal ? `${padVal}<small>p</small>` : '0<small>p</small>';
+}
+function padPress(k) {
+  if (k === 'C') padVal = '';
+  else if (k === 'BS') padVal = padVal.slice(0, -1);
+  else if (padVal.length < 3) padVal = (padVal + k).replace(/^0+/, '');
+  renderPad();
+}
+document.getElementById('padAdd').onclick = () => {
+  const n = +padVal;
+  if (!n) return;
+  if (over999(n * 100)) { shakeNg(document.getElementById('padAdd')); return; }
+  padVal = ''; renderPad();
+  change(() => cur().pts.push(n * 100)); buzz();
+  closeAll();
+};
+
+document.getElementById('undo').onclick = () => {
+  if (!history.length) return;
+  state = JSON.parse(history.pop());
+  shownAmount = null;
+  save(); render();
+};
+
+// 台の行き来は「n台目」のチップで。リセットは確認なし。押し間違えたら「1つ戻す」で元に戻る
+document.getElementById('resetDai').onclick = () => {
+  const d = cur();
+  if (!d.pts.length && !d.bigs.length) return;
+  change(() => { state.dais[state.cur] = newDai(); });
+};
+document.getElementById('resetAll').onclick = () => {
+  if (!state.dais.some(d => d.pts.length || d.bigs.length)) return;
+  change(() => { const c = state.cur; state = newDay(); state.cur = c; });
+};
+
+// でかぶつ登録の「次」：閉じずに、登録の段だけ空にして次の現場へ（箱物の種類も選び直し）
+document.getElementById('bigDone').onclick = () => {
+  const d = cur();
+  if (d.bigs.some(b => b.s === d.next)) change(() => { d.next++; });
+  document.querySelectorAll('.kind').forEach(el => setKind(el, ''));
+  document.querySelectorAll('.free').forEach(el => { el.value = ''; });
+  buzz();
+};
+
+// ===== 料金表（マニュアル p.6〜9 と束品目一覧から） =====
+const TABLES = `
+<h3>サイズ・重さで変わるもの</h3>
+<table>
+<tr><th>品目</th><th style="text-align:right">料金</th><th>条件</th></tr>
+<tr><td class="g">自転車</td><td class="yen">400円</td><td>16インチ以下</td></tr>
+<tr class="cont"><td class="g">自転車</td><td class="yen">900円</td><td>18インチ以上</td></tr>
+<tr><td class="g">テーブル</td><td class="yen">400円</td><td>最大辺 100cm未満</td></tr>
+<tr class="cont"><td class="g">テーブル</td><td class="yen">900円</td><td>最大辺 100cm以上</td></tr>
+<tr class="cont"><td class="g">テーブル</td><td class="yen">1,300円</td><td>最大辺 150cm以上</td></tr>
+<tr><td class="g">箱物系</td><td class="yen">400円</td><td>三辺合計 180cm未満</td></tr>
+<tr class="cont"><td class="g">箱物系</td><td class="yen">900円</td><td>三辺合計 180cm以上</td></tr>
+<tr class="cont"><td class="g">箱物系</td><td class="yen">1,300円</td><td>三辺合計 225cm以上</td></tr>
+<tr class="cont"><td class="g">箱物系</td><td class="yen">2,300円</td><td>三辺合計 315cm以上</td></tr>
+<tr class="cont"><td class="g">箱物系</td><td class="yen">3,200円</td><td>三辺合計 405cm以上</td></tr>
+<tr><td class="g">ベッドマット</td><td class="yen">1,300円</td><td>幅 120cm以下（セミシングル〜セミダブル）</td></tr>
+<tr class="cont"><td class="g">ベッドマット</td><td class="yen">2,300円</td><td>幅 140cm以上（ダブル〜キング）</td></tr>
+<tr><td class="g">ソファー</td><td class="yen">900円</td><td>幅 100cm未満（一人用扱い）</td></tr>
+<tr class="cont"><td class="g">ソファー</td><td class="yen">2,300円</td><td>幅 100cm以上（二人用以上扱い）</td></tr>
+<tr><td class="g">プリンター</td><td class="yen">400円</td><td>10kg以下（単機能）</td></tr>
+<tr class="cont"><td class="g">プリンター</td><td class="yen">900円</td><td>10kg超</td></tr>
+<tr><td class="g">コピー機</td><td class="yen">400円</td><td>10kg以下（複合機）</td></tr>
+<tr class="cont"><td class="g">コピー機</td><td class="yen">1,300円</td><td>10kg超</td></tr>
+</table>
+<p class="note">箱物系：タンス、チェスト、食器棚、本棚、スチール棚、テレビ台、レンジ台、キャビネット、カラーボックス、下駄箱、鏡台、ロッカー、ペット小屋 など。<br>こたつも100cm以上は900円テーブル扱い。</p>
+
+<h3>種別で変わるもの</h3>
+<table class="wrap">
+<tr><th>品目</th><th style="text-align:right">料金</th><th>備考</th></tr>
+<tr><td class="g">電子レンジ（単機能）</td><td class="yen">400円</td><td></td></tr>
+<tr class="sub"><td class="g">オーブンレンジ</td><td class="yen">900円</td><td>「電熱装置の定格消費電力」の記載あり</td></tr>
+<tr><td class="g">椅子</td><td class="yen">400円</td><td></td></tr>
+<tr class="sub"><td class="g">ゲーミングチェア</td><td class="yen">900円</td><td>20kg超は1,300円</td></tr>
+<tr><td class="g">ストーブ</td><td class="yen">400円</td><td></td></tr>
+<tr class="sub"><td class="g">オイル/パネルヒーター</td><td class="yen">900円</td><td></td></tr>
+<tr><td class="g">子ども用遊具</td><td class="yen">400円</td><td>乗物玩具、三輪車など</td></tr>
+<tr class="sub"><td class="g">滑り台/ブランコ/スライダージム</td><td class="yen">900円</td><td></td></tr>
+<tr><td class="g">マットレス</td><td class="yen">400円</td><td>三つ折り・丸められるもの</td></tr>
+<tr class="sub"><td class="g">低反発ベッドマット</td><td class="yen">900円</td><td>スプリングなし。幅は問わず</td></tr>
+<tr><td class="g">ベッドマット</td><td class="yen">1,300円</td><td>スプリングあり。幅120以下</td></tr>
+<tr class="cont"><td class="g">ベッドマット</td><td class="yen">2,300円</td><td>スプリングあり。幅140以上</td></tr>
+<tr><td class="g">ペット用品</td><td class="yen">400円</td><td>ケージ、トイレ、キャリーなど</td></tr>
+<tr class="sub"><td class="g">キャットタワー</td><td class="yen">400円</td><td>10kg以下</td></tr>
+<tr class="cont"><td class="g">キャットタワー</td><td class="yen">900円</td><td>10kg超（高さ130cm程度）</td></tr>
+<tr class="cont"><td class="g">キャットタワー</td><td class="yen">1,300円</td><td>20kg超</td></tr>
+<tr><td class="g">文机</td><td class="yen">400円</td><td>床に座って使う机</td></tr>
+<tr class="sub"><td class="g">袖なし机</td><td class="yen">900円</td><td></td></tr>
+<tr class="sub"><td class="g">片袖机</td><td class="yen">1,300円</td><td></td></tr>
+<tr class="sub"><td class="g">両袖机</td><td class="yen">3,200円</td><td></td></tr>
+<tr><td class="g">ミシン（卓上式）</td><td class="yen">900円</td><td></td></tr>
+<tr class="sub"><td class="g">ミシン（卓上式を除く）</td><td class="yen">2,300円</td><td></td></tr>
+</table>
+
+<h3>束で400円</h3>
+<table>
+<tr><th>まとまり</th><th>品目</th></tr>
+<tr><td class="g">5枚</td><td>毛布、座布団、枕、タオルケット、ブルーシート、タイル・パネルカーペット、額縁</td></tr>
+<tr><td class="g">5本</td><td>バット、ラケット、竹刀、釣り竿、掃除用具、譜面立て・マイクスタンドなど</td></tr>
+<tr><td class="g">5個</td><td>植木鉢（60cm以下・プラ・重ねられる）、桶</td></tr>
+<tr><td class="g">10枚</td><td>ジョイントマット</td></tr>
+<tr><td class="g">14本</td><td>ゴルフクラブ</td></tr>
+<tr><td class="g">束ねて</td><td>角材（直径10cm未満）、支柱（直径20cm未満）、カーテンレール・突っ張り棒（10kg以下）</td></tr>
+<tr><td class="g">2個で1組</td><td>物干し台（左右一対）、自転車の車輪（前後）、スキー用具（板2枚とストック）</td></tr>
+</table>
+<p class="note">最大辺30cm以下は不燃ごみ（可燃ごみ）。傘、蛍光管、フライパン、フロアポンプは30cm超でも不燃ごみ。ダンベルは5kg以下は不燃ごみ。</p>
+
+`;
+
+const scrim = document.getElementById('scrim');
+// 3ページに切り分けて、[3][1][2][3][1] の順に並べる（両端は写し）
+const PAGES = TABLES.split('<h3>').filter(t => t.trim()).map(t => '<h3>' + t.trim());
+const ORDER = [2, 0, 1, 2, 0];
+const pager = document.getElementById('pager');
+pager.innerHTML = ORDER.map(i => `<div class="page">${PAGES[i]}</div>`).join('');
+
+let pagerTimer;
+function showPage(i, smooth) {
+  pager.scrollTo({ left: pager.clientWidth * i, behavior: smooth ? 'smooth' : 'auto' });
+  document.getElementById('pagerFoot').textContent = `${ORDER[i] + 1} / ${PAGES.length}`;
+}
+pager.addEventListener('scroll', () => {
+  const w = pager.clientWidth;
+  if (!w) return;
+  const i = Math.round(pager.scrollLeft / w);
+  document.getElementById('pagerFoot').textContent = `${ORDER[i] + 1} / ${PAGES.length}`;
+  clearTimeout(pagerTimer);
+  // 指が止まってから、写しのページなら本物の位置へ黙って飛ぶ
+  pagerTimer = setTimeout(() => {
+    if (Math.abs(pager.scrollLeft - w * i) > 1) return;
+    if (i === 0) showPage(3);
+    else if (i === ORDER.length - 1) showPage(1);
+  }, 120);
+});
+function setKind(kb, v) {
+  kb.dataset.value = v; kb.textContent = v || '箱物';
+  document.querySelectorAll(`[data-pop="${kb.dataset.kind}"] button`).forEach(x => x.classList.toggle('on', x.dataset.pick === v));
+}
+function closeKindPops() {
+  document.querySelectorAll('.kind-pop.on').forEach(el => el.classList.remove('on'));
+  document.querySelectorAll('.kind.open').forEach(el => el.classList.remove('open'));
+}
+
+// メニュー（左から）とテンキー・でかぶつ（下から）を開け閉めする
+function openPanel(id) {
+  closeAll();
+  document.getElementById(id).classList.add('on');
+  scrim.classList.add('on'); document.body.classList.add('lock');
+}
+function closeAll() {
+  document.querySelectorAll('.kind').forEach(el => setKind(el, '')); // 箱物の種類も毎回選び直す
+  document.querySelectorAll('.free').forEach(el => { el.value = ''; el.blur(); });
+  closeKindPops();
+  render();
+  document.querySelectorAll('.drawer.on, .sheet.on').forEach(el => el.classList.remove('on'));
+  scrim.classList.remove('on'); document.body.classList.remove('lock');
+}
+document.getElementById('burger').onclick = () => {
+  openPanel('drawer');
+  pager.querySelectorAll('.page').forEach(p => p.scrollTop = 0);
+  showPage(1); // いつも1ページ目から
+};
+scrim.onclick = closeAll;
+
+// でかぶつ登録は下に払うと閉じる。中身がスクロールしてる時はスクロールを優先
+const bigSheet = document.getElementById('bigSheet');
+const bigBody = bigSheet.querySelector('.sheet-body');
+let dragY = null, dragDy = 0;
+const siteBig = document.getElementById('siteBig');
+bigSheet.addEventListener('touchstart', e => {
+  // 計上の段が横にはみ出してスクロールできる時だけ、そこ（上下に少し余裕をもって）に置いた指では閉じない
+  const x = e.touches[0].clientX, y = e.touches[0].clientY, r = siteBig.getBoundingClientRect();
+  const onPend = siteBig.scrollWidth > siteBig.clientWidth && y > r.top - 8 && y < r.bottom + 8 && x < r.right;
+  dragY = (onPend || (bigBody.contains(e.target) && bigBody.scrollTop > 0)) ? null : y;
+  dragDy = 0;
+}, { passive: true });
+bigSheet.addEventListener('touchmove', e => {
+  if (dragY === null) return;
+  dragDy = e.touches[0].clientY - dragY;
+  if (dragDy <= 0) { bigSheet.classList.remove('drag'); bigSheet.style.transform = ''; return; }
+  e.preventDefault();
+  bigSheet.classList.add('drag');
+  bigSheet.style.transform = `translateY(${dragDy}px)`;
+}, { passive: false });
+bigSheet.addEventListener('touchend', () => {
+  if (dragY === null) return;
+  dragY = null;
+  bigSheet.classList.remove('drag');
+  bigSheet.style.transform = '';
+  if (dragDy > 80) closeAll();
+});
+
+// アプリに戻ってきた時に日付をまたいでいたら新しい日にする
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.date !== today()) { state = newDay(); history = []; save(); render(); }
+});
+
+load();
+buildButtons();
+render();
+renderPad();
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
