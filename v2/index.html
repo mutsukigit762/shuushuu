@@ -186,13 +186,6 @@ main .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
 .pad-prev .v small { font-size: 0.6em; font-weight: 600; margin-left: 1px; }
 .pad-prev .ar { font-size: 20px; color: var(--text2); padding: 0 10px; }
 .pad-prev.ng .v { color: var(--red); }
-.pad-move-row { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 12px) / 3); gap: 6px; overflow-x: auto; }
-.pad-move-row button {
-  height: 44px; border-radius: 10px; border: 1px solid var(--border); background: var(--card);
-  color: var(--text); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
-}
-.pad-move-row button:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-.pad-move-row button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .pad-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .kbtn {
   height: 50px; border-radius: 10px; border: 1px solid var(--border); background: var(--card2);
@@ -467,8 +460,8 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
   <div class="sheet-head"><h1 id="padTitle">申告された容積ポイント</h1><button class="burger" data-close aria-label="閉じる">✕</button></div>
   <div class="sheet-body">
     <div class="pad">
-      <!-- 移す時だけ：移す先の台を選ぶ -->
-      <div class="pad-move" id="padMove"><div class="pad-move-h"><span>移す先</span><button class="pad-redo" id="padRedo">申告の入力に戻る</button></div><div class="pad-move-row" id="padMoveRow"></div></div>
+      <!-- 移す時だけ：申告の入力に戻る（移す先は見出しに出す） -->
+      <div class="pad-move" id="padMove"><div class="pad-move-h"><span></span><button class="pad-redo" id="padRedo">申告の入力に戻る</button></div></div>
       <div class="pad-top">
         <div class="pad-disp" id="padDisp"></div>
         <button class="pad-add" id="padAdd">登録</button>
@@ -869,7 +862,6 @@ function renderPad() {
   pv.classList.toggle('ng', yen > from);
   pv.innerHTML = `<div class="d">${daime(state.cur)}</div><div></div><div class="d">${daime(padMove)}</div>`
     + `<div class="v">${pt(from - yen)}<small>p</small></div><div class="ar">→</div><div class="v">${pt(to + yen)}<small>p</small></div>`;
-  document.querySelectorAll('[data-moveto]').forEach(b => b.classList.toggle('on', +b.dataset.moveto === padMove));
 }
 // 移す先にする台：今の台と、5台目（移すことはない）を除く
 const moveTargets = () => state.dais.map((_, i) => i).filter(i => i !== state.cur && i !== 4);
@@ -879,16 +871,12 @@ function setupPad() {
   const yen = padMode === 'day' ? state.target : cur().yen;
   padVal = !mv && yen ? String(yen / 100) : '';
   document.getElementById('padTitle').textContent = padMode === 'day' ? '申告された1日の合計'
-    : mv ? `${daime(state.cur)}から他の台へ移す` : `${daime(state.cur)}の申告された容積ポイント`;
+    : mv ? `${daime(state.cur)}から${daime(padMove)}に移す` : `${daime(state.cur)}の申告された容積ポイント`;
   document.getElementById('padAdd').textContent = mv ? '決定' : '登録';
   document.getElementById('padMove').hidden = !mv;
   document.getElementById('padPrev').hidden = !mv;
   document.getElementById('padToMove').hidden = padMode !== 'dai' || !cur().yen;
   document.getElementById('padToMove').innerHTML = moveTargets().map(i => `<button data-tomove="${i}">${daime(i)}へ移す</button>`).join('');
-  if (mv) {
-    if (!moveTargets().includes(padMove)) padMove = moveTargets()[0];
-    document.getElementById('padMoveRow').innerHTML = moveTargets().map(i => `<button data-moveto="${i}">${daime(i)}</button>`).join('');
-  }
   renderPad();
 }
 function padPress(k) {
@@ -909,12 +897,6 @@ document.getElementById('padAdd').onclick = () => {
   if (padMode === 'day') { if (yen !== state.target) change(() => { state.target = yen; }); }
   else if (yen !== cur().yen) change(() => { cur().yen = yen; });
   closeAll();
-};
-// 移す先の台を選ぶ
-document.getElementById('padMoveRow').onclick = e => {
-  const b = e.target.closest('[data-moveto]');
-  if (!b) return;
-  padMove = +b.dataset.moveto; renderPad(); buzz();
 };
 // 移す画面から、申告そのものを打ち直す画面へ
 document.getElementById('padRedo').onclick = () => { padMode = 'dai'; setupPad(); };
