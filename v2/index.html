@@ -175,6 +175,7 @@ main .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
 }
 .pad-move { margin-bottom: 10px; }
 .pad-move-h { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text2); margin: 0 2px 6px; }
+.pad-tomove { display: block; width: 100%; margin-top: 10px; height: 46px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
 .pad-redo { font: inherit; font-size: 12px; color: var(--text2); background: none; border: none; text-decoration: underline; padding: 4px 0; cursor: pointer; }
 /* 移したらこうなる：1台目→3台目 ／ 213p 50p */
 [hidden] { display: none !important; }
@@ -466,7 +467,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
   <div class="sheet-body">
     <div class="pad">
       <!-- 移す時だけ：移す先の台を選ぶ -->
-      <div class="pad-move" id="padMove"><div class="pad-move-h"><span>移す先</span><button class="pad-redo" id="padRedo">申告を打ち直す</button></div><div class="pad-move-row" id="padMoveRow"></div></div>
+      <div class="pad-move" id="padMove"><div class="pad-move-h"><span>移す先</span><button class="pad-redo" id="padRedo">申告の入力に戻る</button></div><div class="pad-move-row" id="padMoveRow"></div></div>
       <div class="pad-top">
         <div class="pad-disp" id="padDisp"></div>
         <button class="pad-add" id="padAdd">登録</button>
@@ -479,6 +480,8 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
         <button class="kbtn" data-key="7">7</button><button class="kbtn" data-key="8">8</button><button class="kbtn" data-key="9">9</button>
         <button class="kbtn fn" data-key="C">C</button><button class="kbtn" data-key="0">0</button><button class="kbtn bs" data-key="BS" aria-label="1文字消す">⌫</button>
       </div>
+      <!-- 申告済みの台だけ：移す画面へ -->
+      <button class="pad-tomove" id="padToMove">他の台へ移す</button>
     </div>
   </div>
 </div>
@@ -844,8 +847,8 @@ document.addEventListener('click', e => {
     if (!document.querySelector('#editList .brow')) closeAll();
   } else if (b.dataset.dai != null) {
     // 選んでいる台のチップをもう一度押すと、申告された容積ポイントを打つ
-    // 申告がまだ無ければ登録、もうあれば他の台へ移す画面（そこから打ち直しもできる）
-    if (+b.dataset.dai === state.cur) { padMode = cur().yen ? 'move' : 'dai'; openPanel('padSheet'); return; }
+    // 申告済みなら、下に「他の台へ移す」が出る
+    if (+b.dataset.dai === state.cur) { padMode = 'dai'; openPanel('padSheet'); return; }
     switchDai(+b.dataset.dai);
   }
 });
@@ -877,6 +880,7 @@ function setupPad() {
   document.getElementById('padAdd').textContent = mv ? '決定' : '登録';
   document.getElementById('padMove').hidden = !mv;
   document.getElementById('padPrev').hidden = !mv;
+  document.getElementById('padToMove').hidden = padMode !== 'dai' || !cur().yen;
   if (mv) {
     if (padMove === state.cur || padMove >= state.dais.length) padMove = state.cur + 1 < state.dais.length ? state.cur + 1 : 0;
     document.getElementById('padMoveRow').innerHTML = state.dais.map((_, i) => i === state.cur ? '' :
@@ -911,6 +915,7 @@ document.getElementById('padMoveRow').onclick = e => {
 };
 // 移す画面から、申告そのものを打ち直す画面へ
 document.getElementById('padRedo').onclick = () => { padMode = 'dai'; setupPad(); };
+document.getElementById('padToMove').onclick = () => { padMode = 'move'; setupPad(); };
 // 右上の合計を押すと、1日の合計を打つ
 document.getElementById('dayBtn').onclick = () => { padMode = 'day'; openPanel('padSheet'); };
 // 日付を変える（今日に戻すと「今日の合計」に戻る）
