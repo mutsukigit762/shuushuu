@@ -594,6 +594,8 @@ function render() {
   // タブ
   document.getElementById('calcTab').hidden = tab !== 'calc';
   document.getElementById('listTab').hidden = tab !== 'list';
+  // 台のチップは一覧タブだけ（電卓タブでは払って台を移る）
+  document.getElementById('dais').style.display = tab === 'calc' ? 'none' : '';
   document.querySelectorAll('.tabbar [data-tab]').forEach(el => el.classList.toggle('on', el.dataset.tab === tab));
 
   // 一覧：1現場＝1行。略はメモの暗号のチップ（同じものは「ベ×2」）、詳は「1,300円ベッド、…」
