@@ -175,8 +175,11 @@ main .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
 }
 .pad-move { margin-bottom: 10px; }
 .pad-move-h { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text2); margin: 0 2px 6px; }
-.pad-tomove { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; margin-top: 10px; }
-.pad-tomove button { height: 46px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; padding: 0 2px; }
+/* テンキーと見分けがつくように、小さい丸いボタンを真ん中に寄せる */
+.pad-tomove { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.pad-tomove span { font-size: 12px; color: var(--text2); margin-right: 2px; }
+.pad-tomove button { height: 32px; padding: 0 12px; border-radius: 999px; border: 1px dashed var(--text2); background: transparent; color: var(--text2); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.pad-tomove button:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .pad-redo { font: inherit; font-size: 12px; color: var(--text2); background: none; border: none; text-decoration: underline; padding: 4px 0; cursor: pointer; }
 /* 移したらこうなる：1台目→3台目 ／ 213p 50p */
 [hidden] { display: none !important; }
@@ -875,8 +878,9 @@ function setupPad() {
   document.getElementById('padAdd').textContent = mv ? '決定' : '登録';
   document.getElementById('padMove').hidden = !mv;
   document.getElementById('padPrev').hidden = !mv;
-  document.getElementById('padToMove').hidden = padMode !== 'dai' || !cur().yen;
-  document.getElementById('padToMove').innerHTML = moveTargets().map(i => `<button data-tomove="${i}">${daime(i)}へ移す</button>`).join('');
+  // 5台目からは移さないので出さない
+  document.getElementById('padToMove').hidden = padMode !== 'dai' || !cur().yen || state.cur === 4;
+  document.getElementById('padToMove').innerHTML = '<span>移す</span>' + moveTargets().map(i => `<button data-tomove="${i}">→ ${daime(i)}</button>`).join('');
   renderPad();
 }
 function padPress(k) {
