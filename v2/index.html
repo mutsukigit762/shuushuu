@@ -181,7 +181,7 @@ main .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
   color: var(--text); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
 }
 .pad-move-row button:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-.pad-move-row button.ng { animation: shake .32s ease, ngred .6s ease; }
+.pad-move-row button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .pad-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .kbtn {
   height: 50px; border-radius: 10px; border: 1px solid var(--border); background: var(--card2);
@@ -467,7 +467,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
         <button class="kbtn fn" data-key="C">C</button><button class="kbtn" data-key="0">0</button><button class="kbtn bs" data-key="BS" aria-label="1文字消す">⌫</button>
       </div>
       <!-- 打った数字のぶんを、この台から別の台へ移す -->
-      <div class="pad-move" id="padMove"><div class="pad-move-h">打ったポイントを他の台へ移す</div><div class="pad-move-row" id="padMoveRow"></div></div>
+      <div class="pad-move" id="padMove"><div class="pad-move-h">他の台へ移す（台を選んでから数字を打つ）</div><div class="pad-move-row" id="padMoveRow"></div></div>
     </div>
   </div>
 </div>
@@ -854,22 +854,35 @@ function padPress(k) {
 }
 document.getElementById('padAdd').onclick = () => {
   const yen = (+padVal || 0) * 100;
+  if (padMove != null) {
+    // 今の台より多くは移せない
+    const from = cur(), to = state.dais[padMove], b = document.getElementById('padAdd');
+    if (!yen || yen > from.yen) { b.classList.remove('ng'); void b.offsetWidth; b.classList.add('ng'); buzz(); return; }
+    change(() => { from.yen -= yen; to.yen += yen; });
+    buzz(); closeAll(); return;
+  }
   if (padMode === 'day') { if (yen !== state.target) change(() => { state.target = yen; }); }
   else if (yen !== cur().yen) change(() => { cur().yen = yen; });
   closeAll();
 };
-// 打った数字のぶんを、今の台から押した台へ移す（今の台より多くは移せない）
+// 移す先の台を選ぶ → 表示が空になって「移す」に変わる → 数字を打って「移す」
+// もう一度同じ台を押すと、選ぶのをやめて元の申告の入力に戻る
+let padMove = null;
+function setPadMove(i) {
+  padMove = i;
+  const yen = cur().yen;
+  padVal = i == null && yen ? String(yen / 100) : ''; renderPad();
+  document.getElementById('padTitle').textContent = i == null
+    ? `${state.cur + 1}台目の申告された容積ポイント`
+    : `${daime(state.cur)}から${daime(i)}へ移すポイント`;
+  document.getElementById('padAdd').textContent = i == null ? '登録' : '移す';
+  document.querySelectorAll('[data-moveto]').forEach(b => b.classList.toggle('on', +b.dataset.moveto === i));
+}
 document.getElementById('padMoveRow').onclick = e => {
   const b = e.target.closest('[data-moveto]');
   if (!b) return;
-  const yen = (+padVal || 0) * 100, from = cur(), to = state.dais[+b.dataset.moveto];
-  if (!yen || yen > from.yen) {
-    b.classList.remove('ng'); void b.offsetWidth; b.classList.add('ng'); buzz();
-    return;
-  }
-  change(() => { from.yen -= yen; to.yen += yen; });
+  setPadMove(padMove === +b.dataset.moveto ? null : +b.dataset.moveto);
   buzz();
-  closeAll();
 };
 // 右上の合計を押すと、1日の合計を打つ
 document.getElementById('dayBtn').onclick = () => { padMode = 'day'; openPanel('padSheet'); };
@@ -1010,6 +1023,8 @@ function openPanel(id) {
     document.getElementById('padMove').hidden = padMode === 'day';
     document.getElementById('padMoveRow').innerHTML = state.dais.map((_, i) => i === state.cur ? '' :
       `<button data-moveto="${i}">→ ${daime(i)}</button>`).join('');
+    if (padMode === 'dai') setPadMove(null);
+    else document.getElementById('padAdd').textContent = '登録';
   }
   document.getElementById(id).classList.add('on');
   scrim.classList.add('on'); document.body.classList.add('lock');
