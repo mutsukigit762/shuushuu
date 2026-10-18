@@ -363,6 +363,14 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 #bigList { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 #bigList:empty::before { content: 'まだ無し'; display: block; color: var(--text2); font-size: 14px; padding: 6px 2px; }
 .add-big { flex: none; display: block; margin: 10px auto 2px; width: 50%; height: 54px; border-radius: 12px; border: none; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 30px; font-weight: 700; cursor: pointer; }
+/* 並べ替えモード：行の右に ▲▼削除。行を押しても開かない */
+.list-btns { display: flex; gap: 6px; }
+.view-btn.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.sort-btns { flex: none; display: flex; gap: 4px; padding: 6px; }
+.sort-btns button { width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--border); background: var(--card2); font: inherit; font-size: 16px; font-weight: 700; color: var(--text); cursor: pointer; }
+.sort-btns button:disabled { opacity: .3; }
+.sort-btns .del { color: var(--red); }
+.sorting .srow { cursor: default; }
 .shou { flex: 1; min-width: 0; padding: 10px 12px; font-size: 15px; font-weight: 700; line-height: 1.5; }
 </style>
 </head>
@@ -389,7 +397,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
   <!-- この台のでかぶつの一覧（現場ごとに1行）。行を押すとその現場を直す -->
   <section class="tab" id="listTab" hidden>
-    <div class="list-top"><h2 id="listTitle"></h2><button class="view-btn" id="viewBtn" aria-label="略と詳を切り替える"></button></div>
+    <div class="list-top"><h2 id="listTitle"></h2><div class="list-btns"><button class="view-btn" id="sortBtn">並べ替え</button><button class="view-btn" id="viewBtn" aria-label="略と詳を切り替える"></button></div></div>
     <div id="bigList"></div>
     <button class="add-big" data-open="bigSheet" aria-label="でかぶつを足す">＋</button>
   </section>
@@ -523,6 +531,8 @@ let editS = null;
 // いま見ているタブ：calc（電卓）か list（でかぶつ一覧）。端末に覚えておく
 let tab = 'calc';
 try { tab = localStorage.getItem('shuushuu3-tab') || 'calc'; } catch (e) {}
+// 一覧の並べ替えモード（▲▼で順番を変える・削除で現場ごと消す）
+let sorting = false;
 const targetS = () => editS != null ? editS : cur().next;
 
 // 初めて開いた日は、元の版（収集1）の今日の記録を引き継ぐ（同じサイトなので読める）
@@ -603,11 +613,18 @@ function render() {
   // 一覧：1現場＝1行。略はメモの暗号のチップ（同じものは「ベ×2」）、詳は「1,300円ベッド、…」
   document.getElementById('listTitle').textContent = `${daime(state.cur)}のでかぶつ`;
   document.getElementById('viewBtn').innerHTML = view === 'ryaku' ? '<b>略</b>/詳' : '略/<b>詳</b>';
-  document.getElementById('bigList').innerHTML = groups.map(g => view === 'ryaku'
-    ? `<div class="srow" data-edit="${g.s}"><div class="chips">${
+  const sortBtn = document.getElementById('sortBtn');
+  if (!groups.length) sorting = false;
+  sortBtn.textContent = sorting ? '済' : '並べ替え';
+  sortBtn.classList.toggle('on', sorting);
+  sortBtn.hidden = !groups.length;
+  document.getElementById('bigList').classList.toggle('sorting', sorting);
+  document.getElementById('bigList').innerHTML = groups.map((g, gi) => `<div class="srow" data-edit="${g.s}">${view === 'ryaku'
+    ? `<div class="chips">${
         [...g.items.reduce((m, b) => m.set(abbr(b), (m.get(abbr(b)) || 0) + 1), new Map())].map(([a, n]) =>
-        `<span class="chip">${a}${n > 1 ? '×' + n : ''}</span>`).join('')}</div></div>`
-    : `<div class="srow" data-edit="${g.s}"><div class="shou">${g.items.map(bigLabel).join('、')}</div></div>`
+        `<span class="chip">${a}${n > 1 ? '×' + n : ''}</span>`).join('')}</div>`
+    : `<div class="shou">${g.items.map(bigLabel).join('、')}</div>`
+  }${sorting ? `<div class="sort-btns"><button data-mv="-1" aria-label="上へ"${gi ? '' : ' disabled'}>▲</button><button data-mv="1" aria-label="下へ"${gi < groups.length - 1 ? '' : ' disabled'}>▼</button><button class="del" data-del aria-label="この現場を消す">削除</button></div>` : ''}</div>`
   ).join('');
 
   // でかぶつ登録：見出しと、いまの現場に登録したもの（同じものは×nでまとめる。✕で1つ減る）
@@ -755,10 +772,30 @@ document.getElementById('viewBtn').onclick = () => {
   try { localStorage.setItem('shuushuu3-view', view); } catch (e) {}
   render();
 };
-// 一覧の行を押すと、その現場のでかぶつ登録が開く（直す）
+document.getElementById('sortBtn').onclick = () => { sorting = !sorting; render(); };
+// 一覧の行を押すと、その現場のでかぶつ登録が開く（直す）。並べ替え中は ▲▼削除だけ効く
 document.getElementById('bigList').addEventListener('click', e => {
   const el = e.target.closest('[data-edit]');
-  if (el) { openPanel('bigSheet'); editS = +el.dataset.edit; render(); }
+  if (!el) return;
+  e.stopPropagation();
+  const s = +el.dataset.edit, b = e.target.closest('button');
+  if (sorting) {
+    if (!b) return;
+    if (b.hasAttribute('data-del')) {
+      // 現場ごと消す（1つ戻すで戻せる）
+      change(() => { cur().bigs = cur().bigs.filter(x => x.s !== s); });
+    } else if (b.dataset.mv) {
+      // 隣の現場と入れ替える。並びはでかぶつの1列の順そのもの
+      const d = cur(), order = [...new Set(d.bigs.map(x => x.s))];
+      const i = order.indexOf(s), j = i + +b.dataset.mv;
+      if (j < 0 || j >= order.length) return;
+      [order[i], order[j]] = [order[j], order[i]];
+      change(() => { d.bigs = order.flatMap(x => d.bigs.filter(y => y.s === x)); });
+    }
+    buzz();
+    return;
+  }
+  openPanel('bigSheet'); editS = s; render();
 });
 
 document.addEventListener('click', e => {
