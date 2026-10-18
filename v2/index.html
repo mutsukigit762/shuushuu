@@ -175,7 +175,8 @@ main .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
 }
 .pad-move { margin-bottom: 10px; }
 .pad-move-h { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text2); margin: 0 2px 6px; }
-.pad-tomove { display: block; width: 100%; margin-top: 10px; height: 46px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+.pad-tomove { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; margin-top: 10px; }
+.pad-tomove button { height: 46px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; padding: 0 2px; }
 .pad-redo { font: inherit; font-size: 12px; color: var(--text2); background: none; border: none; text-decoration: underline; padding: 4px 0; cursor: pointer; }
 /* 移したらこうなる：1台目→3台目 ／ 213p 50p */
 [hidden] { display: none !important; }
@@ -185,7 +186,7 @@ main .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
 .pad-prev .v small { font-size: 0.6em; font-weight: 600; margin-left: 1px; }
 .pad-prev .ar { font-size: 20px; color: var(--text2); padding: 0 10px; }
 .pad-prev.ng .v { color: var(--red); }
-.pad-move-row { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 18px) / 4); gap: 6px; overflow-x: auto; }
+.pad-move-row { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 12px) / 3); gap: 6px; overflow-x: auto; }
 .pad-move-row button {
   height: 44px; border-radius: 10px; border: 1px solid var(--border); background: var(--card);
   color: var(--text); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
@@ -480,8 +481,8 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
         <button class="kbtn" data-key="7">7</button><button class="kbtn" data-key="8">8</button><button class="kbtn" data-key="9">9</button>
         <button class="kbtn fn" data-key="C">C</button><button class="kbtn" data-key="0">0</button><button class="kbtn bs" data-key="BS" aria-label="1文字消す">⌫</button>
       </div>
-      <!-- 申告済みの台だけ：移す画面へ -->
-      <button class="pad-tomove" id="padToMove">他の台へ移す</button>
+      <!-- 申告済みの台だけ：「2台目へ移す」などを押すと、その台を選んだ状態で移す画面へ -->
+      <div class="pad-tomove" id="padToMove"></div>
     </div>
   </div>
 </div>
@@ -870,6 +871,8 @@ function renderPad() {
     + `<div class="v">${pt(from - yen)}<small>p</small></div><div class="ar">→</div><div class="v">${pt(to + yen)}<small>p</small></div>`;
   document.querySelectorAll('[data-moveto]').forEach(b => b.classList.toggle('on', +b.dataset.moveto === padMove));
 }
+// 移す先にする台：今の台と、5台目（移すことはない）を除く
+const moveTargets = () => state.dais.map((_, i) => i).filter(i => i !== state.cur && i !== 4);
 // テンキーの画面を、今の padMode に合わせて組み直す
 function setupPad() {
   const mv = padMode === 'move';
@@ -881,10 +884,10 @@ function setupPad() {
   document.getElementById('padMove').hidden = !mv;
   document.getElementById('padPrev').hidden = !mv;
   document.getElementById('padToMove').hidden = padMode !== 'dai' || !cur().yen;
+  document.getElementById('padToMove').innerHTML = moveTargets().map(i => `<button data-tomove="${i}">${daime(i)}へ移す</button>`).join('');
   if (mv) {
-    if (padMove === state.cur || padMove >= state.dais.length) padMove = state.cur + 1 < state.dais.length ? state.cur + 1 : 0;
-    document.getElementById('padMoveRow').innerHTML = state.dais.map((_, i) => i === state.cur ? '' :
-      `<button data-moveto="${i}">${daime(i)}</button>`).join('');
+    if (!moveTargets().includes(padMove)) padMove = moveTargets()[0];
+    document.getElementById('padMoveRow').innerHTML = moveTargets().map(i => `<button data-moveto="${i}">${daime(i)}</button>`).join('');
   }
   renderPad();
 }
@@ -915,7 +918,11 @@ document.getElementById('padMoveRow').onclick = e => {
 };
 // 移す画面から、申告そのものを打ち直す画面へ
 document.getElementById('padRedo').onclick = () => { padMode = 'dai'; setupPad(); };
-document.getElementById('padToMove').onclick = () => { padMode = 'move'; setupPad(); };
+document.getElementById('padToMove').onclick = e => {
+  const b = e.target.closest('[data-tomove]');
+  if (!b) return;
+  padMode = 'move'; padMove = +b.dataset.tomove; setupPad();
+};
 // 右上の合計を押すと、1日の合計を打つ
 document.getElementById('dayBtn').onclick = () => { padMode = 'day'; openPanel('padSheet'); };
 // 日付を変える（今日に戻すと「今日の合計」に戻る）
