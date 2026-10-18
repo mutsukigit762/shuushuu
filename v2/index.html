@@ -32,7 +32,6 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
   color: var(--text);
   min-height: 100vh;
-  padding-bottom: calc(150px + env(safe-area-inset-bottom));
   font-variant-numeric: tabular-nums;
   -webkit-user-select: none; user-select: none;
 }
@@ -246,7 +245,8 @@ main .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
 
 /* 下の固定ボタン */
 .bottom {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+  /* 画面に固定せず、本文の下に続けて置く（固定だと iPhone で本文の下端が裏に潜った） */
+  position: relative; flex: none; z-index: 10;
   background: rgba(255,255,255,0.94); border-top: 1px solid var(--border);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
@@ -501,15 +501,10 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
 
 <script>
-// 下の固定バーの高さぶん、本文の下を空ける。本文の高さも実際の画面の高さに合わせる
-// （iPhoneのホーム画面版は 100dvh が上のステータスバーの分だけ長くなり、＋がバーの裏に潜った）
+// 本文の高さを実際の画面の高さに合わせる
+// （iPhoneのホーム画面版は 100dvh が上のステータスバーの分だけ長くなり、下のバーが画面の外に出た）
 (() => {
-  const bar = document.querySelector('.bottom');
-  const fit = () => {
-    document.body.style.height = innerHeight + 'px';
-    document.body.style.paddingBottom = bar.offsetHeight + 'px';
-  };
-  new ResizeObserver(fit).observe(bar);
+  const fit = () => { document.body.style.height = innerHeight + 'px'; };
   addEventListener('resize', fit);
   fit();
 })();
