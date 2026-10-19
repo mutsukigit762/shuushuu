@@ -471,9 +471,11 @@ const GROUPS = [
         { price: 1300, cond: '幅120以下', btn: 'シングル' },
         { price: 2300, cond: '幅140以上', btn: 'ダブル' },
       ]},
-      { name: 'ベッド', short: 'ベッド', tiers: [
-        { price: 1300, cond: 'シングル', btn: 'シングル' },
-        { price: 2300, cond: 'セミダブル〜', btn: 'ダブル' },
+      // ベッドは2列2段：シングル・折り畳み／ダブル・二段
+      { name: 'ベッド', short: 'ベッド', cols: 2, tiers: [
+        { price: 1300, cond: 'シングル', btn: 'シングルベッド' },
+        { price: 1300, cond: '折り畳み', btn: '折り畳みベッド', label: '折り畳みベッド' },
+        { price: 2300, cond: 'セミダブル〜', btn: 'ダブルベッド' },
         { price: 3200, cond: '二段', btn: '二段ベッド', label: '二段ベッド' },
       ]},
       { name: '箱物', title: '箱物系', short: '箱物', yen: true, kinds: BOX_KINDS, tiers: [
@@ -687,8 +689,8 @@ const ABBR = {
   'ロッカー': { k: 'ロ', h: 'ろ' }, 'コンテナ': { k: 'コ', h: 'こ' }, '脇机': { k: '脇', h: '（脇）' }, 'ペット小屋': { k: 'ペ', h: 'ぺ' },
   '滑り台': { k: '滑', h: '滑' }, // 滑り台は900円でも丸かっこを付けない
 };
-// 机・自転車・ソファーベッドは例外：机は袖なし＝つ・片袖＝片袖・両袖＝両袖、自転車はふつう＝自・電動＝電、ソファーベッド＝ソベ
-const BY_COND = { '机': { '袖なし': 'つ', '片袖': '片袖', '両袖': '両袖' }, '自転車': { '18インチ以上': '自', '電動': '電' }, 'ソファー': { 'ソファーベッド': 'ソベ' } };
+// 机・自転車・ソファーベッドは例外：机は袖なし＝つ・片袖＝片袖・両袖＝両袖、自転車はふつう＝自・電動＝電、ソファーベッド＝ソベ、折り畳みベッド＝折
+const BY_COND = { '机': { '袖なし': 'つ', '片袖': '片袖', '両袖': '両袖' }, '自転車': { '18インチ以上': '自', '電動': '電' }, 'ソファー': { 'ソファーベッド': 'ソベ' }, 'ベッド': { '折り畳み': '折' } };
 const KAI = e => e.kai ? '（解）' : ''; // 解体済の印
 function abbr(e) { return abbr0(e) + KAI(e); }
 function abbr0(e) {
@@ -750,7 +752,7 @@ function buildButtons() {
         ${it.free ? `<input class="free" data-free="${gi}-${ii}" type="text" placeholder="品目の名前" autocomplete="off">` : ''}
         ${it.kinds ? `<div class="kind-pop" data-pop="${gi}-${ii}">${['', ...it.kinds].map(k =>
           `<button data-pick="${k}"${k ? '' : ' class="on"'}>${k || '箱物'}</button>`).join('')}</div>` : ''}
-        <div class="tiers" style="grid-template-columns:repeat(${it.tiers.length},1fr)">${it.tiers.map((t, ti) =>
+        <div class="tiers" style="grid-template-columns:repeat(${it.cols || it.tiers.length},1fr)">${it.tiers.map((t, ti) =>
           `<button class="tbtn" data-tier="${gi}-${ii}-${ti}"><span class="p">${it.yen || t.yen ? t.price.toLocaleString('ja-JP') + '円' : t.btn || t.cond}</span></button>`
         ).join('')}</div>
       </div>`).join('')}</section>`
