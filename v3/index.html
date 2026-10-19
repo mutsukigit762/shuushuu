@@ -1131,7 +1131,7 @@ bigListEl.addEventListener('touchstart', e => {
   const row = e.target.closest('.srow');
   if (!row || e.target.closest('[data-sdel]') || e.touches.length > 1 || bigListEl.children.length < 2) return;
   const y = e.touches[0].clientY;
-  press = { x: e.touches[0].clientX, y, t: setTimeout(() => { press = null; startDrag(row, y); }, 400) };
+  press = { x: e.touches[0].clientX, y, t: setTimeout(() => { press = null; startDrag(row, y); }, 150) };
 }, { passive: true });
 bigListEl.addEventListener('touchmove', e => {
   const t = e.touches[0];
