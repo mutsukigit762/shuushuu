@@ -608,14 +608,15 @@ function render() {
   document.querySelector('.hero').style.display = tab === 'list' ? 'none' : '';
   document.querySelectorAll('.tabbar [data-tab]').forEach(el => el.classList.toggle('on', el.dataset.tab === tab));
 
-  // 一覧：1現場＝1行。略はメモの暗号のチップ（同じものは「ベ×2」）、詳は「1,300円ベッド、…」
+  // 一覧：1現場＝1行。略はメモの暗号のチップ（同じものは「ベ×2」）、詳は「1,300円ベッド、900円机×2」
   document.getElementById('listTitle').textContent = `${daime(state.cur)}のでかぶつ`;
   document.getElementById('viewBtn').innerHTML = view === 'ryaku' ? '<b>略</b>/詳' : '略/<b>詳</b>';
   document.getElementById('bigList').innerHTML = groups.map(g => `<div class="srow" data-edit="${g.s}">${view === 'ryaku'
     ? `<div class="chips">${
         [...g.items.reduce((m, b) => m.set(abbr(b), (m.get(abbr(b)) || 0) + 1), new Map())].map(([a, n]) =>
         `<span class="chip">${a}${n > 1 ? '×' + n : ''}</span>`).join('')}</div>`
-    : `<div class="shou">${g.items.map(bigLabel).join('、')}</div>`
+    : `<div class="shou">${[...g.items.reduce((m, b) => m.set(bigLabel(b), (m.get(bigLabel(b)) || 0) + 1), new Map())].map(([l, n]) =>
+        l + (n > 1 ? '×' + n : '')).join('、')}</div>`
   }<button class="sdel" data-sdel aria-label="この現場を消す">✕</button></div>`
   ).join('');
 
