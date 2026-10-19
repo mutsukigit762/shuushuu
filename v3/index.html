@@ -363,14 +363,11 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 #bigList { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 #bigList:empty::before { content: 'まだ無し'; display: block; color: var(--text2); font-size: 14px; padding: 6px 2px; }
 .add-big { flex: none; display: block; margin: 10px auto 2px; width: 50%; height: 54px; border-radius: 12px; border: none; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 30px; font-weight: 700; cursor: pointer; }
-/* 並べ替えモード：行の右に ▲▼削除。行を押しても開かない */
-.list-btns { display: flex; gap: 6px; }
-.view-btn.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-.sort-btns { flex: none; display: flex; gap: 4px; padding: 6px; }
-.sort-btns button { width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--border); background: var(--card2); font: inherit; font-size: 16px; font-weight: 700; color: var(--text); cursor: pointer; }
-.sort-btns button:disabled { opacity: .3; }
-.sort-btns .del { color: var(--red); }
-.sorting .srow { cursor: default; }
+/* 現場の行：右端に現場ごと消す✕（いつも出ている）。行を長押しするとつかめて、指についてくる */
+.srow { position: relative; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.srow .sdel { flex: none; align-self: stretch; width: 44px; border: none; border-left: 1px solid var(--border); background: none; color: var(--text2); font: inherit; font-size: 18px; cursor: pointer; }
+.srow.lift { z-index: 5; box-shadow: 0 8px 24px rgba(0,0,0,0.18); transition: none; }
+.srow.shift { transition: transform .15s ease; }
 .shou { flex: 1; min-width: 0; padding: 10px 12px; font-size: 15px; font-weight: 700; line-height: 1.5; }
 </style>
 </head>
@@ -397,7 +394,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
   <!-- この台のでかぶつの一覧（現場ごとに1行）。行を押すとその現場を直す -->
   <section class="tab" id="listTab" hidden>
-    <div class="list-top"><h2 id="listTitle"></h2><div class="list-btns"><button class="view-btn" id="sortBtn">並べ替え</button><button class="view-btn" id="viewBtn" aria-label="略と詳を切り替える"></button></div></div>
+    <div class="list-top"><h2 id="listTitle"></h2><button class="view-btn" id="viewBtn" aria-label="略と詳を切り替える"></button></div>
     <div id="bigList"></div>
     <button class="add-big" data-open="bigSheet" aria-label="でかぶつを足す">＋</button>
   </section>
@@ -534,8 +531,6 @@ let editS = null;
 // いま見ているタブ：calc（電卓）か list（でかぶつ一覧）。端末に覚えておく
 let tab = 'calc';
 try { tab = localStorage.getItem('shuushuu3-tab') || 'calc'; } catch (e) {}
-// 一覧の並べ替えモード（▲▼で順番を変える・削除で現場ごと消す）
-let sorting = false;
 const targetS = () => editS != null ? editS : cur().next;
 
 // 初めて開いた日は、元の版（収集1）の今日の記録を引き継ぐ（同じサイトなので読める）
@@ -616,18 +611,12 @@ function render() {
   // 一覧：1現場＝1行。略はメモの暗号のチップ（同じものは「ベ×2」）、詳は「1,300円ベッド、…」
   document.getElementById('listTitle').textContent = `${daime(state.cur)}のでかぶつ`;
   document.getElementById('viewBtn').innerHTML = view === 'ryaku' ? '<b>略</b>/詳' : '略/<b>詳</b>';
-  const sortBtn = document.getElementById('sortBtn');
-  if (!groups.length) sorting = false;
-  sortBtn.textContent = sorting ? '済' : '並べ替え';
-  sortBtn.classList.toggle('on', sorting);
-  sortBtn.hidden = !groups.length;
-  document.getElementById('bigList').classList.toggle('sorting', sorting);
-  document.getElementById('bigList').innerHTML = groups.map((g, gi) => `<div class="srow" data-edit="${g.s}">${view === 'ryaku'
+  document.getElementById('bigList').innerHTML = groups.map(g => `<div class="srow" data-edit="${g.s}">${view === 'ryaku'
     ? `<div class="chips">${
         [...g.items.reduce((m, b) => m.set(abbr(b), (m.get(abbr(b)) || 0) + 1), new Map())].map(([a, n]) =>
         `<span class="chip">${a}${n > 1 ? '×' + n : ''}</span>`).join('')}</div>`
     : `<div class="shou">${g.items.map(bigLabel).join('、')}</div>`
-  }${sorting ? `<div class="sort-btns"><button data-mv="-1" aria-label="上へ"${gi ? '' : ' disabled'}>▲</button><button data-mv="1" aria-label="下へ"${gi < groups.length - 1 ? '' : ' disabled'}>▼</button><button class="del" data-del aria-label="この現場を消す">削除</button></div>` : ''}</div>`
+  }<button class="sdel" data-sdel aria-label="この現場を消す">✕</button></div>`
   ).join('');
 
   // でかぶつ登録：見出しと、いまの現場に登録したもの（同じものは×nでまとめる。✕で1つ減る）
@@ -776,29 +765,14 @@ document.getElementById('viewBtn').onclick = () => {
   try { localStorage.setItem('shuushuu3-view', view); } catch (e) {}
   render();
 };
-document.getElementById('sortBtn').onclick = () => { sorting = !sorting; render(); };
-// 一覧の行を押すと、その現場のでかぶつ登録が開く（直す）。並べ替え中は ▲▼削除だけ効く
+// 一覧の行を押すと、その現場のでかぶつ登録が開く（直す）。右端の✕で現場ごと消す（1つ戻すで戻せる）
 document.getElementById('bigList').addEventListener('click', e => {
   const el = e.target.closest('[data-edit]');
   if (!el) return;
   e.stopPropagation();
-  const s = +el.dataset.edit, b = e.target.closest('button');
-  if (sorting) {
-    if (!b) return;
-    if (b.hasAttribute('data-del')) {
-      // 現場ごと消す（1つ戻すで戻せる）
-      change(() => { cur().bigs = cur().bigs.filter(x => x.s !== s); });
-    } else if (b.dataset.mv) {
-      // 隣の現場と入れ替える。並びはでかぶつの1列の順そのもの
-      const d = cur(), order = [...new Set(d.bigs.map(x => x.s))];
-      const i = order.indexOf(s), j = i + +b.dataset.mv;
-      if (j < 0 || j >= order.length) return;
-      [order[i], order[j]] = [order[j], order[i]];
-      change(() => { d.bigs = order.flatMap(x => d.bigs.filter(y => y.s === x)); });
-    }
-    buzz();
-    return;
-  }
+  if (dragged) return; // 並べ替えで離した指では開かない
+  const s = +el.dataset.edit;
+  if (e.target.closest('[data-sdel]')) { change(() => { cur().bigs = cur().bigs.filter(x => x.s !== s); }); buzz(); return; }
   openPanel('bigSheet'); editS = s; render();
 });
 
@@ -1111,6 +1085,64 @@ mainEl.addEventListener('touchend', e => {
   switchDai(state.cur + (dx < 0 ? 1 : -1));
 });
 mainEl.addEventListener('click', e => { if (swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
+
+// 並べ替え：現場の行を長押しするとつかめる。つかんだ行は指についてきて、離した所に入る（収集2と同じ動き）
+// 長押しの前に指が動いたら、ふつうのスクロール・払いとして扱う
+const bigListEl = document.getElementById('bigList');
+let drag = null, press = null, dragged = false;
+function startDrag(el, y) {
+  const els = [...bigListEl.children];
+  const mids = els.map(x => { const r = x.getBoundingClientRect(); return (r.top + r.bottom) / 2; });
+  drag = { el, els, mids, from: els.indexOf(el), to: els.indexOf(el), y0: y, h: el.offsetHeight + 8 };
+  el.classList.add('lift');
+  els.forEach(x => x !== el && x.classList.add('shift'));
+  daiSw = null; // つかんだ指では台を移らない
+  buzz();
+}
+function moveDrag(y) {
+  const { el, els, mids, from, h } = drag;
+  // 並びの外（最初より前・最後より後ろ）には動かさない
+  const dy = Math.max(mids[0] - mids[from], Math.min(mids[els.length - 1] - mids[from], y - drag.y0));
+  el.style.transform = `translateY(${dy}px)`;
+  const c = mids[from] + dy;
+  let to = from;
+  for (let i = from + 1; i < els.length; i++) if (c >= mids[i]) to = i;
+  for (let i = from - 1; i >= 0; i--) if (c <= mids[i]) to = i;
+  if (to !== drag.to) { drag.to = to; buzz(); }
+  // 間にある行を1つずつずらして、入る場所を空けて見せる
+  els.forEach((x, i) => {
+    if (x === el) return;
+    let s = 0;
+    if (from < to && i > from && i <= to) s = -h;
+    if (from > to && i >= to && i < from) s = h;
+    x.style.transform = s ? `translateY(${s}px)` : '';
+  });
+}
+function endDrag() {
+  const { els, from, to } = drag;
+  drag = null;
+  dragged = true; setTimeout(() => dragged = false, 350);
+  if (from === to) { render(); return; }
+  const order = els.map(x => +x.dataset.edit);
+  order.splice(to, 0, order.splice(from, 1)[0]);
+  change(() => { const d = cur(); d.bigs = order.flatMap(s => d.bigs.filter(b => b.s === s)); });
+}
+bigListEl.addEventListener('touchstart', e => {
+  const row = e.target.closest('.srow');
+  if (!row || e.target.closest('[data-sdel]') || e.touches.length > 1 || bigListEl.children.length < 2) return;
+  const y = e.touches[0].clientY;
+  press = { x: e.touches[0].clientX, y, t: setTimeout(() => { press = null; startDrag(row, y); }, 400) };
+}, { passive: true });
+bigListEl.addEventListener('touchmove', e => {
+  const t = e.touches[0];
+  if (press && Math.hypot(t.clientX - press.x, t.clientY - press.y) > 8) { clearTimeout(press.t); press = null; }
+  if (drag) { e.preventDefault(); moveDrag(t.clientY); }
+}, { passive: false });
+const dragUp = () => { if (press) { clearTimeout(press.t); press = null; } if (drag) endDrag(); };
+bigListEl.addEventListener('touchend', dragUp);
+bigListEl.addEventListener('touchcancel', dragUp);
+// 長押しで出る文字選び・メニューを止める
+bigListEl.addEventListener('contextmenu', e => { if (e.target.closest('.srow')) e.preventDefault(); });
 
 load();
 buildButtons();
