@@ -491,7 +491,7 @@ const PRICES = [400, 900, 1300, 2300, 3200];
 // cond は記録の目印なので変えない（変えると、もう入れてある分の料金が引けなくなる）
 // kinds があれば、カードの右のピッカーで何の品目かを選べる
 const BOX_KINDS = ['タンス', 'チェスト', '食器棚', '本棚', 'スチール棚', '戸棚', 'テレビ台', 'リビングボード', 'レンジ台', 'キャビネット',
-  'カラーボックス', '下駄箱', '鏡台', '物置', 'ロッカー', 'コンテナ', '脇机', 'ペット小屋'];
+  'カラーボックス', '下駄箱', '鏡台', '物置', 'ロッカー', 'コンテナ', '脇机', 'ペット小屋', '箱物家具', '収納ボックス'];
 const GROUPS = [
   {
     items: [
@@ -531,8 +531,11 @@ const GROUPS = [
         { price: 900,  cond: '18インチ以上', btn: '18インチ以上' },
         { price: 1300, cond: '電動', btn: '電動自転車', label: '電動自転車' },
       ]},
-      { name: '滑り台', short: '滑り台', yen: true, tiers: [
-        { price: 900, cond: '滑り台' },
+      // 滑り台とランドリーラックは1枚に並べる。金額は決まっているので、ボタンは品名。見出しは無し
+      // ボタンごとに品目が違うので、tier に name を持たせる（無ければ品目の name）
+      { name: '滑り台', title: '', short: '滑り台', tiers: [
+        { price: 900, cond: '滑り台', btn: '滑り台' },
+        { price: 1300, name: 'ランドリーラック', cond: 'ランドリーラック', btn: 'ランドリーラック' },
       ]},
       // ボタンに無いものは、名前を打って金額を押す（free の名前が品目名になる）
       { name: 'その他', title: 'その他のもの', short: 'その他', yen: true, free: true, tiers: [
@@ -688,7 +691,7 @@ function render() {
   for (const b of now) { const k = b.name + '|' + b.cond; counts.set(k, (counts.get(k) || 0) + 1); }
   document.querySelectorAll('[data-tier]').forEach(el => {
     const [gi, ii, ti] = el.dataset.tier.split('-').map(Number);
-    const it = GROUPS[gi].items[ii], n = counts.get(it.name + '|' + it.tiers[ti].cond) || 0;
+    const it = GROUPS[gi].items[ii], t = it.tiers[ti], n = counts.get((t.name || it.name) + '|' + t.cond) || 0;
     el.classList.toggle('has', n > 0);
     el.dataset.n = n ? `×${n}` : '';
   });
@@ -730,6 +733,7 @@ const ABBR = {
   'リビングボード': { k: 'リ', h: 'り' }, 'レンジ台': { k: '調', h: '（調）' }, 'キャビネット': { k: 'キャ', h: 'きゃ' },
   'カラーボックス': { k: 'カ', h: 'か' }, '下駄箱': { k: '下', h: '（下）' }, '鏡台': { k: '鏡', h: '（鏡）' }, '物置': { k: '物', h: 'も' },
   'ロッカー': { k: 'ロ', h: 'ろ' }, 'コンテナ': { k: 'コ', h: 'こ' }, '脇机': { k: '脇', h: '（脇）' }, 'ペット小屋': { k: 'ペ', h: 'ぺ' },
+  '箱物家具': { k: '箱物家具', h: '箱物家具' }, '収納ボックス': { k: '収納ボックス', h: '収納ボックス' }, // 略は品名そのまま
   '滑り台': { k: '滑', h: '滑' }, // 滑り台は900円でも丸かっこを付けない
 };
 // 机・自転車・ソファーベッドは例外：机は袖なし＝つ・片袖＝片袖・両袖＝両袖、自転車はふつう＝自・電動＝電、ソファーベッド＝ソベ、折り畳みベッド＝折
@@ -739,8 +743,8 @@ function abbr(e) { return abbr0(e) + KAI(e); }
 function abbr0(e) {
   if (BY_COND[e.name] && BY_COND[e.name][e.cond]) return BY_COND[e.name][e.cond];
   let yen = 0;
-  for (const g of GROUPS) for (const it of g.items) if (it.name === e.name)
-    for (const t of it.tiers) if (t.cond === e.cond) yen = t.price;
+  for (const g of GROUPS) for (const it of g.items)
+    for (const t of it.tiers) if ((t.name || it.name) === e.name && t.cond === e.cond) yen = t.price;
   const nm = e.free || e.name; // その他のものは、打った名前をそのまま（900円は丸かっこ）
   const a = ABBR[e.kind || e.name] || { k: nm, h: `（${nm}）` };
   return yen === 900 ? a.h : yen === 2300 ? a.k + "'" : yen === 3200 ? a.k + "''" : a.k;
@@ -749,8 +753,8 @@ function abbr0(e) {
 // 一覧用の書き方：「900円テーブル」。料金は品目ボタンの定義から引く
 function bigLabel(e) {
   let yenv = 0, name = e.name;
-  for (const g of GROUPS) for (const it of g.items) if (it.name === e.name)
-    for (const t of it.tiers) if (t.cond === e.cond) { yenv = t.price; name = e.free || e.kind || t.label || e.name; }
+  for (const g of GROUPS) for (const it of g.items)
+    for (const t of it.tiers) if ((t.name || it.name) === e.name && t.cond === e.cond) { yenv = t.price; name = e.free || e.kind || t.label || e.name; }
   return (yenv ? `${yenv.toLocaleString('ja-JP')}円${name}` : name) + KAI(e);
 }
 
@@ -791,7 +795,7 @@ function buildButtons() {
   document.getElementById('groups').innerHTML = GROUPS.map((g, gi) =>
     `<section>${g.items.map((it, ii) =>
       `<div class="item">
-        <div class="item-name"><span>${it.title || it.name}${it.kinds ? `<button class="kind" data-kind="${gi}-${ii}" data-value="">箱物</button><button class="kai" data-kai="${gi}-${ii}">解体済</button>` : ''}</span></div>
+        ${it.title === '' ? '' : `<div class="item-name"><span>${it.title || it.name}${it.kinds ? `<button class="kind" data-kind="${gi}-${ii}" data-value="">箱物</button><button class="kai" data-kai="${gi}-${ii}">解体済</button>` : ''}</span></div>`}
         ${it.free ? `<input class="free" data-free="${gi}-${ii}" type="text" placeholder="品目の名前" autocomplete="off">` : ''}
         ${it.kinds ? `<div class="kind-pop" data-pop="${gi}-${ii}">${['', ...it.kinds].map(k =>
           `<button data-pick="${k}"${k ? '' : ' class="on"'}>${k || '箱物'}</button>`).join('')}</div>` : ''}
@@ -870,7 +874,7 @@ document.addEventListener('click', e => {
     const it = GROUPS[gi].items[ii], t = it.tiers[ti];
     const kind = it.kinds ? document.querySelector(`[data-kind="${gi}-${ii}"]`).dataset.value : '';
     const free = it.free ? document.querySelector(`[data-free="${gi}-${ii}"]`).value.trim() : '';
-    const nb = { name: it.name, cond: t.cond, short: it.short, ...(kind && { kind }), ...(free && { free }), s: targetS() };
+    const nb = { name: t.name || it.name, cond: t.cond, short: it.short, ...(kind && { kind }), ...(free && { free }), s: targetS() };
     change(() => cur().bigs.push(nb));
     buzz();
   } else if (b.dataset.kai) {
