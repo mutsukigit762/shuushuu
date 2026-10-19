@@ -53,6 +53,10 @@ header {
 .head-title b { color: var(--text); font-size: 17px; }
 .head-day { text-align: right; font-size: 12px; color: var(--text2); line-height: 1.2; }
 .head-day b { display: block; font-size: 17px; color: var(--text); }
+/* 残り：今日の総量（最初に打つ）から、今日の合計を引いた分。押すと総量を打ち直せる */
+.head-rest { border: 1px solid var(--border); border-radius: 10px; background: var(--card); padding: 4px 10px; font: inherit; text-align: right; font-size: 12px; color: var(--text2); line-height: 1.2; cursor: pointer; }
+.head-rest b { display: block; font-size: 17px; color: var(--text); }
+.head-rest.unset b { color: var(--text2); font-weight: 600; }
 
 main { padding: 12px; max-width: 560px; margin: 0 auto; }
 
@@ -376,6 +380,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 <header>
   <button class="burger" id="burger" aria-label="料金表">☰</button>
   <div class="head-title" id="headTitle"></div>
+  <button class="head-rest" id="restBtn" aria-label="今日の総量を打つ">残り<b id="restPt"></b></button>
   <div class="head-day">今日の合計<b id="dayTotal"></b></div>
 </header>
 
@@ -581,6 +586,10 @@ function render() {
   document.getElementById('headTitle').innerHTML =
     `<b>${daime(state.cur)}</b>　${d.getMonth()+1}/${d.getDate()}(${wd})`;
   document.getElementById('dayTotal').textContent = pt(dayTotal) + 'p';
+  // 残り＝今日の総量−今日の合計。総量をまだ打っていなければ「総量」と出す
+  const goal = state.goal || 0;
+  document.getElementById('restBtn').classList.toggle('unset', !goal);
+  document.getElementById('restPt').textContent = goal ? (goal - dayTotal / 100).toLocaleString('ja-JP') + 'p' : '総量';
   setAmount(pt(total));
   document.getElementById('heroLabel').textContent = `${state.cur + 1}台目の容積ポイント`;
   // 件数はポイントを入れた回数。でかぶつは数えない
@@ -838,9 +847,16 @@ document.addEventListener('click', e => {
 
 // ===== テンキー =====
 let padVal = '';
-let padMode = 'add'; // 'add'＝電卓で足す / 'dai'＝台の容積ポイントをじかに打つ（打った数字がその台の点数になる）
+let padMode = 'add'; // 'add'＝電卓で足す / 'dai'＝台の容積ポイントをじかに打つ（打った数字がその台の点数になる） / 'goal'＝今日の総量
 // テンキーの画面を、今の padMode に合わせて組み直す
 function setupPad() {
+  if (padMode === 'goal') {
+    padVal = state.goal ? String(state.goal) : '';
+    document.getElementById('padTitle').textContent = '今日の総量';
+    document.getElementById('padAdd').textContent = '登録';
+    document.getElementById('padAdd').style.fontSize = '20px';
+    renderPad(); return;
+  }
   const dai = padMode === 'dai';
   const yen = sum(cur());
   padVal = dai && yen ? String(yen / 100) : '';
@@ -857,11 +873,16 @@ function renderPad() {
 function padPress(k) {
   if (k === 'C') padVal = '';
   else if (k === 'BS') padVal = padVal.slice(0, -1);
-  else if (padVal.length < 3) padVal = (padVal + k).replace(/^0+/, '');
+  else if (padVal.length < (padMode === 'goal' ? 4 : 3)) padVal = (padVal + k).replace(/^0+/, '');
   renderPad();
 }
 document.getElementById('padAdd').onclick = () => {
   const n = +padVal;
+  if (padMode === 'goal') {
+    // 今日の総量（0で消す）。日付が変われば新しい日と一緒に消える
+    if (n !== (state.goal || 0)) change(() => { if (n) state.goal = n; else delete state.goal; });
+    buzz(); closeAll(); return;
+  }
   if (padMode === 'dai') {
     // 打った数字をそのままこの台の点数にする（電卓で足した分は1つにまとまる）
     if (n * 100 !== sum(cur())) change(() => { cur().pts = n ? [n * 100] : []; });
@@ -874,6 +895,7 @@ document.getElementById('padAdd').onclick = () => {
   closeAll();
 };
 
+document.getElementById('restBtn').onclick = () => { padMode = 'goal'; openPanel('padSheet'); };
 document.getElementById('undo').onclick = () => {
   if (!history.length) return;
   state = JSON.parse(history.pop());
@@ -889,7 +911,7 @@ document.getElementById('resetDai').onclick = () => {
 };
 document.getElementById('resetAll').onclick = () => {
   if (!state.dais.some(d => d.pts.length || d.bigs.length)) return;
-  change(() => { const c = state.cur; state = newDay(); state.cur = c; });
+  change(() => { const c = state.cur, g = state.goal; state = newDay(); state.cur = c; if (g) state.goal = g; }); // 今日の総量は残す
 };
 
 // でかぶつ登録の「次」：閉じずに、登録の段だけ空にして次の現場へ（箱物の種類も選び直し）
