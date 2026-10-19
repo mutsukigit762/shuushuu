@@ -262,6 +262,15 @@ body.lock { overflow: hidden; }
   display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border);
 }
 .drawer-head h1 { flex: 1; font-size: 18px; }
+/* 共有：合言葉を打つと、同じ合言葉の人と1日分（全部の台・でかぶつ・総量）を一緒に見る・直す */
+.share { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.share input { flex: 1; min-width: 0; height: 42px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); font: inherit; font-size: 16px; color: var(--text); -webkit-user-select: text; user-select: text; }
+.share button { flex: none; height: 42px; padding: 0 14px; border-radius: 10px; border: none; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+.share button.sub { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+.share-on { font-size: 15px; font-weight: 700; flex: 1; }
+.share-on small { display: block; font-size: 12px; font-weight: 600; color: var(--text2); }
+.head-title .shared { margin-left: 6px; font-size: 11px; font-weight: 700; color: var(--on-accent); background: var(--accent); border-radius: 6px; padding: 1px 5px; vertical-align: 2px; }
+.head-title .shared.off { background: var(--text2); }
 /* 料金表は3ページを横スワイプで送る。前後に写しを置いて、端まで行ったら黙って入れ替える */
 .pager { flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 .pager::-webkit-scrollbar { display: none; }
@@ -431,6 +440,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
     <h1>料金表</h1>
     <button class="burger" data-close aria-label="閉じる">✕</button>
   </div>
+  <div class="share" id="share"></div>
   <div class="pager" id="pager"></div>
   <div class="pager-foot" id="pagerFoot"></div>
 </aside>
@@ -617,7 +627,8 @@ function render() {
   const wd = '日月火水木金土'[d.getDay()];
 
   document.getElementById('headTitle').innerHTML =
-    `<b>${daime(state.cur)}</b>　${d.getMonth()+1}/${d.getDate()}(${wd})`;
+    `<b>${daime(state.cur)}</b>　${d.getMonth()+1}/${d.getDate()}(${wd})${room ? `<span class="shared${online ? '' : ' off'}">共有</span>` : ''}`;
+  renderShare();
   // 総量を打ったら「残り479p/1070p」。今日の合計そのものは出さない
   const goal = state.goal || 0;
   document.getElementById('restLabel').textContent = goal ? '残り' : '今日の合計';
@@ -797,11 +808,11 @@ function buzz() { if (navigator.vibrate) navigator.vibrate(15); }
 // 変える時はいつもここを通す（1つ戻すのため）
 function change(fn) {
   if (state.date !== today()) { state = newDay(); history = []; }
-  snap(); fn();
+  snap(); const before = history[history.length - 1]; fn();
   // 同じ現場のでかぶつは、いつも1列の中で隣どうしに並べ直す（あとから足した分も、その現場の最後に入る）
   const d = cur(), order = [...new Set(d.bigs.map(b => b.s))];
   d.bigs = order.flatMap(x => d.bigs.filter(b => b.s === x));
-  save(); render();
+  save(); render(); push(before);
 }
 
 document.getElementById('viewBtn').onclick = () => {
@@ -974,9 +985,10 @@ document.getElementById('padToMove').onclick = e => {
 document.getElementById('restBtn').onclick = () => { padMode = 'goal'; openPanel('padSheet'); };
 document.getElementById('undo').onclick = () => {
   if (!history.length) return;
+  const before = JSON.stringify(state);
   state = JSON.parse(history.pop());
   shownAmount = null;
-  save(); render();
+  save(); render(); push(before);
 };
 
 // 台の行き来は「n台目」のチップで。リセットは確認なし。押し間違えたら「1つ戻す」で元に戻る
@@ -1243,11 +1255,102 @@ bigListEl.addEventListener('touchcancel', dragUp);
 // 長押しで出る文字選び・メニューを止める
 bigListEl.addEventListener('contextmenu', e => { if (e.target.closest('.srow')) e.preventDefault(); });
 
+// ===== 共有（Firestore） =====
+// 合言葉ごとに1日1つの文書 rooms/{合言葉}/days/{日付}。中身は goal（総量）と d0〜d4（台ごとの pts・bigs・next）
+// 変えた台だけを書くので、別々の台をほかの人が同時に打っても消し合わない（同じ台を同時に打つと後のほうが残る）
+// いま見ている台（cur）は端末ごと。共有しない
+const FB = { apiKey: 'AIzaSyASQBbHbG8HkeTYMkIDKVALfMKiqXj_MjE', authDomain: 'shuushuu-mutsuki.firebaseapp.com', projectId: 'shuushuu-mutsuki', appId: '1:392529089773:web:ad1af9fc35ef9faa7fa8e4' };
+const FBV = '10.12.2';
+let room = '';
+try { room = localStorage.getItem('shuushuu3-room') || ''; } catch (e) {}
+let fs = null, unsub = null, online = false, subDate = null;
+async function fsLib() {
+  if (fs) return fs;
+  const [{ initializeApp }, f] = await Promise.all([
+    import(`https://www.gstatic.com/firebasejs/${FBV}/firebase-app.js`),
+    import(`https://www.gstatic.com/firebasejs/${FBV}/firebase-firestore.js`),
+  ]);
+  fs = { ...f, db: f.getFirestore(initializeApp(FB)) };
+  return fs;
+}
+const dayRef = () => fs.doc(fs.db, 'rooms', room, 'days', state.date);
+const toDoc = st => { const o = {}; if (st.goal) o.goal = st.goal; st.dais.forEach((d, i) => { o['d' + i] = d; }); return o; };
+function fromDoc(data) {
+  const dais = [];
+  for (let i = 0; ('d' + i) in data || i < DAIS; i++) dais.push(data['d' + i] || newDai());
+  state.dais = dais;
+  if (data.goal) state.goal = data.goal; else delete state.goal;
+  if (state.cur >= dais.length) state.cur = 0;
+}
+// 変えた分だけ送る
+function push(beforeJSON) {
+  if (!room || !fs) return;
+  const a = JSON.parse(beforeJSON), out = {};
+  if (a.date !== state.date) { fs.setDoc(dayRef(), toDoc(state)).catch(() => {}); subscribe(); return; }
+  if ((a.goal || 0) !== (state.goal || 0)) out.goal = state.goal || fs.deleteField();
+  state.dais.forEach((d, i) => { if (JSON.stringify(d) !== JSON.stringify(a.dais[i])) out['d' + i] = d; });
+  if (Object.keys(out).length) fs.setDoc(dayRef(), out, { merge: true }).catch(() => {});
+}
+async function subscribe() {
+  if (unsub) { unsub(); unsub = null; }
+  online = false;
+  if (!room) { render(); return; }
+  try { await fsLib(); } catch (e) { render(); return; }
+  subDate = state.date;
+  let first = true;
+  unsub = fs.onSnapshot(dayRef(), { includeMetadataChanges: false }, snap => {
+    online = true;
+    if (snap.metadata.hasPendingWrites) { render(); return; } // 自分が書いた分の折り返しは無視
+    if (!snap.exists()) {
+      // まだ誰も打っていない日：この端末の分があれば、それを最初の中身にする
+      if (first && (state.goal || state.dais.some(d => d.pts.length || d.bigs.length))) fs.setDoc(dayRef(), toDoc(state)).catch(() => {});
+    } else {
+      fromDoc(snap.data()); save();
+    }
+    first = false;
+    render();
+  }, () => { online = false; render(); });
+  render();
+}
+// 日付が変わったら、新しい日の文書を見に行く
+setInterval(() => { if (room && subDate && subDate !== today()) { if (state.date !== today()) { state = newDay(); history = []; save(); } subscribe(); } }, 60000);
+
+function renderShare() {
+  const el = document.getElementById('share');
+  if (room) {
+    if (el.dataset.mode === 'on' && el.dataset.room === room) {
+      el.querySelector('small').textContent = online ? '同じ合言葉の人と一緒に見ている' : 'つないでいるところ（電波が無い時は戻ったら送る）';
+      return;
+    }
+    el.dataset.mode = 'on'; el.dataset.room = room;
+    el.innerHTML = `<div class="share-on">共有中：${room.replace(/[<>&"]/g, '')}<small></small></div><button class="sub" id="shareOff">やめる</button>`;
+    renderShare();
+  } else if (el.dataset.mode !== 'off') {
+    el.dataset.mode = 'off';
+    el.innerHTML = `<input id="shareIn" type="text" placeholder="共有の合言葉" autocomplete="off" autocapitalize="off"><button id="shareGo">つなぐ</button>`;
+  }
+}
+document.getElementById('share').addEventListener('click', e => {
+  if (e.target.id === 'shareGo') {
+    const v = document.getElementById('shareIn').value.trim();
+    if (v.length < 4 || /[\/]/.test(v)) { shakeNg(e.target); return; } // 4文字以上。「/」は使えない
+    room = v;
+    try { localStorage.setItem('shuushuu3-room', room); } catch (err) {}
+    subscribe(); buzz();
+  } else if (e.target.id === 'shareOff') {
+    // やめても、この端末の分は残る（ここから先は自分だけ）
+    room = '';
+    try { localStorage.removeItem('shuushuu3-room'); } catch (err) {}
+    subscribe(); buzz();
+  }
+});
+
 load();
 buildButtons();
 render();
 renderPad();
 
+subscribe();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
 </body>
