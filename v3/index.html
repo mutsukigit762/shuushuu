@@ -364,6 +364,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .big-foot { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--bg); }
 .big-foot.two { display: flex; gap: 8px; }
 .big-foot .ok { flex: 1; width: 100%; height: 54px; border: none; border-radius: 14px; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 17px; font-weight: 700; cursor: pointer; }
+.big-foot .ok:disabled { background: var(--card2); color: var(--text2); opacity: .5; cursor: default; }
 .big-foot .ok.sub { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
 .free { display: block; width: 100%; margin: 0 0 8px; height: 42px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); font: inherit; font-size: 16px; color: var(--text); -webkit-user-select: text; user-select: text; }
 /* でかぶつの一覧：1現場＝1行。押すとその現場を直せる */
@@ -476,7 +477,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
   <div class="sheet-body">
     <div id="groups"></div>
   </div>
-  <div class="big-foot two"><button class="ok sub" data-close>閉じる</button><button class="ok" id="bigDone">次</button></div>
+  <div class="big-foot two"><button class="ok sub" id="bigClose" data-close>閉じる</button><button class="ok" id="bigDone">次</button></div>
 </div>
 
 
@@ -684,6 +685,7 @@ function render() {
   document.getElementById('bigDone').hidden = editS != null; // 直している時は「次」は出さない
   const labels = new Map();
   const now = dai.bigs.filter(b => b.s === ts);
+  document.getElementById('bigDone').disabled = !now.length; // 仮置きが無い時は「次」を押せない
   for (const b of now) labels.set(bigLabel(b), (labels.get(bigLabel(b)) || 0) + 1);
   document.getElementById('siteBig').innerHTML = [...labels].map(([l, n]) =>
     `<button class="tag pend" data-unbig="${l}">${l}×${n} ✕</button>`).join('');
@@ -860,6 +862,8 @@ document.addEventListener('click', e => {
     try { localStorage.setItem('shuushuu3-tab', tab); } catch (e) {}
     render();
   } else if (b.hasAttribute('data-close')) {
+    // でかぶつ登録の「閉じる」は、仮置きがあればその現場を登録済みにする（開き直したら次の現場から）
+    if (b.id === 'bigClose' && editS == null) { const d = cur(); if (d.bigs.some(x => x.s === d.next)) change(() => { d.next++; }); }
     closeAll();
   } else if (b.dataset.open) {
     padMode = 'add'; // 電卓のテンキーは足す
