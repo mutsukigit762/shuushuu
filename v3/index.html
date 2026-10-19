@@ -492,6 +492,7 @@ const PRICES = [400, 900, 1300, 2300, 3200];
 // kinds があれば、カードの右のピッカーで何の品目かを選べる
 const BOX_KINDS = ['タンス', 'チェスト', '食器棚', '本棚', 'スチール棚', '戸棚', 'テレビ台', 'リビングボード', 'レンジ台', 'キャビネット',
   'カラーボックス', '下駄箱', '鏡台', '物置', 'ロッカー', 'コンテナ', '脇机', 'ペット小屋', '箱物家具', '収納ボックス', 'オーディオラック'];
+const TABLE_KINDS = ['炬燵', 'ガラス'];
 const GROUPS = [
   {
     items: [
@@ -507,7 +508,7 @@ const GROUPS = [
         { price: 2300, cond: 'セミダブル〜', btn: 'ダブルベッド' },
         { price: 3200, cond: '二段', btn: '二段ベッド', label: '二段ベッド' },
       ]},
-      { name: '箱物', title: '箱物系', short: '箱物', yen: true, kinds: BOX_KINDS, tiers: [
+      { name: '箱物', title: '箱物系', short: '箱物', yen: true, kinds: BOX_KINDS, kai: true, tiers: [
         { price: 900,  cond: '180〜' },
         { price: 1300, cond: '225〜' },
         { price: 2300, cond: '315〜' },
@@ -518,12 +519,12 @@ const GROUPS = [
         { price: 2300, cond: '幅100以上', btn: '二人用以上' },
         { price: 2300, cond: 'ソファーベッド', btn: 'ソファーベッド', label: 'ソファーベッド' },
       ]},
-      { name: '机', short: '机', tiers: [
+      { name: '机', short: '机', kai: true, tiers: [
         { price: 900,  cond: '袖なし', btn: '袖なし机' },
         { price: 1300, cond: '片袖', btn: '片袖机' },
         { price: 3200, cond: '両袖', btn: '両袖机' },
       ]},
-      { name: 'テーブル', short: 'テーブル', yen: true, tiers: [
+      { name: 'テーブル', short: 'テーブル', yen: true, kinds: TABLE_KINDS, tiers: [
         { price: 900,  cond: '100以上' },
         { price: 1300, cond: '150以上' },
       ]},
@@ -726,7 +727,8 @@ function shakeNg(btn) {
 // 略の書き方（ムツキのメモの暗号）：k が1,300円の字。900円は h、2,300円は k'、3,200円は k''
 // カタカナはひらがな、漢字は丸かっこ（ひらがなにしても他とかぶらない時はひらがな）
 const ABBR = {
-  'ベッドマット': { k: 'ベマ', h: 'べま' }, 'ベッド': { k: 'ベ', h: 'べ' }, 'ソファー': { k: 'ソ', h: 'そ' },
+  'ベッドマット': { k: 'ベマ', h: 'べま' }, 'ベッド': { k: 'ベ', h: 'べ' }, 'ソファー': { k: 'ソ', h: 'そ', nodash: true }, // 1,300円が無いので、2,300円にダッシュを付けない
+  '炬燵': { k: '炬', h: '（炬）' }, 'ガラス': { k: 'ガラステ', h: 'ガラスて' },
   'テーブル': { k: 'テ', h: 'て' }, '箱物': { k: '箱', h: 'は' },
   'タンス': { k: 'タ', h: 'た' }, 'チェスト': { k: 'チ', h: 'ち' }, '食器棚': { k: 'タ', h: 'た' }, // 食器棚＝茶箪笥なのでタンス
   '本棚': { k: '本', h: 'ほ' }, 'スチール棚': { k: 'ス', h: 'す' }, '戸棚': { k: '戸', h: 'と' }, 'テレビ台': { k: 'テレ', h: 'てれ' },
@@ -747,7 +749,7 @@ function abbr0(e) {
     for (const t of it.tiers) if ((t.name || it.name) === e.name && t.cond === e.cond) yen = t.price;
   const nm = e.free || e.name; // その他のものは、打った名前をそのまま（900円は丸かっこ）
   const a = ABBR[e.kind || e.name] || { k: nm, h: `（${nm}）` };
-  return yen === 900 ? a.h : yen === 2300 ? a.k + "'" : yen === 3200 ? a.k + "''" : a.k;
+  return yen === 900 ? a.h : yen === 2300 ? a.k + (a.nodash ? '' : "'") : yen === 3200 ? a.k + "''" : a.k;
 }
 
 // 一覧用の書き方：「900円テーブル」。料金は品目ボタンの定義から引く
@@ -795,10 +797,10 @@ function buildButtons() {
   document.getElementById('groups').innerHTML = GROUPS.map((g, gi) =>
     `<section>${g.items.map((it, ii) =>
       `<div class="item">
-        ${it.title === '' ? '' : `<div class="item-name"><span>${it.title || it.name}${it.kinds ? `<button class="kind" data-kind="${gi}-${ii}" data-value="">箱物</button><button class="kai" data-kai="${gi}-${ii}">解体済</button>` : ''}</span></div>`}
+        ${it.title === '' ? '' : `<div class="item-name"><span>${it.title || it.name}${it.kinds ? `<button class="kind" data-kind="${gi}-${ii}" data-label="${it.short}" data-value="">${it.short}</button>` : ''}${it.kai ? `<button class="kai" data-kai="${gi}-${ii}">解体済</button>` : ''}</span></div>`}
         ${it.free ? `<input class="free" data-free="${gi}-${ii}" type="text" placeholder="品目の名前" autocomplete="off">` : ''}
         ${it.kinds ? `<div class="kind-pop" data-pop="${gi}-${ii}">${['', ...it.kinds].map(k =>
-          `<button data-pick="${k}"${k ? '' : ' class="on"'}>${k || '箱物'}</button>`).join('')}</div>` : ''}
+          `<button data-pick="${k}"${k ? '' : ' class="on"'}>${k || it.short}</button>`).join('')}</div>` : ''}
         <div class="tiers" style="grid-template-columns:repeat(${it.cols || it.tiers.length},1fr)">${it.tiers.map((t, ti) =>
           `<button class="tbtn" data-tier="${gi}-${ii}-${ti}"><span class="p">${it.yen || t.yen ? t.price.toLocaleString('ja-JP') + '円' : t.btn || t.cond}</span></button>`
         ).join('')}</div>
@@ -998,8 +1000,8 @@ document.getElementById('undo').onclick = () => {
 // 台の行き来は「n台目」のチップで。リセットは確認なし。押し間違えたら「1つ戻す」で元に戻る
 document.getElementById('resetDai').onclick = () => {
   const d = cur();
-  if (!d.pts.length && !d.bigs.length) return;
-  change(() => { state.dais[state.cur] = newDai(); });
+  if (!d.bigs.length) return;
+  change(() => { d.bigs = []; d.next = 0; }); // 金額（点数）は残す、でかぶつだけ
 };
 document.getElementById('resetAll').onclick = () => {
   if (!state.dais.some(d => d.pts.length || d.bigs.length)) return;
@@ -1109,7 +1111,7 @@ pager.addEventListener('scroll', () => {
   }, 120);
 });
 function setKind(kb, v) {
-  kb.dataset.value = v; kb.textContent = v || '箱物';
+  kb.dataset.value = v; kb.textContent = v || kb.dataset.label;
   document.querySelectorAll(`[data-pop="${kb.dataset.kind}"] button`).forEach(x => x.classList.toggle('on', x.dataset.pick === v));
 }
 function closeKindPops() {
