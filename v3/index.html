@@ -697,7 +697,10 @@ function render() {
   const labels = new Map();
   const now = dai.bigs.filter(b => b.s === ts);
   // 仮置きがある時だけ「次」（閉じずに次の現場へ）。無い時・直している時は「閉じる」
-  document.getElementById('bigDone').textContent = editS == null && now.length ? '次' : '閉じる';
+  const nextMode = editS == null && now.length;
+  const bd = document.getElementById('bigDone');
+  bd.textContent = nextMode ? '次' : '閉じる';
+  bd.classList.toggle('sub', !nextMode); // 閉じるは前のようにグレー、次はアクセント色
   for (const b of now) labels.set(bigLabel(b), (labels.get(bigLabel(b)) || 0) + 1);
   document.getElementById('siteBig').innerHTML = [...labels].map(([l, n]) =>
     `<button class="tag pend" data-unbig="${l}">${l}×${n} ✕</button>`).join('');
