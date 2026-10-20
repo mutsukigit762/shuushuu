@@ -514,14 +514,13 @@ const GROUPS = [
         { price: 2300, cond: '315〜' },
         { price: 3200, cond: '405〜' },
       ]},
-      { name: 'ソファー', short: 'ソファー', tiers: [
+      { name: 'ソファー', short: 'ソファー', rows: [3, 2], tiers: [
         { price: 900,  cond: '幅100未満', btn: '一人用' },
         { price: 2300, cond: '幅100以上', btn: '二人用以上' },
         { price: 2300, cond: 'ソファーベッド', btn: 'ソファーベッド', label: 'ソファーベッド' },
-      ]},
-      { name: 'リクライニングソファ', title: 'リクライニングソファ', short: 'リソ', tiers: [
-        { price: 1300, cond: '一人用', btn: '一人用', label: 'リクライニングソファ' },
-        { price: 3200, cond: '二人用', btn: '二人用', label: 'リクライニングソファ' },
+        // 電動（リクライニング）。name・cond は前に入れた分と同じまま（略の「リソ」もそのまま）
+        { price: 1300, name: 'リクライニングソファ', cond: '一人用', btn: '電動一人用', label: '電動一人用' },
+        { price: 3200, name: 'リクライニングソファ', cond: '二人用', btn: '電動二人用', label: '電動二人用' },
       ]},
       { name: '机', short: '机', kai: true, rows: [3, 2], tiers: [
         { price: 900,  cond: '袖なし', btn: '袖なし机' },
