@@ -1186,9 +1186,9 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // 台を切りかえる。中身は、進む時は右から、戻る時は左から滑りこんでくる
-function switchDai(to) {
+function switchDai(to, wrapDir) {
   if (to < 0 || to >= state.dais.length || to === state.cur) return;
-  const dir = to > state.cur ? 1 : -1;
+  const dir = wrapDir || (to > state.cur ? 1 : -1);
   shownAmount = null; // 台を変える時は数字をパッと切り替える
   state.cur = to;
   save(); render();
@@ -1197,7 +1197,7 @@ function switchDai(to) {
       [{ transform: `translateX(${dir * 70}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }],
       { duration: 220, easing: 'cubic-bezier(.2,.8,.3,1)' });
 }
-// 本文を左右に払うと隣の台へ（左に払うと次の台、右に払うと前の台）。ボタンの上から払ってもいい
+// 本文を左右に払うと隣の台へ（左に払うと次の台、右に払うと前の台。端はぐるっと回る）。ボタンの上から払ってもいい
 // 払った指では、ボタンを押したことにしない
 let daiSw = null, swallow = false;
 const mainEl = document.querySelector('main');
@@ -1210,7 +1210,9 @@ mainEl.addEventListener('touchend', e => {
   daiSw = null;
   if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
   swallow = true; setTimeout(() => swallow = false, 350);
-  switchDai(state.cur + (dx < 0 ? 1 : -1));
+  // 端まで来たらぐるっと回る（最後の台で次へ払うと1台目、1台目で前へ払うと最後の台）
+  const n = state.dais.length, dir = dx < 0 ? 1 : -1;
+  switchDai((state.cur + dir + n) % n, dir);
 });
 mainEl.addEventListener('click', e => { if (swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
 
