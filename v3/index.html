@@ -388,7 +388,6 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .list-top { display: flex; align-items: center; justify-content: space-between; margin: 0 2px 8px; }
 .list-top h2 { margin: 0; }
 #bigList { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
-#bigList:empty::before { content: 'まだ無し'; display: block; color: var(--text2); font-size: 14px; padding: 6px 2px; }
 .add-big { flex: none; display: block; margin: 10px auto 2px; width: 50%; height: 54px; border-radius: 12px; border: none; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 30px; font-weight: 700; cursor: pointer; }
 /* 現場の行：右端に現場ごと消す✕（いつも出ている）。行を長押しするとつかめて、指についてくる */
 .srow { position: relative; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -672,7 +671,7 @@ function render() {
   document.querySelectorAll('.tabbar [data-tab]').forEach(el => el.classList.toggle('on', el.dataset.tab === tab));
 
   // 一覧：1現場＝1行。略はメモの暗号のチップ（同じものは「ベ×2」）、詳は「1,300円ベッド、900円机×2」
-  document.getElementById('listTitle').textContent = `${daime(state.cur)}のでかぶつ`;
+  document.getElementById('listTitle').textContent = `でかぶつ：${groups.length}箇所`;
   document.getElementById('viewBtn').innerHTML = view === 'ryaku' ? '<b>略</b>/詳' : '略/<b>詳</b>';
   document.getElementById('bigList').innerHTML = groups.map(g => `<div class="srow" data-edit="${g.s}">${view === 'ryaku'
     ? `<div class="chips">${
