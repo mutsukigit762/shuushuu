@@ -523,7 +523,7 @@ const GROUPS = [
         { price: 1300, cond: '一人用', btn: '一人用', label: 'リクライニングソファ' },
         { price: 3200, cond: '二人用', btn: '二人用', label: 'リクライニングソファ' },
       ]},
-      { name: '机', short: '机', kai: true, cols: 3, tiers: [
+      { name: '机', short: '机', kai: true, rows: [3, 2], tiers: [
         { price: 900,  cond: '袖なし', btn: '袖なし机' },
         { price: 1300, cond: '片袖', btn: '片袖机' },
         { price: 3200, cond: '両袖', btn: '両袖机' },
@@ -609,6 +609,8 @@ function save() {
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
 }
 
+// rows: [3, 2] のように行ごとの個数を決めた品目は、6列を各行の個数で割って、どの行も横幅いっぱいにする
+const rowSpan = (rows, ti) => { let n = 0; for (const c of rows) { n += c; if (ti < n) return 6 / c; } return 6; };
 const daime = i => `${i+1}台目`;
 // 容積ポイント：料金の百円単位（1,300円→13p）。メモの「④216」と同じ数え方
 const pt = n => (n / 100).toLocaleString('ja-JP');
@@ -809,8 +811,8 @@ function buildButtons() {
         ${it.free ? `<input class="free" data-free="${gi}-${ii}" type="text" placeholder="品目の名前" autocomplete="off">` : ''}
         ${it.kinds ? `<div class="kind-pop" data-pop="${gi}-${ii}">${['', ...it.kinds].map(k =>
           `<button data-pick="${k}"${k ? '' : ' class="on"'}>${k || it.short}</button>`).join('')}</div>` : ''}
-        <div class="tiers" style="grid-template-columns:repeat(${it.cols || it.tiers.length},1fr)">${it.tiers.map((t, ti) =>
-          `<button class="tbtn" data-tier="${gi}-${ii}-${ti}"><span class="p">${it.yen || t.yen ? t.price.toLocaleString('ja-JP') + '円' : t.btn || t.cond}</span></button>`
+        <div class="tiers" style="grid-template-columns:repeat(${it.rows ? 6 : it.cols || it.tiers.length},1fr)">${it.tiers.map((t, ti) =>
+          `<button class="tbtn"${it.rows ? ` style="grid-column:span ${rowSpan(it.rows, ti)}"` : ''} data-tier="${gi}-${ii}-${ti}"><span class="p">${it.yen || t.yen ? t.price.toLocaleString('ja-JP') + '円' : t.btn || t.cond}</span></button>`
         ).join('')}</div>
       </div>`).join('')}</section>`
   ).join('');
