@@ -398,6 +398,8 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 #moveMenu button + button { border-top: 1px solid var(--border); }
 .srow.lift { z-index: 5; box-shadow: 0 8px 24px rgba(0,0,0,0.18); transition: none; }
 .srow.shift { transition: transform .15s ease; }
+/* ✕で消す時：その行がたたまれて、下の行が上に詰まる */
+.srow.gone { overflow: hidden; pointer-events: none; opacity: 0; transition: height .22s ease, min-height .22s ease, margin .22s ease, opacity .15s ease, border-width .22s ease; }
 .shou { flex: 1; min-width: 0; padding: 10px 12px; font-size: 15px; font-weight: 700; line-height: 1.5; }
 </style>
 </head>
@@ -919,7 +921,17 @@ document.getElementById('bigList').addEventListener('click', e => {
   if (dragged) return; // 並べ替えで離した指では開かない
   const s = +el.dataset.edit;
   if (e.target.closest('[data-smove]')) { openMoveMenu(e.target.closest('[data-smove]'), s); return; }
-  if (e.target.closest('[data-sdel]')) { change(() => { cur().bigs = cur().bigs.filter(x => x.s !== s); }); buzz(); return; }
+  if (e.target.closest('[data-sdel]')) {
+    const doDel = () => change(() => { cur().bigs = cur().bigs.filter(x => x.s !== s); });
+    buzz();
+    if (el.classList.contains('gone')) return;
+    el.style.height = el.offsetHeight + 'px';
+    void el.offsetHeight;
+    el.classList.add('gone');
+    el.style.height = '0'; el.style.minHeight = '0'; el.style.marginBottom = '0'; el.style.borderWidth = '0';
+    setTimeout(doDel, 230);
+    return;
+  }
   openPanel('bigSheet'); editS = s; render();
 });
 
