@@ -629,6 +629,28 @@ function autoDai() {
   const rest = state.goal * 100 - state.dais.reduce((a, d) => a + sum(d), 0);
   return empty.length === 1 && rest > 0 ? empty[0] : -1;
 }
+// 3台目と4台目の連動：総量があって5台とも埋まっている時、台の点数を打ち直して変えたら、もう片方が逆に動く（合計を保つ）。「移す」とは別
+// 連動する相手の台を返す（連動しない時は -1）
+function linkOf() {
+  if (!state.goal || (state.cur !== 2 && state.cur !== 3)) return -1;
+  if (!state.dais.every(d => sum(d) > 0)) return -1;
+  return state.cur === 2 ? 3 : 2;
+}
+// 今の台の点数が delta（円）変わる時、相手の台を逆に動かす。動かせない（相手が0未満・999超）なら false
+function linkOK(delta) {
+  const o = linkOf();
+  if (o < 0 || !delta) return true;
+  const to = sum(state.dais[o]) - delta;
+  return to >= 0 && to <= 99900;
+}
+function linkMove(delta) {
+  const o = linkOf();
+  if (o < 0 || !delta) return true;
+  const to = sum(state.dais[o]) - delta;
+  if (to < 0 || to > 99900) return false;
+  state.dais[o].pts = to ? [to] : [];
+  return true;
+}
 // 台の点数（自明な台は残り）
 function val(i) {
   const d = state.dais[i];
@@ -990,7 +1012,12 @@ document.getElementById('padAdd').onclick = () => {
   }
   if (padMode === 'dai') {
     // 打った数字をそのままこの台の点数にする（電卓で足した分は1つにまとまる）
-    if (n * 100 !== val(state.cur)) change(() => { cur().pts = n ? [n * 100] : []; });
+    // 自明な台（残り）は、同じ数字でも打てばその数字で確定する。3・4台目は相手が逆に動く
+    if (n * 100 !== val(state.cur) || state.cur === autoDai()) {
+      const delta = n * 100 - sum(cur());
+      if (!linkOK(delta)) { shakeNg(document.getElementById('padAdd')); return; }
+      change(() => { linkMove(delta); cur().pts = n ? [n * 100] : []; });
+    }
     buzz(); closeAll(); return;
   }
   if (!n) return;
