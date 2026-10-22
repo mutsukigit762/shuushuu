@@ -170,6 +170,11 @@ main .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
   background: var(--accent); color: var(--on-accent); font-size: 30px; font-weight: 700;
   font-family: inherit; cursor: pointer;
 }
+.pad-sub {
+  width: 64px; height: 54px; border-radius: 12px; border: 1px solid var(--border); background: var(--card2);
+  color: var(--text2); font-size: 16px; font-weight: 700; font-family: inherit; cursor: pointer;
+}
+.pad-sub.on { background: var(--red); border-color: var(--red); color: #fff; }
 .pad-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .kbtn {
   height: 50px; border-radius: 10px; border: 1px solid var(--border); background: var(--card2);
@@ -460,6 +465,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
       <div class="pad-move" id="padMove"><button class="pad-redo" id="padRedo">点数を打つ画面に戻る</button></div>
       <div class="pad-top">
         <div class="pad-disp" id="padDisp"></div>
+        <button class="pad-sub" id="padSub" aria-pressed="false">ひく</button>
         <button class="pad-add" id="padAdd">＋</button>
       </div>
       <!-- 移す時だけ：移したらどうなるか -->
@@ -1003,7 +1009,19 @@ let padMove = 0; // 移す先の台
 // 移す先にする台：今の台と、5台目（移すことはない）を除く
 const moveTargets = () => state.dais.map((_, i) => i).filter(i => i !== state.cur && i !== 4);
 // テンキーの画面を、今の padMode に合わせて組み直す
+let padSub = false; // 電卓の「ひく」モード（開くたびに切る）
+function paintSub() {
+  const sb = document.getElementById('padSub');
+  sb.hidden = padMode !== 'add';
+  sb.classList.toggle('on', padSub);
+  sb.setAttribute('aria-pressed', padSub);
+  if (padMode === 'add') {
+    document.getElementById('padAdd').textContent = padSub ? '－' : '＋';
+    document.getElementById('padTitle').textContent = padSub ? '容積ポイントをひく' : '容積ポイントを打つ';
+  }
+}
 function setupPad() {
+  padSub = false;
   const mv = padMode === 'move';
   document.getElementById('padMove').hidden = !mv;
   document.getElementById('padPrev').hidden = !mv;
@@ -1017,6 +1035,7 @@ function setupPad() {
     document.getElementById('padTitle').textContent = `${daime(state.cur)}から${daime(padMove)}に移す`;
     document.getElementById('padAdd').textContent = '決定';
     document.getElementById('padAdd').style.fontSize = '20px';
+    paintSub();
     renderPad(); return;
   }
   if (padMode === 'goal') {
@@ -1024,6 +1043,7 @@ function setupPad() {
     document.getElementById('padTitle').textContent = '今日の総量';
     document.getElementById('padAdd').textContent = '登録';
     document.getElementById('padAdd').style.fontSize = '20px';
+    paintSub();
     renderPad(); return;
   }
   const dai = padMode === 'dai';
@@ -1032,6 +1052,7 @@ function setupPad() {
   document.getElementById('padTitle').textContent = dai ? `${daime(state.cur)}の容積ポイント` : '容積ポイントを打つ';
   document.getElementById('padAdd').textContent = dai ? '登録' : '＋';
   document.getElementById('padAdd').style.fontSize = dai ? '20px' : '';
+  paintSub();
   renderPad();
 }
 function renderPad() {
@@ -1080,12 +1101,27 @@ document.getElementById('padAdd').onclick = () => {
     buzz(); closeAll(); return;
   }
   if (!n) return;
+  if (padSub) {
+    // 「ひく」：今の台の合計から減らす。新しい分から順に削る（合計が合えばいい）。合計より多くは引けない
+    let rest = n * 100;
+    if (rest > sum(cur())) { shakeNg(document.getElementById('padAdd')); return; }
+    padVal = ''; renderPad();
+    change(() => {
+      const pts = cur().pts;
+      while (rest > 0 && pts.length) {
+        const last = pts[pts.length - 1];
+        if (last <= rest) { rest -= last; pts.pop(); } else { pts[pts.length - 1] = last - rest; rest = 0; }
+      }
+    });
+    buzz(); closeAll(); return;
+  }
   if (over999(n * 100)) { shakeNg(document.getElementById('padAdd')); return; }
   padVal = ''; renderPad();
   change(() => cur().pts.push(n * 100)); buzz();
   closeAll();
 };
 
+document.getElementById('padSub').onclick = () => { padSub = !padSub; paintSub(); };
 document.getElementById('padRedo').onclick = () => { padMode = 'dai'; setupPad(); };
 document.getElementById('padToMove').onclick = e => {
   const b = e.target.closest('[data-tomove]');
