@@ -1445,7 +1445,7 @@ function renderShare() {
 document.getElementById('share').addEventListener('click', e => {
   if (e.target.id === 'shareGo') {
     const v = document.getElementById('shareIn').value.trim();
-    if (v.length < 4 || /[\/]/.test(v)) { shakeNg(e.target); return; } // 4文字以上。「/」は使えない
+    if (v.length < 2 || /[\/]/.test(v)) { shakeNg(e.target); return; } // 2文字以上。「/」は使えない
     room = v;
     try { localStorage.setItem('shuushuu3-room', room); } catch (err) {}
     subscribe(); buzz();
