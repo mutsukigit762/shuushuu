@@ -1107,8 +1107,8 @@ document.getElementById('resetDai').onclick = () => {
   change(() => { d.bigs = []; d.next = 0; }); // 金額（点数）は残す、でかぶつだけ
 };
 document.getElementById('resetAll').onclick = () => {
-  if (!state.dais.some(d => d.pts.length || d.bigs.length)) return;
-  change(() => { const c = state.cur, g = state.goal; state = newDay(); state.cur = c; if (g) state.goal = g; }); // 今日の総量は残す
+  if (!state.goal && !state.dais.some(d => d.pts.length || d.bigs.length)) return;
+  change(() => { const c = state.cur; state = newDay(); state.cur = c; }); // 今日の総量も消す
 };
 
 // でかぶつ登録の「次」／「閉じる」（仮置きが無ければ閉じる）：閉じずに、登録の段だけ空にして次の現場へ（箱物の種類も選び直し）
