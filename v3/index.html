@@ -170,11 +170,6 @@ main .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
   background: var(--accent); color: var(--on-accent); font-size: 30px; font-weight: 700;
   font-family: inherit; cursor: pointer;
 }
-.pad-sub {
-  width: 64px; height: 54px; border-radius: 12px; border: 1px solid var(--border); background: var(--card2);
-  color: var(--text2); font-size: 16px; font-weight: 700; font-family: inherit; cursor: pointer;
-}
-.pad-sub.on { background: var(--red); border-color: var(--red); color: #fff; }
 .pad-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .kbtn {
   height: 50px; border-radius: 10px; border: 1px solid var(--border); background: var(--card2);
@@ -217,6 +212,12 @@ main .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
 .site:last-child { padding-bottom: 0; }
 .site .no { color: var(--text2); width: 64px; flex: none; }
 .hero { position: relative; }
+.sub-btn {
+  flex: none; margin: 0 0 6px 16px; height: 40px; padding: 0 20px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--card2); color: var(--text2);
+  font-size: 16px; font-weight: 700; font-family: inherit; cursor: pointer;
+}
+.sub-btn.on { background: var(--red); border-color: var(--red); color: #fff; }
 .hero-side { position: absolute; top: 14px; right: 16px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .sites-btn {
   border: 1px solid var(--text); background: var(--card); color: var(--text); border-radius: 999px;
@@ -419,7 +420,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 <main>
   <div class="hero">
     <div class="hero-label"><span id="heroLabel"></span><span class="hero-side"><span id="heroCount"></span><button class="sites-btn" id="sitesBtn" data-tab="list"></button></span></div>
-    <div class="hero-row"><div class="hero-amount" id="heroAmount"></div></div>
+    <div class="hero-row"><div class="hero-amount" id="heroAmount"></div><button class="sub-btn" id="subBtn" aria-pressed="false">ひく</button></div>
   </div>
 
   <div class="dais" id="dais"></div>
@@ -465,7 +466,6 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
       <div class="pad-move" id="padMove"><button class="pad-redo" id="padRedo">点数を打つ画面に戻る</button></div>
       <div class="pad-top">
         <div class="pad-disp" id="padDisp"></div>
-        <button class="pad-sub" id="padSub" aria-pressed="false">ひく</button>
         <button class="pad-add" id="padAdd">＋</button>
       </div>
       <!-- 移す時だけ：移したらどうなるか -->
@@ -974,6 +974,7 @@ document.addEventListener('click', e => {
   } else if (b.dataset.key) {
     padPress(b.dataset.key);
   } else if (b.dataset.price) {
+    if (subMode) { if (!subPts(+b.dataset.price)) { shakeNg(b); return; } buzz(); return; }
     if (over999(+b.dataset.price)) { shakeNg(b); return; }
     change(() => cur().pts.push(+b.dataset.price)); buzz();
   } else if (b.dataset.tier) {
@@ -1009,19 +1010,31 @@ let padMove = 0; // 移す先の台
 // 移す先にする台：今の台と、5台目（移すことはない）を除く
 const moveTargets = () => state.dais.map((_, i) => i).filter(i => i !== state.cur && i !== 4);
 // テンキーの画面を、今の padMode に合わせて組み直す
-let padSub = false; // 電卓の「ひく」モード（開くたびに切る）
+// 「ひく」モード：入れると、チップや電卓の数字が足す代わりに今の台から引かれる（もう一度押すまで続く）
+let subMode = false;
 function paintSub() {
-  const sb = document.getElementById('padSub');
-  sb.hidden = padMode !== 'add';
-  sb.classList.toggle('on', padSub);
-  sb.setAttribute('aria-pressed', padSub);
+  const sb = document.getElementById('subBtn');
+  sb.classList.toggle('on', subMode);
+  sb.setAttribute('aria-pressed', subMode);
   if (padMode === 'add') {
-    document.getElementById('padAdd').textContent = padSub ? '－' : '＋';
-    document.getElementById('padTitle').textContent = padSub ? '容積ポイントをひく' : '容積ポイントを打つ';
+    document.getElementById('padAdd').textContent = subMode ? '－' : '＋';
+    document.getElementById('padTitle').textContent = subMode ? '容積ポイントをひく' : '容積ポイントを打つ';
   }
 }
+// 今の台の合計から yen 減らす。新しい分から順に削る（合計が合えばいい）。合計より多くは引けない
+function subPts(yen) {
+  if (yen > sum(cur())) return false;
+  change(() => {
+    const pts = cur().pts;
+    let rest = yen;
+    while (rest > 0 && pts.length) {
+      const last = pts[pts.length - 1];
+      if (last <= rest) { rest -= last; pts.pop(); } else { pts[pts.length - 1] = last - rest; rest = 0; }
+    }
+  });
+  return true;
+}
 function setupPad() {
-  padSub = false;
   const mv = padMode === 'move';
   document.getElementById('padMove').hidden = !mv;
   document.getElementById('padPrev').hidden = !mv;
@@ -1101,18 +1114,9 @@ document.getElementById('padAdd').onclick = () => {
     buzz(); closeAll(); return;
   }
   if (!n) return;
-  if (padSub) {
-    // 「ひく」：今の台の合計から減らす。新しい分から順に削る（合計が合えばいい）。合計より多くは引けない
-    let rest = n * 100;
-    if (rest > sum(cur())) { shakeNg(document.getElementById('padAdd')); return; }
+  if (subMode) {
+    if (!subPts(n * 100)) { shakeNg(document.getElementById('padAdd')); return; }
     padVal = ''; renderPad();
-    change(() => {
-      const pts = cur().pts;
-      while (rest > 0 && pts.length) {
-        const last = pts[pts.length - 1];
-        if (last <= rest) { rest -= last; pts.pop(); } else { pts[pts.length - 1] = last - rest; rest = 0; }
-      }
-    });
     buzz(); closeAll(); return;
   }
   if (over999(n * 100)) { shakeNg(document.getElementById('padAdd')); return; }
@@ -1121,7 +1125,7 @@ document.getElementById('padAdd').onclick = () => {
   closeAll();
 };
 
-document.getElementById('padSub').onclick = () => { padSub = !padSub; paintSub(); };
+document.getElementById('subBtn').onclick = () => { subMode = !subMode; paintSub(); };
 document.getElementById('padRedo').onclick = () => { padMode = 'dai'; setupPad(); };
 document.getElementById('padToMove').onclick = e => {
   const b = e.target.closest('[data-tomove]');
