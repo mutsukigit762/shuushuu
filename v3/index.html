@@ -53,7 +53,7 @@ header {
 .head-title b { color: var(--text); font-size: 17px; }
 .head-day { text-align: right; font-size: 12px; color: var(--text2); line-height: 1.2; }
 .head-day b { display: block; font-size: 17px; color: var(--text); }
-/* 右上：総量を打つ前は「残り--p/--p」、打ったあとは「残り479p/1070p」（総量−今日の合計／総量）。押すと総量を打つ */
+/* 右上：総量を打つ前は「今日の合計 474p/--p」、打ったあとは「残り479p/1070p」（総量−今日の合計／総量）。押すと総量を打つ */
 .head-rest { border: 1px solid var(--border); border-radius: 10px; background: var(--card); padding: 4px 10px; font: inherit; text-align: right; font-size: 12px; color: var(--text2); line-height: 1.2; cursor: pointer; }
 .head-rest b { display: block; font-size: 17px; color: var(--text); }
 .head-rest b small { font-size: 13px; color: var(--text2); font-weight: 600; }
@@ -676,10 +676,10 @@ function render() {
   renderShare();
   // 総量を打ったら「残り479p/1070p」。今日の合計そのものは出さない
   const goal = state.goal || 0;
-  document.getElementById('restLabel').textContent = '残り';
+  document.getElementById('restLabel').textContent = goal ? '残り' : '今日の合計';
   document.getElementById('dayTotal').innerHTML = goal
     ? `${goal - dayTotal / 100}p<small>/${goal}p</small>`
-    : `--p<small>/--p</small>`; // 総量を打つ前も同じ見た目
+    : `${pt(dayTotal)}p<small>/--p</small>`; // 総量を打つ前：今日の合計／総量（まだ）
   setAmount(pt(total));
   document.getElementById('heroLabel').textContent = `${state.cur + 1}台目の容積ポイント`;
   // 件数はポイントを入れた回数。でかぶつは数えない
