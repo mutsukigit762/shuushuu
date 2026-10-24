@@ -580,12 +580,11 @@ const GROUPS = [
         { price: 900, cond: '車椅子', btn: '車椅子' },
         { price: 900, name: '介護用トイレ', cond: '介護用トイレ', btn: '介護' , label: '介護用トイレ' },
       ]},
-      // ペット系：種類（水槽・キャットタワー）を選んで金額を押す
-      { name: 'ペット系', title: 'ペット系', short: 'ペット系', yen: true, kinds: ['水槽', 'キャットタワー'], tiers: [
-        { price: 900,  cond: '900' },
-        { price: 1300, cond: '1300' },
-        { price: 2300, cond: '2300' },
-        { price: 3200, cond: '3200' },
+      // ペット系：金額が決まっているので品名のボタン（水槽は1,300円だけ、キャットタワーは900円と1,300円）
+      { name: 'ペット系', title: 'ペット系', short: 'ペット系', tiers: [
+        { price: 1300, name: '水槽', cond: '水槽', btn: '水槽', label: '水槽' },
+        { price: 900,  name: 'キャットタワー', cond: '900', btn: 'キャット 900円', label: 'キャットタワー' },
+        { price: 1300, name: 'キャットタワー', cond: '1300', btn: 'キャット 1,300円', label: 'キャットタワー' },
       ]},
       // ボタンに無いものは、名前を打って金額を押す（free の名前が品目名になる）
       { name: 'その他', title: 'その他のもの', short: 'その他', yen: true, free: true, tiers: [
