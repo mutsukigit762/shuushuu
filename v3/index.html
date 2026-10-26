@@ -415,6 +415,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .srow.shift { transition: transform .15s ease; }
 /* ✕で消す時：その行がたたまれて、下の行が上に詰まる */
 .srow.gone { overflow: hidden; pointer-events: none; opacity: 0; transition: height .22s ease, min-height .22s ease, margin .22s ease, opacity .15s ease, border-width .22s ease; }
+.splace { flex: none; align-self: center; min-width: 52px; max-width: 120px; height: 28px; margin-right: 8px; padding: 0 10px; border: none; border-radius: 999px; background: var(--card2); color: var(--text2); font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 .shou { flex: 1; min-width: 0; padding: 10px 12px; font-size: 15px; font-weight: 700; line-height: 1.5; }
 </style>
 </head>
@@ -701,6 +702,7 @@ function val(i) {
   return i === autoDai() ? state.goal * 100 - state.dais.reduce((a, x) => a + sum(x), 0) : sum(d);
 }
 
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 // ===== 描画 =====
 function render() {
   const dai = cur();
@@ -754,7 +756,7 @@ function render() {
         `<span class="chip">${a}${n > 1 ? '×' + n : ''}</span>`).join('')}</div>`
     : `<div class="shou">${[...g.items.reduce((m, b) => m.set(bigLabel(b), (m.get(bigLabel(b)) || 0) + 1), new Map())].map(([l, n]) =>
         l + (n > 1 ? '×' + n : '')).join('、')}</div>`
-  }<button class="smove" data-smove aria-label="この現場を別の台へ移す">→</button><button class="sdel" data-sdel aria-label="この現場を消す">✕</button></div>`
+  }<button class="splace" data-place aria-label="場所を書く">${esc((g.items.find(b => b.place) || {}).place || '')}</button><button class="smove" data-smove aria-label="この現場を別の台へ移す">→</button><button class="sdel" data-sdel aria-label="この現場を消す">✕</button></div>`
   ).join('');
 
   // でかぶつ登録：見出しと、いまの現場に登録したもの（同じものは×nでまとめる。✕で1つ減る）
@@ -965,6 +967,12 @@ document.getElementById('bigList').addEventListener('click', e => {
   e.stopPropagation();
   if (dragged) return; // 並べ替えで離した指では開かない
   const s = +el.dataset.edit;
+  if (e.target.closest('[data-place]')) {
+    const now = (cur().bigs.find(x => x.s === s && x.place) || {}).place || '';
+    const v = prompt('場所（例：アベニール、長谷川）', now);
+    if (v !== null) change(() => { cur().bigs.forEach(x => { if (x.s === s) { if (v.trim()) x.place = v.trim(); else delete x.place; } }); });
+    return;
+  }
   if (e.target.closest('[data-smove]')) { openMoveMenu(e.target.closest('[data-smove]'), s); return; }
   if (e.target.closest('[data-sdel]')) {
     const doDel = () => change(() => { cur().bigs = cur().bigs.filter(x => x.s !== s); });
@@ -1513,7 +1521,7 @@ function endDrag() {
 }
 bigListEl.addEventListener('touchstart', e => {
   const row = e.target.closest('.srow');
-  if (!row || e.target.closest('[data-sdel]') || e.target.closest('[data-smove]') || e.touches.length > 1 || bigListEl.children.length < 2) return;
+  if (!row || e.target.closest('[data-sdel]') || e.target.closest('[data-smove]') || e.target.closest('[data-place]') || e.touches.length > 1 || bigListEl.children.length < 2) return;
   const y = e.touches[0].clientY;
   press = { x: e.touches[0].clientX, y, t: setTimeout(() => { press = null; startDrag(row, y); }, 150) };
 }, { passive: true });
