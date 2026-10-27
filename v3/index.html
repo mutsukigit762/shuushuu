@@ -160,12 +160,9 @@ h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; 
 body { position: fixed; inset: 0; display: flex; flex-direction: column; overflow: hidden; }
 main { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; }
 main > section { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-bottom: 0; }
-#calcPane { display: flex; flex-direction: column; }
-#calcPane .hero { flex: none; }
-#calcPane .combo-row { margin-bottom: 8px; }
 /* 残りの高さを行の数で分けて、ボタンを縦に大きくする */
-#calcPane .combo-row { flex: 1; min-height: 0; grid-auto-rows: 1fr; }
-#calcPane .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
+main .combo-row { flex: 1; min-height: 0; grid-auto-rows: 1fr; }
+main .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
 
 /* テンキー */
 .pad { margin-top: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 10px; }
@@ -345,10 +342,8 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 @media (prefers-reduced-motion: reduce) { #bigSheet, #bigSheet.on { transition: none; } }
 .tag.pend { background: transparent; border: 1.5px solid var(--text); color: var(--text); font-family: inherit; cursor: pointer; }
 .sheet-body { flex: 1; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 4px 12px calc(16px + env(safe-area-inset-bottom)); }
-.sheet .pad { margin-top: 0; border: none; padding: 0; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-#padPane { display: flex; flex-direction: column; }
-.sheet .pad-keys { flex: 1; min-height: 0; grid-auto-rows: 1fr; }
-.sheet .kbtn { height: auto; min-height: 0; }
+.sheet .pad { margin-top: 0; border: none; padding: 0; }
+.sheet .kbtn { height: 58px; }
 #siteBig { margin: 0; flex: 1; min-width: 0; }
 /* でかぶつ登録の上の段：仮置き（左いっぱい）と登録ボタン（右）を同じ高さで並べる */
 .big-head { padding: 14px 12px 10px; flex-direction: column; align-items: stretch; gap: 10px; }
@@ -399,17 +394,18 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .kai { font: inherit; font-size: 14px; font-weight: 600; color: var(--text2); cursor: pointer; border: 1px solid var(--border); border-radius: 8px; background: var(--card); padding: 3px 8px; }
 .kai.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .kai.ng { animation: shake .32s ease, ngred .6s ease; }
-/* 容積ポイントの画面の下タブ：テンキーと電卓 */
+/* タブ：電卓とでかぶつ一覧。下のタブボタンで切り替える */
 .tab { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .tab[hidden] { display: none; }
-.pad-tabs { flex: none; display: flex; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--bg); }
-.pad-tabs button { flex: 1; height: 54px; border-radius: 14px; border: 1px solid var(--border); background: var(--card); color: var(--text2); font: inherit; font-size: 17px; font-weight: 700; cursor: pointer; }
-.pad-tabs button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.tabbar { display: flex; gap: 8px; }
+.tabbar button { flex: 1; height: 54px; border-radius: 14px; border: 1px solid var(--border); background: var(--card); color: var(--text2); font: inherit; font-size: 17px; font-weight: 700; cursor: pointer; }
+.tabbar button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .list-top { display: flex; align-items: center; justify-content: space-between; margin: 0 2px 8px; }
 .list-top h2 { margin: 0; }
 #bigList { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .add-row { flex: none; display: flex; gap: 8px; margin: 10px 0 2px; }
 .add-big { flex: 1; height: 54px; border-radius: 12px; border: none; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 18px; font-weight: 700; cursor: pointer; }
+.add-big.pts { background: #2f6fed; color: #fff; }
 /* 現場の行：右端に現場ごと消す✕（いつも出ている）。行を長押しするとつかめて、指についてくる */
 .srow { position: relative; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .srow .smove, .srow .sdel { flex: none; align-self: stretch; width: 44px; border: none; border-left: 1px solid var(--border); background: none; color: var(--text2); font: inherit; font-size: 18px; cursor: pointer; }
@@ -434,17 +430,28 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 </header>
 
 <main>
+  <div class="hero">
+    <div class="hero-label"><span id="heroLabel"></span><span class="hero-side"><span id="heroCount"></span><button class="sites-btn" id="sitesBtn" data-tab="list"></button></span></div>
+    <div class="hero-row"><div class="hero-amount" id="heroAmount"></div><button class="sub-btn" id="subBtn" aria-pressed="false">ひく</button></div>
+  </div>
+
   <div class="dais" id="dais"></div>
 
+  <section class="tab" id="calcTab">
+    <h2>容積ポイント</h2>
+    <div class="combo-row" id="comboRow"></div>
+  </section>
+
   <!-- この台のでかぶつの一覧（現場ごとに1行）。行を押すとその現場を直す -->
-  <section class="tab" id="listTab">
+  <section class="tab" id="listTab" hidden>
     <div class="list-top"><h2 id="listTitle"></h2><button class="view-btn" id="viewBtn" aria-label="略と詳を切り替える"></button></div>
     <div id="bigList"></div>
-    <div class="add-row"><button class="add-big" data-open="bigSheet" aria-label="でかぶつを登録">でかぶつ登録</button><button class="add-big" id="addPts" aria-label="金額を登録">金額登録</button></div>
+    <div class="add-row"><button class="add-big" data-open="bigSheet" aria-label="でかぶつを登録">でかぶつ登録</button><button class="add-big pts" id="addPts" aria-label="金額を登録">金額登録</button></div>
   </section>
 </main>
 
 <div class="bottom">
+  <div class="tabbar"><button data-tab="list">でかぶつ</button><button data-tab="calc">電卓</button></div>
   <div>
   <button class="bbtn undo" id="undo">1つ戻す</button>
   <button class="bbtn" id="resetDai">この台をリセット</button>
@@ -463,9 +470,9 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 </aside>
 
 <!-- 24p以上を打つ画面 -->
-<div class="sheet tall" id="padSheet">
+<div class="sheet" id="padSheet">
   <div class="sheet-head"><h1 id="padTitle">容積ポイントを打つ</h1><button class="burger" data-close aria-label="閉じる">✕</button></div>
-  <div class="sheet-body" id="padPane">
+  <div class="sheet-body">
     <div class="pad">
       <!-- 移す時だけ：台の点数を打つ画面に戻る（移す先は見出しに出す） -->
       <div class="pad-move" id="padMove"><button class="pad-redo" id="padRedo">点数を打つ画面に戻る</button></div>
@@ -485,15 +492,6 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
       <div class="pad-tomove" id="padToMove"></div>
     </div>
   </div>
-  <!-- 電卓：金額のボタンを押して足していく（台の点数・ひく） -->
-  <div class="sheet-body" id="calcPane" hidden>
-    <div class="hero">
-      <div class="hero-label"><span id="heroLabel"></span><span class="hero-side"><span id="heroCount"></span><button class="sites-btn" id="sitesBtn" data-close></button></span></div>
-      <div class="hero-row"><div class="hero-amount" id="heroAmount"></div><button class="sub-btn" id="subBtn" aria-pressed="false">ひく</button></div>
-    </div>
-    <div class="combo-row" id="comboRow"></div>
-  </div>
-  <div class="pad-tabs" id="padTabs"><button data-pane="pad">テンキー</button><button data-pane="calc">電卓</button></div>
 </div>
 
 <!-- この台のでかぶつを登録する。点数とは関係なく、いつ足してもいい -->
@@ -627,9 +625,9 @@ let view = 'ryaku';
 try { view = localStorage.getItem('shuushuu3-view') || 'ryaku'; } catch (e) {}
 // でかぶつ登録で足していく先の現場。直している時（一覧の行を押して開いた時）は editS、ふだんは next
 let editS = null;
-// 容積ポイントの画面で見ているタブ：pad（テンキー）か calc（電卓）。端末に覚えておく
-let padPane = 'pad';
-try { padPane = localStorage.getItem('shuushuu3-padpane') || 'pad'; } catch (e) {}
+// いま見ているタブ：calc（電卓）か list（でかぶつ一覧）。端末に覚えておく
+let tab = 'calc';
+try { tab = localStorage.getItem('shuushuu3-tab') || 'calc'; } catch (e) {}
 const targetS = () => editS != null ? editS : cur().next;
 
 // 初めて開いた日は、元の版（収集1）の今日の記録を引き継ぐ（同じサイトなので読める）
@@ -742,6 +740,14 @@ function render() {
   }
   const sb = document.getElementById('sitesBtn');
   sb.textContent = `でかぶつ${groups.length}箇所`;
+  // タブ
+  document.getElementById('calcTab').hidden = tab !== 'calc';
+  document.getElementById('listTab').hidden = tab !== 'list';
+  // 台のチップは一覧タブだけ（電卓タブでは払って台を移る）
+  document.getElementById('dais').style.display = tab === 'calc' ? 'none' : '';
+  // 点数の箱は電卓タブだけ
+  document.querySelector('.hero').style.display = tab === 'list' ? 'none' : '';
+  document.querySelectorAll('.tabbar [data-tab]').forEach(el => el.classList.toggle('on', el.dataset.tab === tab));
 
   // 一覧：1現場＝1行。略はメモの暗号のチップ（同じものは「ベ×2」）、詳は「1,300円ベッド、900円机×2」
   document.getElementById('listTitle').textContent = `でかぶつ：${groups.length}箇所`;
@@ -879,7 +885,7 @@ function buildButtons() {
   const chunk = (list, w) => { const out = []; for (let i = 0; i < list.length; i += w) out.push(list.slice(i, i + w).reverse()); return out; };
   const rows = [...chunk([...pts.filter(n => n > 23), PAD], 6).reverse(), ...chunk(pts.filter(n => n <= 23), 4).reverse()];
   document.getElementById('comboRow').innerHTML = rows.flat().map(n => n === PAD
-    ? '<button class="pbtn open-pad" data-open="padSheet" aria-label="足すテンキー"><svg viewBox="0 0 24 26" width="22" height="24" fill="currentColor"><circle cx="6" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="11" r="2"/><circle cx="12" cy="11" r="2"/><circle cx="18" cy="11" r="2"/><circle cx="6" cy="17" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="18" cy="17" r="2"/><circle cx="12" cy="23" r="2"/></svg></button>'
+    ? '<button class="pbtn open-pad" data-open="padSheet" aria-label="テンキー"><svg viewBox="0 0 24 26" width="22" height="24" fill="currentColor"><circle cx="6" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="11" r="2"/><circle cx="12" cy="11" r="2"/><circle cx="18" cy="11" r="2"/><circle cx="6" cy="17" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="18" cy="17" r="2"/><circle cx="12" cy="23" r="2"/></svg></button>'
     : `<button class="pbtn${base.includes(n) ? ' base' : ''}${n <= 23 ? ' wide' : ''}" data-price="${n * 100}">${n}<small>p</small></button>`).join('');
 
   // 見出しで分けず、どの品目も同じ形のカードで並べる
@@ -1004,14 +1010,10 @@ document.addEventListener('click', e => {
   }
   if (document.querySelector('.kind-pop.on')) { closeKindPops(); return; }
   if (!b) return;
-  if (b.dataset.pane) {
-    padPane = b.dataset.pane;
-    try { localStorage.setItem('shuushuu3-padpane', padPane); } catch (e) {}
-    setupPad(); // テンキーに戻る時は、電卓で足した分も含めて今の点数から始める
-  } else if (b.dataset.open === 'padSheet' && b.classList.contains('open-pad')) {
-    // 電卓の中のテンキー：足すテンキー
-    padMode = 'add'; padPane = 'pad';
-    setupPad();
+  if (b.dataset.tab) {
+    tab = b.dataset.tab;
+    try { localStorage.setItem('shuushuu3-tab', tab); } catch (e) {}
+    render();
   } else if (b.hasAttribute('data-close')) {
     closeAll();
   } else if (b.dataset.open) {
@@ -1162,13 +1164,6 @@ function subPts(yen) {
   return true;
 }
 function setupPad() {
-  // 下のタブは台の点数・足す時だけ。総量・移す時はテンキーだけ
-  const tabs = padMode === 'dai' || padMode === 'add';
-  const pane = tabs ? padPane : 'pad';
-  document.getElementById('padTabs').hidden = !tabs;
-  document.getElementById('padPane').hidden = pane !== 'pad';
-  document.getElementById('calcPane').hidden = pane !== 'calc';
-  document.querySelectorAll('#padTabs [data-pane]').forEach(el => el.classList.toggle('on', el.dataset.pane === pane));
   const mv = padMode === 'move';
   document.getElementById('padMove').hidden = !mv;
   document.getElementById('padPrev').hidden = !mv;
@@ -1260,29 +1255,6 @@ document.getElementById('padAdd').onclick = () => {
 };
 
 document.getElementById('addPts').onclick = () => { padMode = 'dai'; openPanel('padSheet'); };
-// 左右に払うとテンキーと電卓が入れ替わる（左に払うと電卓、右に払うとテンキー）
-(() => {
-  let sw = null, swallowPane = false;
-  const panes = [document.getElementById('padPane'), document.getElementById('calcPane')];
-  panes.forEach(el => {
-    el.addEventListener('touchstart', e => {
-      sw = (e.touches.length > 1 || document.getElementById('padTabs').hidden) ? null : { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    }, { passive: true });
-    el.addEventListener('touchend', e => {
-      if (!sw) return;
-      const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y;
-      sw = null;
-      if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-      swallowPane = true; setTimeout(() => swallowPane = false, 350);
-      const to = dx < 0 ? 'calc' : 'pad';
-      if (to === padPane) return;
-      padPane = to;
-      try { localStorage.setItem('shuushuu3-padpane', padPane); } catch (e) {}
-      setupPad();
-    });
-    el.addEventListener('click', e => { if (swallowPane) { e.stopPropagation(); e.preventDefault(); } }, true);
-  });
-})();
 document.getElementById('subBtn').onclick = () => { subMode = !subMode; paintSub(); };
 document.getElementById('padRedo').onclick = () => { padMode = 'dai'; setupPad(); };
 document.getElementById('padToMove').onclick = e => {
@@ -1486,7 +1458,7 @@ function switchDai(to, wrapDir) {
   state.cur = to;
   save(); render();
   if (!matchMedia('(prefers-reduced-motion: reduce)').matches)
-    document.getElementById(document.getElementById('padSheet').classList.contains('on') ? 'calcPane' : 'listTab').animate(
+    document.getElementById(tab === 'calc' ? 'calcTab' : 'listTab').animate(
       [{ transform: `translateX(${dir * 70}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }],
       { duration: 220, easing: 'cubic-bezier(.2,.8,.3,1)' });
 }
@@ -1494,11 +1466,10 @@ function switchDai(to, wrapDir) {
 // 払った指では、ボタンを押したことにしない
 let daiSw = null, swallow = false;
 const mainEl = document.querySelector('main');
-const swipeEls = [mainEl];
-swipeEls.forEach(el => el.addEventListener('touchstart', e => {
+mainEl.addEventListener('touchstart', e => {
   daiSw = (e.touches.length > 1 || e.target.closest('.dais')) ? null : { x: e.touches[0].clientX, y: e.touches[0].clientY };
-}, { passive: true }));
-swipeEls.forEach(el => el.addEventListener('touchend', e => {
+}, { passive: true });
+mainEl.addEventListener('touchend', e => {
   if (!daiSw) return;
   const t = e.changedTouches[0], dx = t.clientX - daiSw.x, dy = t.clientY - daiSw.y;
   daiSw = null;
@@ -1507,8 +1478,8 @@ swipeEls.forEach(el => el.addEventListener('touchend', e => {
   // 端まで来たらぐるっと回る（最後の台で次へ払うと1台目、1台目で前へ払うと最後の台）
   const n = state.dais.length, dir = dx < 0 ? 1 : -1;
   switchDai((state.cur + dir + n) % n, dir);
-}));
-swipeEls.forEach(el => el.addEventListener('click', e => { if (swallow) { e.stopPropagation(); e.preventDefault(); } }, true));
+});
+mainEl.addEventListener('click', e => { if (swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
 
 // 並べ替え：現場の行を長押しするとつかめる。つかんだ行は指についてきて、離した所に入る（収集2と同じ動き）
 // 長押しの前に指が動いたら、ふつうのスクロール・払いとして扱う
