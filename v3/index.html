@@ -969,7 +969,7 @@ document.getElementById('bigList').addEventListener('click', e => {
   const s = +el.dataset.edit;
   if (e.target.closest('[data-place]')) {
     const now = (cur().bigs.find(x => x.s === s && x.place) || {}).place || '';
-    const v = prompt('場所（例：アベニール、長谷川）', now);
+    const v = prompt('場所', now);
     if (v !== null) change(() => { cur().bigs.forEach(x => { if (x.s === s) { if (v.trim()) x.place = v.trim(); else delete x.place; } }); });
     return;
   }
