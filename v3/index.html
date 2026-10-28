@@ -379,6 +379,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 /* 青＝テンキー、ピンク＝でかぶつ */
 .combo-row .pbtn.open-pad { font-size: 14px; }
 .combo-row .pbtn.open-pad { display: grid; place-items: center; }
+.combo-row .pbtn.open-pad { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
 /* ===== v3：でかぶつは点数と別に、台の中の1列で持つ（収集2と同じ） ===== */
 .big-top { display: flex; align-items: center; gap: 10px; }
@@ -1008,7 +1009,9 @@ document.addEventListener('click', e => {
   } else if (b.dataset.open) {
     padMode = 'add'; // 電卓のテンキーは足す
     editS = null; // 下のでかぶつボタンから開いた時は、いま足している現場へ
+    const fromPad = b.classList.contains('open-pad'); // 電卓の中のテンキー
     openPanel(b.dataset.open);
+    backToCalc = fromPad;
   } else if (b.dataset.key) {
     padPress(b.dataset.key);
   } else if (b.dataset.price) {
@@ -1397,13 +1400,18 @@ function openPanel(id) {
   document.getElementById(id).classList.add('on');
   scrim.classList.add('on'); document.body.classList.add('lock');
 }
+// 電卓の中のテンキーを閉じたら（足した時も、✕で閉じた時も）、電卓の画面に戻る
+let backToCalc = false;
 function closeAll() {
+  const back = backToCalc && document.getElementById('padSheet').classList.contains('on');
+  backToCalc = false;
   document.querySelectorAll('.kind').forEach(el => setKind(el, '')); // 箱物の種類も毎回選び直す
   document.querySelectorAll('.free').forEach(el => { el.value = ''; el.blur(); });
   closeKindPops();
   render();
   document.querySelectorAll('.drawer.on, .sheet.on').forEach(el => el.classList.remove('on'));
   scrim.classList.remove('on'); document.body.classList.remove('lock');
+  if (back) openPanel('calcSheet');
 }
 document.getElementById('burger').onclick = () => {
   openPanel('drawer');
