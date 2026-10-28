@@ -348,6 +348,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 #bigSheet.drag, #calcSheet.drag { transition: none; }
 @media (prefers-reduced-motion: reduce) { #bigSheet, #bigSheet.on, #calcSheet, #calcSheet.on { transition: none; } }
 .tag.pend { background: transparent; border: 1.5px solid var(--text); color: var(--text); font-family: inherit; cursor: pointer; }
+.sheet.swiping button, .sheet.swiping .tbtn { pointer-events: none; }
 .place-row { display: flex; gap: 8px; }
 #placeOk { flex: none; height: 44px; padding: 0 18px; border-radius: 10px; border: none; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
 #placeIn { flex: 1; min-width: 0; height: 44px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); padding: 0 12px; font: inherit; font-size: 17px; -webkit-user-select: text; user-select: text; }
@@ -1534,6 +1535,7 @@ bigSheet.addEventListener('touchend', () => {
           sh.classList.add('drag'); o.classList.add('drag', 'on');
         } else if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { st.mode = 'v'; }
         else return;
+        sh.classList.add('swiping'); // 払いだと分かったら、ボタンは反応させない
       }
       if (st.mode !== 'h') return;
       e.preventDefault();
@@ -1545,10 +1547,10 @@ bigSheet.addEventListener('touchend', () => {
     const end = () => {
       if (!st || st.sh !== sh) return;
       const cur = st; st = null;
+      if (cur.mode) { swallowSw = true; setTimeout(() => { swallowSw = false; sh.classList.remove('swiping'); }, 350); }
       if (cur.mode !== 'h') return;
       const W = innerWidth, o = other(sh), sign = cur.dx < 0 ? -1 : 1;
       const go = Math.abs(cur.dx) > W * 0.25;
-      swallowSw = true; setTimeout(() => swallowSw = false, 350);
       sh.classList.remove('drag'); o.classList.remove('drag');
       void sh.offsetWidth; // ここまでの位置から滑らせる
       if (go) { sh.style.transform = `translateX(${sign * W}px)`; o.style.transform = 'translateX(0)'; }
