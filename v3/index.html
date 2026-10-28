@@ -812,7 +812,9 @@ function comboPoints(max) {
 }
 
 // 1台は999pでカンスト。超える分は入れずに、押したボタンが赤く震える
-const over999 = yen => sum(cur()) + yen > 99900;
+const over999 = yen => val(state.cur) + yen > 99900;
+// 残りが自動で出ている台（まだ何も打っていない）に足す・ひく時は、見えている残りを土台にする。土台を打っておかないと、足した途端に残りが消えて足した分だけになる
+const fixAuto = () => { if (state.cur === autoDai()) cur().pts = [val(state.cur)]; };
 function shakeNg(btn) {
   btn.classList.remove('ng'); void btn.offsetWidth; btn.classList.add('ng');
   if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
@@ -1036,7 +1038,8 @@ document.addEventListener('click', e => {
     padMode = 'add'; // 電卓のテンキーは足す
     editS = null; // 下のでかぶつボタンから開いた時は、いま足している現場へ
     if (b.classList.contains('open-pad')) {
-      // 電卓の中のテンキー：電卓はそのままにして、上にテンキーを重ねる
+      // 電卓の中のテンキー：電卓はそのままにして、上にテンキーを重ねる。打った数字は今の点数に足す
+      padMode = 'add';
       setupPad();
       document.getElementById('padSheet').classList.add('on');
       backToCalc = true;
@@ -1048,7 +1051,7 @@ document.addEventListener('click', e => {
   } else if (b.dataset.price) {
     if (subMode) { if (!subPts(+b.dataset.price)) { shakeNg(b); return; } buzz(); return; }
     if (over999(+b.dataset.price)) { shakeNg(b); return; }
-    change(() => cur().pts.push(+b.dataset.price)); buzz();
+    change(() => { fixAuto(); cur().pts.push(+b.dataset.price); }); buzz();
   } else if (b.dataset.tier) {
     // 押したらその場でこの台に登録。点数とは関係ない
     const [gi, ii, ti] = b.dataset.tier.split('-').map(Number);
@@ -1175,8 +1178,9 @@ function paintSub() {
 }
 // 今の台の合計から yen 減らす。新しい分から順に削る（合計が合えばいい）。合計より多くは引けない
 function subPts(yen) {
-  if (yen > sum(cur())) return false;
+  if (yen > val(state.cur)) return false;
   change(() => {
+    fixAuto();
     const pts = cur().pts;
     let rest = yen;
     while (rest > 0 && pts.length) {
@@ -1273,7 +1277,7 @@ document.getElementById('padAdd').onclick = () => {
   }
   if (over999(n * 100)) { shakeNg(document.getElementById('padAdd')); return; }
   padVal = ''; renderPad();
-  change(() => cur().pts.push(n * 100)); buzz();
+  change(() => { fixAuto(); cur().pts.push(n * 100); }); buzz();
   closeAll();
 };
 
