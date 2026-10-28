@@ -1034,9 +1034,14 @@ document.addEventListener('click', e => {
   } else if (b.dataset.open) {
     padMode = 'add'; // 電卓のテンキーは足す
     editS = null; // 下のでかぶつボタンから開いた時は、いま足している現場へ
-    const fromPad = b.classList.contains('open-pad'); // 電卓の中のテンキー
+    if (b.classList.contains('open-pad')) {
+      // 電卓の中のテンキー：電卓はそのままにして、上にテンキーを重ねる
+      setupPad();
+      document.getElementById('padSheet').classList.add('on');
+      backToCalc = true;
+      return;
+    }
     openPanel(b.dataset.open);
-    backToCalc = fromPad;
   } else if (b.dataset.key) {
     padPress(b.dataset.key);
   } else if (b.dataset.price) {
@@ -1425,10 +1430,16 @@ function openPanel(id) {
   document.getElementById(id).classList.add('on');
   scrim.classList.add('on'); document.body.classList.add('lock');
 }
-// 電卓の中のテンキーを閉じたら（足した時も、✕で閉じた時も）、電卓の画面に戻る
+// 電卓の中のテンキーは電卓の上に重ねて開く。閉じたら電卓だけが残る
 let backToCalc = false;
 function closeAll() {
-  const back = backToCalc && document.getElementById('padSheet').classList.contains('on');
+  // 電卓の上に重ねたテンキーは、テンキーだけ閉じる（足した時も、✕の時も）
+  if (backToCalc && document.getElementById('padSheet').classList.contains('on')) {
+    backToCalc = false;
+    render();
+    document.getElementById('padSheet').classList.remove('on');
+    return;
+  }
   backToCalc = false;
   document.querySelectorAll('.kind').forEach(el => setKind(el, '')); // 箱物の種類も毎回選び直す
   document.querySelectorAll('.free').forEach(el => { el.value = ''; el.blur(); });
@@ -1436,7 +1447,6 @@ function closeAll() {
   render();
   document.querySelectorAll('.drawer.on, .sheet.on').forEach(el => el.classList.remove('on'));
   scrim.classList.remove('on'); document.body.classList.remove('lock');
-  if (back) openPanel('calcSheet');
 }
 document.getElementById('burger').onclick = () => {
   openPanel('drawer');
