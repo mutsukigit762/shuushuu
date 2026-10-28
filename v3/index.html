@@ -1729,7 +1729,7 @@ function renderShare() {
   const el = document.getElementById('share');
   if (room) {
     if (el.dataset.mode === 'on' && el.dataset.room === room) {
-      el.querySelector('small').textContent = online ? '同じ合言葉の人と一緒に見ている' : 'つないでいるところ（電波が無い時は戻ったら送る）';
+      el.querySelector('small').textContent = online ? '同じコードの人と一緒に見ている' : 'つないでいるところ（電波が無い時は戻ったら送る）';
       return;
     }
     el.dataset.mode = 'on'; el.dataset.room = room;
@@ -1737,7 +1737,7 @@ function renderShare() {
     renderShare();
   } else if (el.dataset.mode !== 'off') {
     el.dataset.mode = 'off';
-    el.innerHTML = `<input id="shareIn" type="text" placeholder="共有の合言葉" autocomplete="off" autocapitalize="off"><button id="shareGo">つなぐ</button>`;
+    el.innerHTML = `<input id="shareIn" type="text" placeholder="共有コード" autocomplete="off" autocapitalize="off"><button id="shareGo">つなぐ</button>`;
   }
 }
 document.getElementById('share').addEventListener('click', e => {
