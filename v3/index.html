@@ -164,6 +164,7 @@ main > section { flex: 1; min-height: 0; display: flex; flex-direction: column; 
 #calcSheet .calc-foot { flex: none; display: flex; gap: 8px; padding: 8px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); }
 #calcSheet .calc-foot .bbtn { flex: 1; font-size: 14px; white-space: nowrap; padding: 0 4px; }
 #calcSheet .calc-foot .bbtn.undo { flex: 0 0 96px; }
+#calcSheet .calc-foot .bbtn[data-close] { flex: 0 0 84px; }
 #calcBody .hero { flex: none; }
 #calcBody .combo-row { margin-bottom: 8px; }
 /* 残りの高さを行の数で分けて、ボタンを縦に大きくする */
@@ -474,7 +475,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
     </div>
     <div class="combo-row" id="comboRow"></div>
   </div>
-  <div class="calc-foot"><button class="bbtn undo" id="calcUndo">1つ戻す</button><button class="bbtn" id="calcReset">この台をリセット</button></div>
+  <div class="calc-foot"><button class="bbtn undo" id="calcUndo">1つ戻す</button><button class="bbtn" id="calcReset">この台をリセット</button><button class="bbtn" data-close>閉じる</button></div>
 </div>
 
 <!-- 場所を書く。開いたらすぐ文字を打てる -->
