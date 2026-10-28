@@ -1050,8 +1050,8 @@ document.addEventListener('click', e => {
     padPress(b.dataset.key);
   } else if (b.dataset.price) {
     if (subMode) { if (!subPts(+b.dataset.price)) { shakeNg(b); return; } buzz(); return; }
-    if (over999(+b.dataset.price)) { shakeNg(b); return; }
-    change(() => { fixAuto(); cur().pts.push(+b.dataset.price); }); buzz();
+    if (over999(+b.dataset.price) || !linkOK(+b.dataset.price)) { shakeNg(b); return; }
+    change(() => { fixAuto(); linkMove(+b.dataset.price); cur().pts.push(+b.dataset.price); }); buzz();
   } else if (b.dataset.tier) {
     // 押したらその場でこの台に登録。点数とは関係ない
     const [gi, ii, ti] = b.dataset.tier.split('-').map(Number);
@@ -1178,9 +1178,9 @@ function paintSub() {
 }
 // 今の台の合計から yen 減らす。新しい分から順に削る（合計が合えばいい）。合計より多くは引けない
 function subPts(yen) {
-  if (yen > val(state.cur)) return false;
+  if (yen > val(state.cur) || !linkOK(-yen)) return false;
   change(() => {
-    fixAuto();
+    fixAuto(); linkMove(-yen);
     const pts = cur().pts;
     let rest = yen;
     while (rest > 0 && pts.length) {
@@ -1275,9 +1275,9 @@ document.getElementById('padAdd').onclick = () => {
     padVal = ''; renderPad();
     buzz(); closeAll(); return;
   }
-  if (over999(n * 100)) { shakeNg(document.getElementById('padAdd')); return; }
+  if (over999(n * 100) || !linkOK(n * 100)) { shakeNg(document.getElementById('padAdd')); return; }
   padVal = ''; renderPad();
-  change(() => { fixAuto(); cur().pts.push(n * 100); }); buzz();
+  change(() => { fixAuto(); linkMove(n * 100); cur().pts.push(n * 100); }); buzz();
   closeAll();
 };
 
