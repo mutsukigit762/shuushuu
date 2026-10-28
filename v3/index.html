@@ -404,6 +404,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 #bigList { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .add-row { flex: none; display: flex; gap: 8px; margin: 10px 0 2px; }
 .add-big { flex: 1; height: 54px; border-radius: 12px; border: none; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 18px; font-weight: 700; cursor: pointer; }
+.add-big.pts { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
 /* 現場の行：右端に現場ごと消す✕（いつも出ている）。行を長押しするとつかめて、指についてくる */
 .srow { position: relative; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .srow .smove, .srow .sdel { flex: none; align-self: stretch; width: 44px; border: none; border-left: 1px solid var(--border); background: none; color: var(--text2); font: inherit; font-size: 18px; cursor: pointer; }
@@ -434,7 +435,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
   <section class="tab" id="listTab">
     <div class="list-top"><h2 id="listTitle"></h2><button class="view-btn" id="viewBtn" aria-label="略と詳を切り替える"></button></div>
     <div id="bigList"></div>
-    <div class="add-row"><button class="add-big" data-open="bigSheet" aria-label="でかぶつを登録">でかぶつ登録</button><button class="add-big" id="addPts" aria-label="金額を登録">金額登録</button></div>
+    <div class="add-row"><button class="add-big" data-open="bigSheet" aria-label="でかぶつを登録">でかぶつ登録</button><button class="add-big pts" id="addPts" aria-label="金額を登録">金額登録</button></div>
   </section>
 </main>
 
