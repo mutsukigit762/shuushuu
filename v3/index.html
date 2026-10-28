@@ -160,9 +160,12 @@ h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; 
 body { position: fixed; inset: 0; display: flex; flex-direction: column; overflow: hidden; }
 main { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; }
 main > section { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-bottom: 0; }
+#calcBody { display: flex; flex-direction: column; }
+#calcBody .hero { flex: none; }
+#calcBody .combo-row { margin-bottom: 8px; }
 /* 残りの高さを行の数で分けて、ボタンを縦に大きくする */
-main .combo-row { flex: 1; min-height: 0; grid-auto-rows: 1fr; }
-main .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
+#calcBody .combo-row { flex: 1; min-height: 0; grid-auto-rows: 1fr; }
+#calcBody .combo-row .pbtn { height: auto; min-height: 0; font-size: 19px; }
 
 /* テンキー */
 .pad { margin-top: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 10px; }
@@ -394,18 +397,13 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .kai { font: inherit; font-size: 14px; font-weight: 600; color: var(--text2); cursor: pointer; border: 1px solid var(--border); border-radius: 8px; background: var(--card); padding: 3px 8px; }
 .kai.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .kai.ng { animation: shake .32s ease, ngred .6s ease; }
-/* タブ：電卓とでかぶつ一覧。下のタブボタンで切り替える */
 .tab { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .tab[hidden] { display: none; }
-.tabbar { display: flex; gap: 8px; }
-.tabbar button { flex: 1; height: 54px; border-radius: 14px; border: 1px solid var(--border); background: var(--card); color: var(--text2); font: inherit; font-size: 17px; font-weight: 700; cursor: pointer; }
-.tabbar button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .list-top { display: flex; align-items: center; justify-content: space-between; margin: 0 2px 8px; }
 .list-top h2 { margin: 0; }
 #bigList { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .add-row { flex: none; display: flex; gap: 8px; margin: 10px 0 2px; }
 .add-big { flex: 1; height: 54px; border-radius: 12px; border: none; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 18px; font-weight: 700; cursor: pointer; }
-.add-big.pts { background: #2f6fed; color: #fff; }
 /* 現場の行：右端に現場ごと消す✕（いつも出ている）。行を長押しするとつかめて、指についてくる */
 .srow { position: relative; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .srow .smove, .srow .sdel { flex: none; align-self: stretch; width: 44px; border: none; border-left: 1px solid var(--border); background: none; color: var(--text2); font: inherit; font-size: 18px; cursor: pointer; }
@@ -430,28 +428,17 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 </header>
 
 <main>
-  <div class="hero">
-    <div class="hero-label"><span id="heroLabel"></span><span class="hero-side"><span id="heroCount"></span><button class="sites-btn" id="sitesBtn" data-tab="list"></button></span></div>
-    <div class="hero-row"><div class="hero-amount" id="heroAmount"></div><button class="sub-btn" id="subBtn" aria-pressed="false">ひく</button></div>
-  </div>
-
   <div class="dais" id="dais"></div>
 
-  <section class="tab" id="calcTab">
-    <h2>容積ポイント</h2>
-    <div class="combo-row" id="comboRow"></div>
-  </section>
-
   <!-- この台のでかぶつの一覧（現場ごとに1行）。行を押すとその現場を直す -->
-  <section class="tab" id="listTab" hidden>
+  <section class="tab" id="listTab">
     <div class="list-top"><h2 id="listTitle"></h2><button class="view-btn" id="viewBtn" aria-label="略と詳を切り替える"></button></div>
     <div id="bigList"></div>
-    <div class="add-row"><button class="add-big" data-open="bigSheet" aria-label="でかぶつを登録">でかぶつ登録</button><button class="add-big pts" id="addPts" aria-label="金額を登録">金額登録</button></div>
+    <div class="add-row"><button class="add-big" data-open="bigSheet" aria-label="でかぶつを登録">でかぶつ登録</button><button class="add-big" id="addPts" aria-label="金額を登録">金額登録</button></div>
   </section>
 </main>
 
 <div class="bottom">
-  <div class="tabbar"><button data-tab="list">でかぶつ</button><button data-tab="calc">電卓</button></div>
   <div>
   <button class="bbtn undo" id="undo">1つ戻す</button>
   <button class="bbtn" id="resetDai">この台をリセット</button>
@@ -468,6 +455,18 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
   <div class="pager" id="pager"></div>
   <div class="pager-foot" id="pagerFoot"></div>
 </aside>
+
+<!-- 金額登録：電卓。左上のテンキーボタンで、足すテンキーが開く -->
+<div class="sheet tall" id="calcSheet">
+  <div class="sheet-head"><h1>金額登録</h1><button class="burger" data-close aria-label="閉じる">✕</button></div>
+  <div class="sheet-body" id="calcBody">
+    <div class="hero">
+      <div class="hero-label"><span id="heroLabel"></span><span class="hero-side"><span id="heroCount"></span><button class="sites-btn" id="sitesBtn" data-close></button></span></div>
+      <div class="hero-row"><div class="hero-amount" id="heroAmount"></div><button class="sub-btn" id="subBtn" aria-pressed="false">ひく</button></div>
+    </div>
+    <div class="combo-row" id="comboRow"></div>
+  </div>
+</div>
 
 <!-- 24p以上を打つ画面 -->
 <div class="sheet" id="padSheet">
@@ -625,9 +624,6 @@ let view = 'ryaku';
 try { view = localStorage.getItem('shuushuu3-view') || 'ryaku'; } catch (e) {}
 // でかぶつ登録で足していく先の現場。直している時（一覧の行を押して開いた時）は editS、ふだんは next
 let editS = null;
-// いま見ているタブ：calc（電卓）か list（でかぶつ一覧）。端末に覚えておく
-let tab = 'calc';
-try { tab = localStorage.getItem('shuushuu3-tab') || 'calc'; } catch (e) {}
 const targetS = () => editS != null ? editS : cur().next;
 
 // 初めて開いた日は、元の版（収集1）の今日の記録を引き継ぐ（同じサイトなので読める）
@@ -740,14 +736,6 @@ function render() {
   }
   const sb = document.getElementById('sitesBtn');
   sb.textContent = `でかぶつ${groups.length}箇所`;
-  // タブ
-  document.getElementById('calcTab').hidden = tab !== 'calc';
-  document.getElementById('listTab').hidden = tab !== 'list';
-  // 台のチップは一覧タブだけ（電卓タブでは払って台を移る）
-  document.getElementById('dais').style.display = tab === 'calc' ? 'none' : '';
-  // 点数の箱は電卓タブだけ
-  document.querySelector('.hero').style.display = tab === 'list' ? 'none' : '';
-  document.querySelectorAll('.tabbar [data-tab]').forEach(el => el.classList.toggle('on', el.dataset.tab === tab));
 
   // 一覧：1現場＝1行。略はメモの暗号のチップ（同じものは「ベ×2」）、詳は「1,300円ベッド、900円机×2」
   document.getElementById('listTitle').textContent = `でかぶつ：${groups.length}箇所`;
@@ -1010,11 +998,7 @@ document.addEventListener('click', e => {
   }
   if (document.querySelector('.kind-pop.on')) { closeKindPops(); return; }
   if (!b) return;
-  if (b.dataset.tab) {
-    tab = b.dataset.tab;
-    try { localStorage.setItem('shuushuu3-tab', tab); } catch (e) {}
-    render();
-  } else if (b.hasAttribute('data-close')) {
+  if (b.hasAttribute('data-close')) {
     closeAll();
   } else if (b.dataset.open) {
     padMode = 'add'; // 電卓のテンキーは足す
@@ -1254,7 +1238,7 @@ document.getElementById('padAdd').onclick = () => {
   closeAll();
 };
 
-document.getElementById('addPts').onclick = () => { padMode = 'dai'; openPanel('padSheet'); };
+document.getElementById('addPts').onclick = () => openPanel('calcSheet');
 document.getElementById('subBtn').onclick = () => { subMode = !subMode; paintSub(); };
 document.getElementById('padRedo').onclick = () => { padMode = 'dai'; setupPad(); };
 document.getElementById('padToMove').onclick = e => {
@@ -1458,7 +1442,7 @@ function switchDai(to, wrapDir) {
   state.cur = to;
   save(); render();
   if (!matchMedia('(prefers-reduced-motion: reduce)').matches)
-    document.getElementById(tab === 'calc' ? 'calcTab' : 'listTab').animate(
+    document.getElementById('listTab').animate(
       [{ transform: `translateX(${dir * 70}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }],
       { duration: 220, easing: 'cubic-bezier(.2,.8,.3,1)' });
 }
@@ -1466,10 +1450,11 @@ function switchDai(to, wrapDir) {
 // 払った指では、ボタンを押したことにしない
 let daiSw = null, swallow = false;
 const mainEl = document.querySelector('main');
-mainEl.addEventListener('touchstart', e => {
+const swipeEls = [mainEl];
+swipeEls.forEach(el => el.addEventListener('touchstart', e => {
   daiSw = (e.touches.length > 1 || e.target.closest('.dais')) ? null : { x: e.touches[0].clientX, y: e.touches[0].clientY };
-}, { passive: true });
-mainEl.addEventListener('touchend', e => {
+}, { passive: true }));
+swipeEls.forEach(el => el.addEventListener('touchend', e => {
   if (!daiSw) return;
   const t = e.changedTouches[0], dx = t.clientX - daiSw.x, dy = t.clientY - daiSw.y;
   daiSw = null;
@@ -1478,8 +1463,8 @@ mainEl.addEventListener('touchend', e => {
   // 端まで来たらぐるっと回る（最後の台で次へ払うと1台目、1台目で前へ払うと最後の台）
   const n = state.dais.length, dir = dx < 0 ? 1 : -1;
   switchDai((state.cur + dir + n) % n, dir);
-});
-mainEl.addEventListener('click', e => { if (swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
+}));
+swipeEls.forEach(el => el.addEventListener('click', e => { if (swallow) { e.stopPropagation(); e.preventDefault(); } }, true));
 
 // 並べ替え：現場の行を長押しするとつかめる。つかんだ行は指についてきて、離した所に入る（収集2と同じ動き）
 // 長押しの前に指が動いたら、ふつうのスクロール・払いとして扱う
