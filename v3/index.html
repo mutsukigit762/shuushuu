@@ -332,7 +332,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
   width: min(calc(100vw - 32px), 520px); max-height: 80vh;
   border-radius: 20px; transform: translate(-50%, -50%);
 }
-.sheet.center.on { transform: translate(-50%, -50%); }
+.sheet.center.on { transform: translate(-50%, -50%); box-shadow: 0 0 0 100vmax rgba(0,0,0,0.4); } /* 浮かんでいる間は、周りをさらに暗くする */
 .sheet.center .sheet-body { padding: 16px; }
 .sheet.center .sites { margin-bottom: 0; }
 .sheet-head { display: flex; align-items: center; gap: 10px; padding: 12px 12px 8px; }
