@@ -716,6 +716,21 @@ function linkMove(delta) {
   state.dais[o].pts = to ? [to] : [];
   return true;
 }
+// 5台とも埋まっている時に、1・2・5台目や総量を変えて合計がずれたら、4台目が残りを引き取る（無理なら3台目）。
+// 3・4台目を触った時は連動（linkMove）で合っているので何もしない。いま触っている台は動かさない
+function absorbRest(a) {
+  if (!state.goal || !state.dais.every(d => sum(d) > 0)) return;
+  const total = state.dais.reduce((x, d) => x + sum(d), 0);
+  const before = a.dais.reduce((x, d) => x + sum(d), 0);
+  if (total === before && (a.goal || 0) === state.goal) return; // 点数も総量も変えていない（でかぶつだけ等）
+  const rest = state.goal * 100 - total;
+  if (!rest) return;
+  for (const o of [3, 2]) {
+    if (o === state.cur) continue;
+    const to = sum(state.dais[o]) + rest;
+    if (to > 0 && to <= 99900) { state.dais[o].pts = [to]; return; }
+  }
+}
 // 台の点数（自明な台は残り）
 function val(i) {
   const d = state.dais[i];
@@ -934,6 +949,7 @@ function buzz() { if (navigator.vibrate) navigator.vibrate(15); }
 function change(fn) {
   if (state.date !== today()) { state = newDay(); history = []; }
   snap(); const before = history[history.length - 1]; fn();
+  absorbRest(JSON.parse(before));
   // 同じ現場のでかぶつは、いつも1列の中で隣どうしに並べ直す（あとから足した分も、その現場の最後に入る）
   const d = cur(), order = [...new Set(d.bigs.map(b => b.s))];
   d.bigs = order.flatMap(x => d.bigs.filter(b => b.s === x));
