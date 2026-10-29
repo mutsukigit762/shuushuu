@@ -342,11 +342,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
   background: var(--accent); color: var(--on-accent); display: grid; place-items: center;
   font-size: 16px; font-weight: 700; font-family: inherit;
 }
-/* 大物登録だけ、下からニュッと出る。下に払うと閉じる */
-#bigSheet, #calcSheet { transition: transform .26s cubic-bezier(.2,.8,.3,1), visibility 0s linear .26s; }
-#bigSheet.on, #calcSheet.on { transition: transform .26s cubic-bezier(.2,.8,.3,1), visibility 0s; }
-#bigSheet.drag, #calcSheet.drag { transition: none; }
-@media (prefers-reduced-motion: reduce) { #bigSheet, #bigSheet.on, #calcSheet, #calcSheet.on { transition: none; } }
+/* 大物登録・金額登録は、アニメなしでパッと出る。下に払うと閉じる */
 .tag.pend { background: transparent; border: 1.5px solid var(--text); color: var(--text); font-family: inherit; cursor: pointer; }
 .sheet.swiping button, .sheet.swiping .tbtn { pointer-events: none; }
 .place-row { display: flex; gap: 8px; }
@@ -486,7 +482,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 </div>
 
 <!-- 24p以上を打つ画面 -->
-<div class="sheet" id="padSheet">
+<div class="sheet center" id="padSheet">
   <div class="sheet-head"><h1 id="padTitle">容積ポイントを打つ</h1><button class="burger" data-close aria-label="閉じる">✕</button></div>
   <div class="sheet-body">
     <div class="pad">
