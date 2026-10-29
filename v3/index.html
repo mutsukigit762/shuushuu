@@ -71,7 +71,7 @@ main { padding: 12px; max-width: 560px; margin: 0 auto; }
 .hero-amount .ph { color: transparent; font-style: normal; position: relative; }
 .hero-amount .ph::after { content: ''; position: absolute; left: 10%; right: 10%; bottom: 0.14em; height: 0.07em; border-radius: 2px; background: #cfcfcb; }
 .hero-amount small { font-size: 22px; font-weight: 700; margin-left: 2px; }
-/* 台の数字と、その右のいまの現場。現場は数字とでかぶつボタンの間の空きに置く */
+/* 台の数字と、その右のいまの現場。現場は数字と大物ボタンの間の空きに置く */
 .hero-row { display: flex; align-items: flex-end; }
 .hero-row .hero-amount { flex: none; white-space: nowrap; }
 .hero-site { flex: 1; min-width: 0; margin-right: 118px; padding-bottom: 4px; display: flex; flex-direction: column; align-items: center; line-height: 1.15; font-size: 12px; color: var(--text2); white-space: nowrap; }
@@ -148,7 +148,7 @@ h2 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0 2px 8px; 
 .combo-row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 5px; }
 .combo-row .pbtn { grid-column: span 2; }
 .combo-row .pbtn.wide { grid-column: span 3; }
-/* でかぶつは並びから少し離して、下の真ん中に */
+/* 大物は並びから少し離して、下の真ん中に */
 .big-wrap { display: flex; justify-content: center; margin-top: 12px; padding-bottom: 8px; }
 .big-wrap .pbtn.open-big { width: 50%; height: 54px; font-size: 17px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .combo-row .pbtn.base { background: var(--card2); }
@@ -219,7 +219,7 @@ main > section { flex: 1; min-height: 0; display: flex; flex-direction: column; 
 .tbtn .p { display: block; font-size: 15px; font-weight: 700; padding: 6px 0; white-space: nowrap; letter-spacing: -0.02em; }
 .block-title { font-size: 18px; font-weight: 800; margin: 24px 2px 10px; padding-top: 14px; border-top: 1px solid var(--border); }
 
-/* 現場ごとのでかぶつ */
+/* 現場ごとの大物 */
 .sites { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-bottom: 12px; }
 .sites-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; color: var(--text2); }
 .sites-head b { font-size: 22px; color: var(--text); margin: 0 2px; }
@@ -284,7 +284,7 @@ body.lock { overflow: hidden; }
   display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border);
 }
 .drawer-head h1 { flex: 1; font-size: 18px; }
-/* 共有：合言葉を打つと、同じ合言葉の人と1日分（全部の台・でかぶつ・総量）を一緒に見る・直す */
+/* 共有：合言葉を打つと、同じ合言葉の人と1日分（全部の台・大物・総量）を一緒に見る・直す */
 .share { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border); }
 .share input { flex: 1; min-width: 0; height: 42px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); font: inherit; font-size: 16px; color: var(--text); -webkit-user-select: text; user-select: text; }
 .share button { flex: none; height: 42px; padding: 0 14px; border-radius: 10px; border: none; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
@@ -342,7 +342,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
   background: var(--accent); color: var(--on-accent); display: grid; place-items: center;
   font-size: 16px; font-weight: 700; font-family: inherit;
 }
-/* でかぶつ登録だけ、下からニュッと出る。下に払うと閉じる */
+/* 大物登録だけ、下からニュッと出る。下に払うと閉じる */
 #bigSheet, #calcSheet { transition: transform .26s cubic-bezier(.2,.8,.3,1), visibility 0s linear .26s; }
 #bigSheet.on, #calcSheet.on { transition: transform .26s cubic-bezier(.2,.8,.3,1), visibility 0s; }
 #bigSheet.drag, #calcSheet.drag { transition: none; }
@@ -356,7 +356,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .sheet .pad { margin-top: 0; border: none; padding: 0; }
 .sheet .kbtn { height: 58px; }
 #siteBig { margin: 0; flex: 1; min-width: 0; }
-/* でかぶつ登録の上の段：仮置き（左いっぱい）と登録ボタン（右）を同じ高さで並べる */
+/* 大物登録の上の段：仮置き（左いっぱい）と登録ボタン（右）を同じ高さで並べる */
 .big-head { padding: 14px 12px 10px; flex-direction: column; align-items: stretch; gap: 10px; }
 .big-head h1 { font-size: 17px; }
 .big-head #siteBig { flex: none; width: 100%; }
@@ -381,12 +381,12 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 @keyframes shake { 0%,100% { translate: 0; } 20% { translate: -6px; } 40% { translate: 6px; } 60% { translate: -4px; } 80% { translate: 4px; } }
 @keyframes ngred { 0%,40% { border-color: var(--red); background: #fdecec; color: var(--red); } }
 
-/* 青＝テンキー、ピンク＝でかぶつ */
+/* 青＝テンキー、ピンク＝大物 */
 .combo-row .pbtn.open-pad { font-size: 14px; }
 .combo-row .pbtn.open-pad { display: grid; place-items: center; }
 .combo-row .pbtn.open-pad { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
-/* ===== v3：でかぶつは点数と別に、台の中の1列で持つ（収集2と同じ） ===== */
+/* ===== v3：大物は点数と別に、台の中の1列で持つ（収集2と同じ） ===== */
 .big-top { display: flex; align-items: center; gap: 10px; }
 .big-foot { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--bg); }
 .big-foot.two { display: flex; gap: 8px; }
@@ -394,7 +394,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .big-foot .ok:disabled { background: var(--card2); color: var(--text2); opacity: .5; cursor: default; }
 .big-foot .ok.sub { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
 .free { display: block; width: 100%; margin: 0 0 8px; height: 42px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); font: inherit; font-size: 16px; color: var(--text); -webkit-user-select: text; user-select: text; }
-/* でかぶつの一覧：1現場＝1行。押すとその現場を直せる */
+/* 大物の一覧：1現場＝1行。押すとその現場を直せる */
 .list-head { display: flex; align-items: center; gap: 10px; padding: 14px 12px 8px; }
 .list-head h1 { flex: 1; font-size: 17px; }
 .view-btn { height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); font: inherit; font-size: 15px; font-weight: 700; color: var(--text2); cursor: pointer; }
@@ -438,11 +438,11 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 <main>
   <div class="dais" id="dais"></div>
 
-  <!-- この台のでかぶつの一覧（現場ごとに1行）。行を押すとその現場を直す -->
+  <!-- この台の大物の一覧（現場ごとに1行）。行を押すとその現場を直す -->
   <section class="tab" id="listTab">
     <div class="list-top"><h2 id="listTitle"></h2><button class="view-btn" id="viewBtn" aria-label="略と詳を切り替える"></button></div>
     <div id="bigList"></div>
-    <button class="add-big" data-open="bigSheet" aria-label="でかぶつを足す">＋</button>
+    <button class="add-big" data-open="bigSheet" aria-label="大物を足す">＋</button>
   </section>
 </main>
 
@@ -510,7 +510,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
   </div>
 </div>
 
-<!-- この台のでかぶつを登録する。点数とは関係なく、いつ足してもいい -->
+<!-- この台の大物を登録する。点数とは関係なく、いつ足してもいい -->
 <div class="sheet tall" id="bigSheet">
   <div class="sheet-head big-head"><div class="big-top"><h1 id="bigTitle"></h1></div><div class="hero-big" id="siteBig"></div></div>
   <div class="sheet-body">
@@ -523,7 +523,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 <script>
 // ===== 品目ボタンの定義 =====
 // short は台のタグ表示用の略称。タグは「略称＋ポイント」で出す。
-// でかぶつのボタンは数えるだけで、ポイントには足さない（ポイントは上のボタンとテンキーで入れる）
+// 大物のボタンは数えるだけで、ポイントには足さない（ポイントは上のボタンとテンキーで入れる）
 // price は円で持つ（料金表と同じ数字）。画面にはポイントで出す
 const PRICES = [400, 900, 1300, 2300, 3200];
 
@@ -627,8 +627,8 @@ const today = () => {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 };
 const DAIS = 5; // 最初から並べておく台の数
-// 台ごとに「打った容積ポイント（円）の並び」と「でかぶつの並び」を別々に持つ
-// でかぶつは1列。それぞれ現場の番号 s を持ち、next がいま足している現場（「次」で1つ進む）
+// 台ごとに「打った容積ポイント（円）の並び」と「大物の並び」を別々に持つ
+// 大物は1列。それぞれ現場の番号 s を持ち、next がいま足している現場（「次」で1つ進む）
 const newDai = () => ({ pts: [], bigs: [], next: 0 });
 const newDay = () => ({ date: today(), cur: 0, dais: Array.from({ length: DAIS }, newDai) });
 
@@ -639,7 +639,7 @@ function snap() { history.push(JSON.stringify(state)); if (history.length > 50) 
 // 一覧の見せ方：ryaku（メモの暗号）か shou（くわしく）。端末に覚えておく
 let view = 'ryaku';
 try { view = localStorage.getItem('shuushuu3-view') || 'ryaku'; } catch (e) {}
-// でかぶつ登録で足していく先の現場。直している時（一覧の行を押して開いた時）は editS、ふだんは next
+// 大物登録で足していく先の現場。直している時（一覧の行を押して開いた時）は editS、ふだんは next
 let editS = null;
 const targetS = () => editS != null ? editS : cur().next;
 
@@ -655,7 +655,7 @@ function fromV1() {
     for (const e of list || []) {
       if (e.price > 0) { d.pts.push(e.price); site++; continue; }
       if (!e.short) continue;
-      // 元の版の「現場」ごとに、でかぶつの現場を分ける（番号は詰める）
+      // 元の版の「現場」ごとに、大物の現場を分ける（番号は詰める）
       if (site !== last) { last = site; if (d.bigs.length) d.next++; }
       d.bigs.push({ name: e.name, cond: e.cond, short: e.short, ...(e.kind && { kind: e.kind }), s: d.next });
     }
@@ -720,7 +720,7 @@ function absorbRest(a) {
   if (!state.goal || !state.dais.every(d => sum(d) > 0)) return;
   const total = state.dais.reduce((x, d) => x + sum(d), 0);
   const before = a.dais.reduce((x, d) => x + sum(d), 0);
-  if (total === before && (a.goal || 0) === state.goal) return; // 点数も総量も変えていない（でかぶつだけ等）
+  if (total === before && (a.goal || 0) === state.goal) return; // 点数も総量も変えていない（大物だけ等）
   const rest = state.goal * 100 - total;
   if (!rest) return;
   for (const o of [3, 2]) {
@@ -755,7 +755,7 @@ function render() {
     : `${pt(dayTotal)}p<small>/--p</small>`; // 総量を打つ前：今日の合計／総量（まだ）
   setAmount(pt(total));
   document.getElementById('heroLabel').textContent = `${state.cur + 1}台目の容積ポイント`;
-  // 件数はポイントを入れた回数。でかぶつは数えない
+  // 件数はポイントを入れた回数。大物は数えない
   document.getElementById('heroCount').textContent = `${dai.pts.length}件`;
 
   // 台の切り替え
@@ -763,17 +763,17 @@ function render() {
     `<button class="dai-chip${i === state.cur ? ' on' : ''}" data-dai="${i}">${daime(i)}<b>${pt(val(i))}<small>p</small></b></button>`
   ).join('');
 
-  // でかぶつの数は現場の数。押すと一覧（0箇所なら何も起こらない）
+  // 大物の数は現場の数。押すと一覧（0箇所なら何も起こらない）
   const groups = [];
   for (const b of dai.bigs) {
     const g = groups[groups.length - 1];
     if (g && g.s === b.s) g.items.push(b); else groups.push({ s: b.s, items: [b] });
   }
   const sb = document.getElementById('sitesBtn');
-  sb.textContent = `でかぶつ${groups.length}箇所`;
+  sb.textContent = `大物${groups.length}箇所`;
 
   // 一覧：1現場＝1行。略はメモの暗号のチップ（同じものは「ベ×2」）、詳は「1,300円ベッド、900円机×2」
-  document.getElementById('listTitle').textContent = `でかぶつ：${groups.length}箇所`;
+  document.getElementById('listTitle').textContent = `大物：${groups.length}箇所`;
   document.getElementById('viewBtn').innerHTML = view === 'ryaku' ? '<b>略</b>/詳' : '略/<b>詳</b>';
   document.getElementById('bigList').innerHTML = groups.map(g => `<div class="srow" data-edit="${g.s}">${view === 'ryaku'
     ? `<div class="chips">${
@@ -784,9 +784,9 @@ function render() {
   }<button class="splace" data-place aria-label="場所を書く">${esc((g.items.find(b => b.place) || {}).place || '')}</button><button class="smove" data-smove aria-label="この現場を別の台へ移す">→</button><button class="sdel" data-sdel aria-label="この現場を消す">✕</button></div>`
   ).join('');
 
-  // でかぶつ登録：見出しと、いまの現場に登録したもの（同じものは×nでまとめる。✕で1つ減る）
+  // 大物登録：見出しと、いまの現場に登録したもの（同じものは×nでまとめる。✕で1つ減る）
   const ts = targetS();
-  document.getElementById('bigTitle').textContent = editS != null ? '現場を直す' : `${daime(state.cur)}のでかぶつ`;
+  document.getElementById('bigTitle').textContent = editS != null ? '現場を直す' : `${daime(state.cur)}の大物`;
   const labels = new Map();
   const now = dai.bigs.filter(b => b.s === ts);
   // 仮置きがある時だけ「次」（閉じずに次の現場へ）。無い時・直している時は「閉じる」
@@ -948,7 +948,7 @@ function change(fn) {
   if (state.date !== today()) { state = newDay(); history = []; }
   snap(); const before = history[history.length - 1]; fn();
   absorbRest(JSON.parse(before));
-  // 同じ現場のでかぶつは、いつも1列の中で隣どうしに並べ直す（あとから足した分も、その現場の最後に入る）
+  // 同じ現場の大物は、いつも1列の中で隣どうしに並べ直す（あとから足した分も、その現場の最後に入る）
   const d = cur(), order = [...new Set(d.bigs.map(b => b.s))];
   d.bigs = order.flatMap(x => d.bigs.filter(b => b.s === x));
   save(); render(); push(before);
@@ -999,7 +999,7 @@ moveMenu.addEventListener('click', e => {
   buzz();
 });
 document.addEventListener('click', e => { if (moveMenu.classList.contains('on') && !e.target.closest('[data-smove]') && !e.target.closest('#moveMenu')) closeMoveMenu(); }, true);
-// 一覧の行を押すと、その現場のでかぶつ登録が開く（直す）。右端の✕で現場ごと消す（1つ戻すで戻せる）
+// 一覧の行を押すと、その現場の大物登録が開く（直す）。右端の✕で現場ごと消す（1つ戻すで戻せる）
 let placeS = null;
 function savePlace() {
   const v = document.getElementById('placeIn').value.trim(), s = placeS;
@@ -1064,7 +1064,7 @@ document.addEventListener('click', e => {
     closeAll();
   } else if (b.dataset.open) {
     padMode = 'add'; // 電卓のテンキーは足す
-    editS = null; // 下のでかぶつボタンから開いた時は、いま足している現場へ
+    editS = null; // 下の大物ボタンから開いた時は、いま足している現場へ
     if (b.classList.contains('open-pad')) {
       // 電卓の中のテンキー：電卓はそのままにして、上にテンキーを重ねる。打った数字は今の点数に足す
       padMode = 'add';
@@ -1326,7 +1326,7 @@ document.getElementById('undo').onclick = () => {
   save(); render(); push(before);
 };
 
-// 電卓の画面のボタン：1つ戻す（下のと同じ）／この台の金額を空にする（でかぶつは残す。押し間違えたら1つ戻す）
+// 電卓の画面のボタン：1つ戻す（下のと同じ）／この台の金額を空にする（大物は残す。押し間違えたら1つ戻す）
 document.getElementById('calcUndo').onclick = () => document.getElementById('undo').click();
 document.getElementById('calcReset').onclick = () => {
   if (!cur().pts.length) return;
@@ -1336,14 +1336,14 @@ document.getElementById('calcReset').onclick = () => {
 document.getElementById('resetDai').onclick = () => {
   const d = cur();
   if (!d.bigs.length) return;
-  change(() => { d.bigs = []; d.next = 0; }); // 金額（点数）は残す、でかぶつだけ
+  change(() => { d.bigs = []; d.next = 0; }); // 金額（点数）は残す、大物だけ
 };
 document.getElementById('resetAll').onclick = () => {
   if (!state.goal && !state.dais.some(d => d.pts.length || d.bigs.length)) return;
   change(() => { const c = state.cur; state = newDay(); state.cur = c; }); // 今日の総量も消す
 };
 
-// でかぶつ登録の「次」／「閉じる」（仮置きが無ければ閉じる）：閉じずに、登録の段だけ空にして次の現場へ（箱物の種類も選び直し）
+// 大物登録の「次」／「閉じる」（仮置きが無ければ閉じる）：閉じずに、登録の段だけ空にして次の現場へ（箱物の種類も選び直し）
 document.getElementById('bigDone').onclick = () => {
   const d = cur();
   if (editS != null || !d.bigs.some(b => b.s === d.next)) { closeAll(); return; } // 仮置きが無ければ閉じる
@@ -1455,7 +1455,7 @@ function closeKindPops() {
   document.querySelectorAll('.kind.open').forEach(el => el.classList.remove('open'));
 }
 
-// メニュー（左から）とテンキー・でかぶつ（下から）を開け閉めする
+// メニュー（左から）とテンキー・大物（下から）を開け閉めする
 function openPanel(id) {
   closeAll();
   if (id === 'padSheet') setupPad();
@@ -1487,7 +1487,7 @@ document.getElementById('burger').onclick = () => {
 };
 scrim.onclick = closeAll;
 
-// でかぶつ登録は下に払うと閉じる。中身がスクロールしてる時はスクロールを優先
+// 大物登録は下に払うと閉じる。中身がスクロールしてる時はスクロールを優先
 const bigSheet = document.getElementById('bigSheet');
 const bigBody = bigSheet.querySelector('.sheet-body');
 let dragY = null, dragDy = 0;
