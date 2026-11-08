@@ -384,13 +384,9 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
 /* ===== v3：大物は点数と別に、台の中の1列で持つ（収集2と同じ） ===== */
 .big-top { display: flex; align-items: center; gap: 10px; }
-#bigPlace { flex: 1; min-width: 0; box-sizing: border-box; height: 50px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); padding: 0 12px; font: inherit; font-size: 16px; -webkit-user-select: text; user-select: text; }
+#bigPlace { width: 100%; box-sizing: border-box; height: 44px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); padding: 0 12px; font: inherit; font-size: 16px; -webkit-user-select: text; user-select: text; }
 .big-foot { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--bg); }
 .big-foot.two { display: flex; gap: 8px; }
-/* 下の段：左いっぱいが場所、右に小さく 次／閉じる */
-.foot-row { display: flex; gap: 8px; align-items: stretch; }
-.big-foot .foot-row .ok { flex: none; width: auto; min-width: 84px; height: 50px; padding: 0 20px; }
-.big-foot .ok { flex: 1; width: 100%; height: 54px; border: none; border-radius: 14px; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 17px; font-weight: 700; cursor: pointer; }
 .big-foot .ok:disabled { background: var(--card2); color: var(--text2); opacity: .5; cursor: default; }
 .big-foot .ok.sub { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
 .free { display: block; width: 100%; margin: 0 0 8px; height: 42px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); font: inherit; font-size: 16px; color: var(--text); -webkit-user-select: text; user-select: text; }
@@ -516,8 +512,8 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
   <div class="sheet-body">
     <div id="groups"></div>
   </div>
-  <!-- 仮置き・場所・閉じるは、指が届く下にまとめる -->
-  <div class="big-foot"><div class="hero-big" id="siteBig"></div><div class="foot-row"><input id="bigPlace" type="text" autocomplete="off" enterkeyhint="done" placeholder="場所" aria-label="場所"><button class="ok" id="bigDone">閉じる</button></div></div>
+  <!-- 仮置きと場所は、指が届く下にまとめる。左右に払うと前の現場・次の現場、下に払うと閉じる -->
+  <div class="big-foot"><div class="hero-big" id="siteBig"></div><input id="bigPlace" type="text" autocomplete="off" enterkeyhint="done" placeholder="場所" aria-label="場所"></div>
 </div>
 
 
@@ -796,11 +792,6 @@ function render() {
   else if (have && document.activeElement !== bp) bp.value = have;
   const labels = new Map();
   const now = dai.bigs.filter(b => b.s === ts);
-  // 仮置きがある時だけ「次」（閉じずに次の現場へ）。無い時・直している時は「閉じる」
-  const nextMode = editS == null && now.length;
-  const bd = document.getElementById('bigDone');
-  bd.textContent = nextMode ? '次' : '閉じる';
-  bd.classList.toggle('sub', !nextMode); // 閉じるは前のようにグレー、次はアクセント色
   for (const b of now) labels.set(bigLabel(b), (labels.get(bigLabel(b)) || 0) + 1);
   document.getElementById('siteBig').innerHTML = [...labels].map(([l, n]) =>
     `<button class="tag pend" data-unbig="${l}">${l}×${n} ✕</button>`).join('');
@@ -1361,15 +1352,17 @@ document.getElementById('resetAll').onclick = () => {
   change(() => { const c = state.cur; state = newDay(); state.cur = c; }); // 今日の総量も消す
 };
 
-// 大物登録の「次」／「閉じる」（仮置きが無ければ閉じる）：閉じずに、登録の段だけ空にして次の現場へ（箱物の種類も選び直し）
-document.getElementById('bigDone').onclick = () => {
-  const d = cur();
-  if (editS != null || !d.bigs.some(b => b.s === d.next)) { closeAll(); return; } // 仮置きが無ければ閉じる
-  change(() => { d.next++; });
+// 大物登録を左右に払うと、前の現場／次の現場へ（箱物の種類も選び直し）。次は、いまの現場に1つでも登録してある時だけ。閉じるは下に払う
+function goSite(dir) {
+  const d = cur(), to = targetS() + dir;
+  const maxS = d.bigs.reduce((m, b) => Math.max(m, b.s), -1);
+  if (to < 0 || to > maxS + 1) { buzz(); return; }
+  editS = null;
+  change(() => { d.next = to; });
   document.querySelectorAll('.kind').forEach(el => setKind(el, ''));
   document.querySelectorAll('.free').forEach(el => { el.value = ''; });
   buzz();
-};
+}
 
 // ===== 料金表（マニュアル p.6〜9 と束品目一覧から） =====
 const TABLES = `
@@ -1494,6 +1487,7 @@ function closeAll() {
   document.querySelectorAll('.kind').forEach(el => setKind(el, '')); // 箱物の種類も毎回選び直す
   document.querySelectorAll('.free').forEach(el => { el.value = ''; el.blur(); });
   closeKindPops();
+  { const d = cur(), m = d.bigs.reduce((x, b) => Math.max(x, b.s), -1); if (d.next < m) change(() => { d.next = m; }); }
   render();
   document.querySelectorAll('.drawer.on, .sheet.on').forEach(el => el.classList.remove('on'));
   scrim.classList.remove('on'); document.body.classList.remove('lock');
@@ -1508,7 +1502,7 @@ scrim.onclick = closeAll;
 // 大物登録は下に払うと閉じる。中身がスクロールしてる時はスクロールを優先
 const bigSheet = document.getElementById('bigSheet');
 const bigBody = bigSheet.querySelector('.sheet-body');
-let dragY = null, dragDy = 0;
+let dragY = null, dragDy = 0, swX = null, swY = 0;
 const siteBig = document.getElementById('siteBig');
 bigSheet.addEventListener('touchstart', e => {
   // 計上の段が横にはみ出してスクロールできる時だけ、そこ（上下に少し余裕をもって）に置いた指では閉じない
@@ -1516,6 +1510,8 @@ bigSheet.addEventListener('touchstart', e => {
   const onPend = siteBig.scrollWidth > siteBig.clientWidth && y > r.top - 8 && y < r.bottom + 8 && x < r.right;
   dragY = (onPend || (bigBody.contains(e.target) && bigBody.scrollTop > 0)) ? null : y;
   dragDy = 0;
+  // 左右に払う：仮置きの横スクロールと、場所の欄に置いた指は除く
+  swX = (onPend || e.touches.length > 1 || e.target.closest('#bigPlace')) ? null : x; swY = y;
 }, { passive: true });
 bigSheet.addEventListener('touchmove', e => {
   if (dragY === null) return;
@@ -1525,7 +1521,16 @@ bigSheet.addEventListener('touchmove', e => {
   bigSheet.classList.add('drag');
   bigSheet.style.transform = `translateY(${dragDy}px)`;
 }, { passive: false });
-bigSheet.addEventListener('touchend', () => {
+bigSheet.addEventListener('touchend', e => {
+  if (swX !== null && e.changedTouches.length) {
+    const dx = e.changedTouches[0].clientX - swX, dy = e.changedTouches[0].clientY - swY;
+    swX = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      dragY = null; bigSheet.classList.remove('drag'); bigSheet.style.transform = '';
+      goSite(dx < 0 ? 1 : -1); // 左に払う＝次へ、右に払う＝前へ
+      return;
+    }
+  }
   if (dragY === null) { dragY = null; return; }
   dragY = null;
   bigSheet.classList.remove('drag');
