@@ -384,6 +384,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
 /* ===== v3：大物は点数と別に、台の中の1列で持つ（収集2と同じ） ===== */
 .big-top { display: flex; align-items: center; gap: 10px; }
+#bigPlace { flex: 1; min-width: 0; height: 38px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); padding: 0 12px; font: inherit; font-size: 16px; -webkit-user-select: text; user-select: text; }
 .big-foot { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--bg); }
 .big-foot.two { display: flex; gap: 8px; }
 .big-foot .ok { flex: 1; width: 100%; height: 54px; border: none; border-radius: 14px; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 17px; font-weight: 700; cursor: pointer; }
@@ -508,7 +509,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
 <!-- この台の大物を登録する。点数とは関係なく、いつ足してもいい -->
 <div class="sheet tall" id="bigSheet">
-  <div class="sheet-head big-head"><div class="big-top"><h1 id="bigTitle"></h1></div><div class="hero-big" id="siteBig"></div></div>
+  <div class="sheet-head big-head"><div class="big-top"><h1 id="bigTitle"></h1><input id="bigPlace" type="text" autocomplete="off" enterkeyhint="done" placeholder="場所" aria-label="場所"></div><div class="hero-big" id="siteBig"></div></div>
   <div class="sheet-body">
     <div id="groups"></div>
   </div>
@@ -783,6 +784,12 @@ function render() {
   // 大物登録：見出しと、いまの現場に登録したもの（同じものは×nでまとめる。✕で1つ減る）
   const ts = targetS();
   document.getElementById('bigTitle').textContent = editS != null ? '現場を直す' : `${daime(state.cur)}の大物`;
+  // 場所の欄：この現場の場所を出す。打ちかけの文字は、同じ現場のあいだは消さない
+  const bp = document.getElementById('bigPlace');
+  const pk = state.cur + '-' + ts + '-' + (editS != null);
+  const have = (dai.bigs.find(b => b.s === ts && b.place) || {}).place || '';
+  if (bp.dataset.k !== pk) { bp.dataset.k = pk; bp.value = have; }
+  else if (have && document.activeElement !== bp) bp.value = have;
   const labels = new Map();
   const now = dai.bigs.filter(b => b.s === ts);
   // 仮置きがある時だけ「次」（閉じずに次の現場へ）。無い時・直している時は「閉じる」
@@ -1004,6 +1011,16 @@ function savePlace() {
   change(() => { cur().bigs.forEach(x => { if (x.s === s) { if (v) x.place = v; else delete x.place; } }); });
 }
 document.getElementById('placeOk').onclick = savePlace;
+// 大物登録の場所の欄：打ち終わったら（離れる・Enter）この現場に付ける。まだ何も登録してない現場は、最初の登録に付く
+function saveBigPlace() {
+  const v = document.getElementById('bigPlace').value.trim(), s = targetS();
+  if (!cur().bigs.some(x => x.s === s)) return;
+  const now = (cur().bigs.find(x => x.s === s && x.place) || {}).place || '';
+  if (v === now) return;
+  change(() => { cur().bigs.forEach(x => { if (x.s === s) { if (v) x.place = v; else delete x.place; } }); });
+}
+document.getElementById('bigPlace').addEventListener('change', saveBigPlace);
+document.getElementById('bigPlace').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
 document.getElementById('placeIn').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); savePlace(); } });
 document.getElementById('bigList').addEventListener('click', e => {
   const el = e.target.closest('[data-edit]');
@@ -1083,7 +1100,8 @@ document.addEventListener('click', e => {
     const free = it.free ? document.querySelector(`[data-free="${gi}-${ii}"]`).value.trim() : '';
     const kind = it.kinds && !t.name && !free ? document.querySelector(`[data-kind="${gi}-${ii}"]`).dataset.value : '';
     const nb = { name: t.name || it.name, cond: t.cond, short: it.short, ...(kind && { kind }), ...(free && { free }), s: targetS() };
-    change(() => cur().bigs.push(nb));
+    const pv = document.getElementById('bigPlace').value.trim(); // 場所の欄に打ってあれば、この現場の分に付ける
+    change(() => { const L = cur().bigs; L.push(nb); if (pv) L.forEach(x => { if (x.s === nb.s) x.place = pv; }); });
     buzz();
   } else if (b.dataset.kai) {
     // いまの現場で最後に登録した箱物を、解体済にする／戻す。まだ無ければ震える
