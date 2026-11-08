@@ -325,6 +325,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
   display: flex; flex-direction: column; max-height: 88vh; max-width: 560px; margin: 0 auto;
 }
 .sheet.tall { height: 88vh; }
+#bigSheet { overflow: hidden; } /* 左右に払う時、中身がはみ出して見えないように */
 .sheet.on { transform: none; visibility: visible; }
 /* 真ん中に出す画面 */
 .sheet.center {
@@ -1353,10 +1354,13 @@ document.getElementById('resetAll').onclick = () => {
 };
 
 // 大物登録を左右に払うと、前の現場／次の現場へ（箱物の種類も選び直し）。次は、いまの現場に1つでも登録してある時だけ。閉じるは下に払う
+function canGo(dir) {
+  const to = targetS() + dir, maxS = cur().bigs.reduce((m, b) => Math.max(m, b.s), -1);
+  return to >= 0 && to <= maxS + 1;
+}
 function goSite(dir) {
   const d = cur(), to = targetS() + dir;
-  const maxS = d.bigs.reduce((m, b) => Math.max(m, b.s), -1);
-  if (to < 0 || to > maxS + 1) { buzz(); return; }
+  if (!canGo(dir)) { buzz(); return; }
   editS = null;
   change(() => { d.next = to; });
   document.querySelectorAll('.kind').forEach(el => setKind(el, ''));
@@ -1513,24 +1517,59 @@ bigSheet.addEventListener('touchstart', e => {
   // 左右に払う：仮置きの横スクロールと、場所の欄に置いた指は除く
   swX = (onPend || e.touches.length > 1 || e.target.closest('#bigPlace')) ? null : x; swY = y;
 }, { passive: true });
+// 左右は中身（見出し・品目・下の段）を指について動かす。行けない向きは重くして、離すと戻る
+let swAxis = null, swBusy = false;
+function swSet(x, anim) {
+  for (const el of bigSheet.children) {
+    el.style.transition = anim ? 'transform .18s ease-out' : 'none';
+    el.style.transform = x ? `translateX(${x}px)` : '';
+  }
+}
 bigSheet.addEventListener('touchmove', e => {
+  const t = e.touches[0];
+  if (swAxis === null) {
+    const dx = swX === null ? 0 : t.clientX - swX, dy = t.clientY - swY;
+    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+    swAxis = swX !== null && !swBusy && Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+    if (swAxis === 'x') bigSheet.classList.add('swiping');
+  }
+  if (swAxis === 'x') {
+    e.preventDefault();
+    const dx = t.clientX - swX;
+    swSet(canGo(dx < 0 ? 1 : -1) ? dx : dx * 0.25);
+    return;
+  }
   if (dragY === null) return;
-  dragDy = e.touches[0].clientY - dragY;
+  dragDy = t.clientY - dragY;
   if (dragDy <= 0) { bigSheet.classList.remove('drag'); bigSheet.style.transform = ''; return; }
   e.preventDefault();
   bigSheet.classList.add('drag');
   bigSheet.style.transform = `translateY(${dragDy}px)`;
 }, { passive: false });
 bigSheet.addEventListener('touchend', e => {
-  if (swX !== null && e.changedTouches.length) {
-    const dx = e.changedTouches[0].clientX - swX, dy = e.changedTouches[0].clientY - swY;
+  const axis = swAxis; swAxis = null;
+  if (axis === 'x') {
+    bigSheet.classList.remove('swiping');
+    dragY = null;
+    const dx = e.changedTouches[0].clientX - swX, dir = dx < 0 ? 1 : -1, W = bigSheet.clientWidth;
     swX = null;
-    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      dragY = null; bigSheet.classList.remove('drag'); bigSheet.style.transform = '';
-      goSite(dx < 0 ? 1 : -1); // 左に払う＝次へ、右に払う＝前へ
-      return;
+    if (Math.abs(dx) > 60 && canGo(dir)) {
+      // 外へ流して、次（前）の現場を反対側から入れる
+      swBusy = true;
+      swSet(-dir * W, true);
+      setTimeout(() => {
+        goSite(dir);
+        swSet(dir * W, false);
+        requestAnimationFrame(() => requestAnimationFrame(() => swSet(0, true)));
+        setTimeout(() => { for (const el of bigSheet.children) el.style.transition = ''; swBusy = false; }, 220);
+      }, 180);
+    } else {
+      swSet(0, true);
+      if (Math.abs(dx) > 60) buzz(); // 行けない向き
     }
+    return;
   }
+  swX = null;
   if (dragY === null) { dragY = null; return; }
   dragY = null;
   bigSheet.classList.remove('drag');
