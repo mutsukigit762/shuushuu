@@ -346,6 +346,17 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 /* 大物登録・金額登録は、アニメなしでパッと出る。下に払うと閉じる */
 .tag.pend { background: transparent; border: 1.5px solid var(--text); color: var(--text); font-family: inherit; cursor: pointer; }
 .sheet.swiping button, .sheet.swiping .tbtn { pointer-events: none; }
+/* 左右に払うと、指には追従せず、次（前）の現場がその場で横から少し滑り込む。何も無い画面は挟まない */
+@keyframes siteInL { from { opacity: .45; transform: translateX(36px); } to { opacity: 1; transform: none; } }
+@keyframes siteInR { from { opacity: .45; transform: translateX(-36px); } to { opacity: 1; transform: none; } }
+#bigSheet.in-l > * { animation: siteInL .18s ease-out; }
+#bigSheet.in-r > * { animation: siteInR .18s ease-out; }
+.big-top h1 { flex: none !important; }
+.big-top .splace { margin-right: 0; max-width: 60%; }
+#bigPlace { flex: 1; min-width: 0; }
+#bigPlace:read-only { color: var(--text2); background: var(--card2); }
+.plock { flex: none; width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text2); font: inherit; font-size: 20px; font-weight: 700; cursor: pointer; }
+.plock.on { background: var(--card2); color: var(--text); border-color: var(--text2); }
 .place-row { display: flex; gap: 8px; }
 #placeOk { flex: none; height: 44px; padding: 0 18px; border-radius: 10px; border: none; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
 #placeIn { flex: 1; min-width: 0; height: 44px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); padding: 0 12px; font: inherit; font-size: 17px; -webkit-user-select: text; user-select: text; }
@@ -509,12 +520,12 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
 <!-- この台の大物を登録する。点数とは関係なく、いつ足してもいい -->
 <div class="sheet tall" id="bigSheet">
-  <div class="sheet-head big-head"><div class="big-top"><h1 id="bigTitle"></h1></div></div>
+  <div class="sheet-head big-head"><div class="big-top"><h1 id="bigTitle"></h1><span class="splace" id="bigPlaceLbl" hidden></span></div></div>
   <div class="sheet-body">
     <div id="groups"></div>
   </div>
   <!-- 仮置きと場所は、指が届く下にまとめる。左右に払うと前の現場・次の現場、下に払うと閉じる -->
-  <div class="big-foot"><div class="hero-big" id="siteBig"></div><input id="bigPlace" type="text" autocomplete="off" enterkeyhint="done" placeholder="場所" aria-label="場所"></div>
+  <div class="big-foot"><div class="hero-big" id="siteBig"></div><div class="place-row"><input id="bigPlace" type="text" autocomplete="off" enterkeyhint="done" placeholder="場所" aria-label="場所"><button id="bigPlaceLock" class="plock" aria-label="場所を固定する" aria-pressed="false">✓</button></div></div>
 </div>
 
 
@@ -791,6 +802,13 @@ function render() {
   const have = (dai.bigs.find(b => b.s === ts && b.place) || {}).place || '';
   if (bp.dataset.k !== pk) { bp.dataset.k = pk; bp.value = have; }
   else if (have && document.activeElement !== bp) bp.value = have;
+  // 固定：押すと文字がグレーになって書き換えられず、「〇台目の大物」の右に一覧と同じラベルが出る
+  const locked = placeLocked();
+  bp.readOnly = locked;
+  const lk = document.getElementById('bigPlaceLock');
+  lk.classList.toggle('on', locked); lk.setAttribute('aria-pressed', locked); lk.setAttribute('aria-label', locked ? '場所の固定をはずす' : '場所を固定する');
+  const lbl = document.getElementById('bigPlaceLbl'), lt = bp.value.trim();
+  lbl.hidden = !(locked && lt); lbl.textContent = lt;
   const labels = new Map();
   const now = dai.bigs.filter(b => b.s === ts);
   for (const b of now) labels.set(bigLabel(b), (labels.get(bigLabel(b)) || 0) + 1);
@@ -1007,6 +1025,22 @@ function savePlace() {
   change(() => { cur().bigs.forEach(x => { if (x.s === s) { if (v) x.place = v; else delete x.place; } }); });
 }
 document.getElementById('placeOk').onclick = savePlace;
+// 場所の固定。登録のある現場は大物に plock を付けて持つ。まだ無い現場は、最初の登録まで lockMem で覚える
+const lockMem = new Set();
+const placeKey = () => state.cur + '-' + targetS() + '-' + (editS != null);
+const placeLocked = () => lockMem.has(placeKey()) || cur().bigs.some(x => x.s === targetS() && x.plock);
+document.getElementById('bigPlaceLock').onclick = () => {
+  const bp = document.getElementById('bigPlace'), s = targetS(), has = cur().bigs.some(x => x.s === s);
+  if (placeLocked()) {
+    lockMem.delete(placeKey());
+    if (has) change(() => { cur().bigs.forEach(x => { if (x.s === s) delete x.plock; }); }); else render();
+    return;
+  }
+  if (!bp.value.trim()) { shakeNg(document.getElementById('bigPlaceLock')); return; } // 空のままは固定できない
+  bp.blur(); saveBigPlace();
+  if (has) change(() => { cur().bigs.forEach(x => { if (x.s === s) x.plock = true; }); }); else { lockMem.add(placeKey()); render(); }
+  buzz();
+};
 // 大物登録の場所の欄：打ち終わったら（離れる・Enter）この現場に付ける。まだ何も登録してない現場は、最初の登録に付く
 function saveBigPlace() {
   const v = document.getElementById('bigPlace').value.trim(), s = targetS();
@@ -1097,7 +1131,8 @@ document.addEventListener('click', e => {
     const kind = it.kinds && !t.name && !free ? document.querySelector(`[data-kind="${gi}-${ii}"]`).dataset.value : '';
     const nb = { name: t.name || it.name, cond: t.cond, short: it.short, ...(kind && { kind }), ...(free && { free }), s: targetS() };
     const pv = document.getElementById('bigPlace').value.trim(); // 場所の欄に打ってあれば、この現場の分に付ける
-    change(() => { const L = cur().bigs; L.push(nb); if (pv) L.forEach(x => { if (x.s === nb.s) x.place = pv; }); });
+    const pk = placeKey(), lk = lockMem.delete(pk); // 登録前に固定していたら、登録した現場の大物に引き継ぐ
+    change(() => { const L = cur().bigs; L.push(nb); if (pv) L.forEach(x => { if (x.s === nb.s) x.place = pv; if (lk && x.s === nb.s) x.plock = true; }); });
     buzz();
   } else if (b.dataset.kai) {
     // いまの現場で最後に登録した箱物を、解体済にする／戻す。まだ無ければ震える
@@ -1517,14 +1552,8 @@ bigSheet.addEventListener('touchstart', e => {
   // 左右に払う：仮置きの横スクロールと、場所の欄に置いた指は除く
   swX = (onPend || e.touches.length > 1 || e.target.closest('#bigPlace')) ? null : x; swY = y;
 }, { passive: true });
-// 左右は中身（見出し・品目・下の段）を指について動かす。行けない向きは重くして、離すと戻る
+// 左右に払う：指には追従しない。離した時に60px以上動いていたら、次（前）の現場にその場で切り替える（間に何も無い画面を挟まない）
 let swAxis = null, swBusy = false;
-function swSet(x, anim) {
-  for (const el of bigSheet.children) {
-    el.style.transition = anim ? 'transform .18s ease-out' : 'none';
-    el.style.transform = x ? `translateX(${x}px)` : '';
-  }
-}
 bigSheet.addEventListener('touchmove', e => {
   const t = e.touches[0];
   if (swAxis === null) {
@@ -1533,12 +1562,7 @@ bigSheet.addEventListener('touchmove', e => {
     swAxis = swX !== null && !swBusy && Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
     if (swAxis === 'x') bigSheet.classList.add('swiping');
   }
-  if (swAxis === 'x') {
-    e.preventDefault();
-    const dx = t.clientX - swX;
-    swSet(canGo(dx < 0 ? 1 : -1) ? dx : dx * 0.25);
-    return;
-  }
+  if (swAxis === 'x') { e.preventDefault(); return; }
   if (dragY === null) return;
   dragDy = t.clientY - dragY;
   if (dragDy <= 0) { bigSheet.classList.remove('drag'); bigSheet.style.transform = ''; return; }
@@ -1551,22 +1575,16 @@ bigSheet.addEventListener('touchend', e => {
   if (axis === 'x') {
     bigSheet.classList.remove('swiping');
     dragY = null;
-    const dx = e.changedTouches[0].clientX - swX, dir = dx < 0 ? 1 : -1, W = bigSheet.clientWidth;
+    const dx = e.changedTouches[0].clientX - swX, dir = dx < 0 ? 1 : -1;
     swX = null;
     if (Math.abs(dx) > 60 && canGo(dir)) {
-      // 外へ流して、次（前）の現場を反対側から入れる
+      goSite(dir);
+      // 指を左に払ったら次の現場が右から、右に払ったら前の現場が左から、少しだけ滑り込む
+      const c = dir > 0 ? 'in-l' : 'in-r';
+      bigSheet.classList.remove('in-l', 'in-r'); void bigSheet.offsetWidth; bigSheet.classList.add(c);
       swBusy = true;
-      swSet(-dir * W, true);
-      setTimeout(() => {
-        goSite(dir);
-        swSet(dir * W, false);
-        requestAnimationFrame(() => requestAnimationFrame(() => swSet(0, true)));
-        setTimeout(() => { for (const el of bigSheet.children) el.style.transition = ''; swBusy = false; }, 220);
-      }, 180);
-    } else {
-      swSet(0, true);
-      if (Math.abs(dx) > 60) buzz(); // 行けない向き
-    }
+      setTimeout(() => { bigSheet.classList.remove(c); swBusy = false; }, 200);
+    } else if (Math.abs(dx) > 60) buzz(); // 行けない向き
     return;
   }
   swX = null;
