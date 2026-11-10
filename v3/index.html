@@ -675,8 +675,8 @@ function fromV1() {
 function load() {
   try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
   if (!state || !Array.isArray(state.dais)) state = fromV1() || newDay();
-  // 日付が変わっていたら新しい日として始める
-  if (state.date !== today()) state = newDay();
+  // 日付が変わっても中身は残す（消すのは「全てリセット」だけ）。日付だけ今日に送る
+  if (state.date !== today()) state.date = today();
   while (state.dais.length < DAIS) state.dais.push(newDai());
 }
 function save() {
@@ -962,7 +962,7 @@ function buzz() { if (navigator.vibrate) navigator.vibrate(15); }
 
 // 変える時はいつもここを通す（1つ戻すのため）
 function change(fn) {
-  if (state.date !== today()) { state = newDay(); history = []; }
+  if (state.date !== today()) { state.date = today(); history = []; }
   snap(); const before = history[history.length - 1]; fn();
   absorbRest(JSON.parse(before));
   // 同じ現場の大物は、いつも1列の中で隣どうしに並べ直す（あとから足した分も、その現場の最後に入る）
@@ -1622,7 +1622,7 @@ bigSheet.addEventListener('touchend', e => {
 
 // アプリに戻ってきた時に日付をまたいでいたら新しい日にする
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && state.date !== today()) { state = newDay(); history = []; save(); render(); }
+  if (document.visibilityState === 'visible' && state.date !== today()) { state.date = today(); history = []; save(); render(); }
 });
 
 // 台を切りかえる。中身は、進む時は右から、戻る時は左から滑りこんでくる
@@ -1773,7 +1773,7 @@ async function subscribe() {
   render();
 }
 // 日付が変わったら、新しい日の文書を見に行く
-setInterval(() => { if (room && subDate && subDate !== today()) { if (state.date !== today()) { state = newDay(); history = []; save(); } subscribe(); } }, 60000);
+setInterval(() => { if (room && subDate && subDate !== today()) { if (state.date !== today()) { state.date = today(); history = []; save(); } subscribe(); } }, 60000);
 
 function renderShare() {
   const el = document.getElementById('share');
