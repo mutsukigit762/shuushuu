@@ -525,7 +525,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
     <div id="groups"></div>
   </div>
   <!-- 仮置きと場所は、指が届く下にまとめる。左右に払うと前の現場・次の現場、下に払うと閉じる -->
-  <div class="big-foot"><div class="hero-big" id="siteBig"></div><div class="place-row"><input id="bigPlace" type="text" autocomplete="off" enterkeyhint="done" placeholder="場所" aria-label="場所"><button id="bigPlaceLock" class="plock" aria-label="閉じる">閉じる</button></div></div>
+  <div class="big-foot"><div class="hero-big" id="siteBig"></div><div class="place-row"><input id="bigPlace" type="text" autocomplete="off" enterkeyhint="done" placeholder="場所" aria-label="場所"><button id="bigPlaceLock" class="plock" aria-label="場所を固定する" aria-pressed="false">✓</button></div></div>
 </div>
 
 
@@ -1029,14 +1029,26 @@ document.getElementById('placeOk').onclick = savePlace;
 const lockMem = new Set();
 const placeKey = () => state.cur + '-' + targetS() + '-' + (editS != null);
 const placeLocked = () => lockMem.has(placeKey()) || cur().bigs.some(x => x.s === targetS() && x.plock);
-document.getElementById('bigPlaceLock').onclick = () => { document.getElementById('bigPlace').blur(); saveBigPlace(); }; // 閉じる：キーボードを下ろして、場所を付ける
+document.getElementById('bigPlaceLock').onclick = () => {
+  const bp = document.getElementById('bigPlace'), s = targetS(), has = cur().bigs.some(x => x.s === s);
+  if (placeLocked()) {
+    lockMem.delete(placeKey());
+    if (has) change(() => { cur().bigs.forEach(x => { if (x.s === s) delete x.plock; }); }); else render();
+    return;
+  }
+  if (!bp.value.trim()) { shakeNg(document.getElementById('bigPlaceLock')); return; } // 空のままは固定できない
+  bp.blur(); saveBigPlace();
+  if (has) change(() => { cur().bigs.forEach(x => { if (x.s === s) x.plock = true; }); }); else { lockMem.add(placeKey()); render(); }
+  buzz();
+};
 // 大物登録の場所の欄：打ち終わったら（離れる・Enter）この現場に付ける。まだ何も登録してない現場は、最初の登録に付く
 function saveBigPlace() {
   const v = document.getElementById('bigPlace').value.trim(), s = targetS();
   if (!cur().bigs.some(x => x.s === s)) return;
   const now = (cur().bigs.find(x => x.s === s && x.place) || {}).place || '';
-  if (v === now) return;
-  change(() => { cur().bigs.forEach(x => { if (x.s === s) { if (v) x.place = v; else delete x.place; } }); });
+  if (v === now && (!v || placeLocked())) return;
+  if (!v) { change(() => { cur().bigs.forEach(x => { if (x.s === s) { delete x.place; delete x.plock; } }); }); return; }
+  change(() => { cur().bigs.forEach(x => { if (x.s === s) { x.place = v; x.plock = true; } }); });
 }
 document.getElementById('bigPlace').addEventListener('change', saveBigPlace);
 document.getElementById('bigPlace').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
