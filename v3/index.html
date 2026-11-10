@@ -525,7 +525,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
     <div id="groups"></div>
   </div>
   <!-- 仮置きと場所は、指が届く下にまとめる。左右に払うと前の現場・次の現場、下に払うと閉じる -->
-  <div class="big-foot"><div class="hero-big" id="siteBig"></div><div class="place-row"><input id="bigPlace" type="text" autocomplete="off" enterkeyhint="done" placeholder="場所" aria-label="場所"><button id="bigPlaceLock" class="plock" aria-label="場所を固定する" aria-pressed="false">✓</button></div></div>
+  <div class="big-foot"><div class="hero-big" id="siteBig"></div><div class="place-row"><input id="bigPlace" type="text" autocomplete="off" enterkeyhint="done" placeholder="場所" aria-label="場所"><button id="bigPlaceLock" class="plock" aria-label="閉じる">閉じる</button></div></div>
 </div>
 
 
@@ -1029,18 +1029,7 @@ document.getElementById('placeOk').onclick = savePlace;
 const lockMem = new Set();
 const placeKey = () => state.cur + '-' + targetS() + '-' + (editS != null);
 const placeLocked = () => lockMem.has(placeKey()) || cur().bigs.some(x => x.s === targetS() && x.plock);
-document.getElementById('bigPlaceLock').onclick = () => {
-  const bp = document.getElementById('bigPlace'), s = targetS(), has = cur().bigs.some(x => x.s === s);
-  if (placeLocked()) {
-    lockMem.delete(placeKey());
-    if (has) change(() => { cur().bigs.forEach(x => { if (x.s === s) delete x.plock; }); }); else render();
-    return;
-  }
-  if (!bp.value.trim()) { shakeNg(document.getElementById('bigPlaceLock')); return; } // 空のままは固定できない
-  bp.blur(); saveBigPlace();
-  if (has) change(() => { cur().bigs.forEach(x => { if (x.s === s) x.plock = true; }); }); else { lockMem.add(placeKey()); render(); }
-  buzz();
-};
+document.getElementById('bigPlaceLock').onclick = () => { document.getElementById('bigPlace').blur(); saveBigPlace(); }; // 閉じる：キーボードを下ろして、場所を付ける
 // 大物登録の場所の欄：打ち終わったら（離れる・Enter）この現場に付ける。まだ何も登録してない現場は、最初の登録に付く
 function saveBigPlace() {
   const v = document.getElementById('bigPlace').value.trim(), s = targetS();
@@ -1553,7 +1542,8 @@ bigSheet.addEventListener('touchstart', e => {
   swX = (onPend || e.touches.length > 1 || e.target.closest('#bigPlace')) ? null : x; swY = y;
 }, { passive: true });
 // 左右に払う：指には追従しない。離した時に60px以上動いていたら、次（前）の現場にその場で切り替える（間に何も無い画面を挟まない）
-let swAxis = null, swBusy = false;
+let swAxis = null, swBusy = false, swallowClick = false;
+bigSheet.addEventListener('click', e => { if (swallowClick) { e.stopPropagation(); e.preventDefault(); } }, true);
 bigSheet.addEventListener('touchmove', e => {
   const t = e.touches[0];
   if (swAxis === null) {
@@ -1577,6 +1567,8 @@ bigSheet.addEventListener('touchend', e => {
     dragY = null;
     const dx = e.changedTouches[0].clientX - swX, dir = dx < 0 ? 1 : -1;
     swX = null;
+    // 横に払った指が離れた後のクリックは、ボタンに届けない
+    swallowClick = true; setTimeout(() => { swallowClick = false; }, 400);
     if (Math.abs(dx) > 60 && canGo(dir)) {
       goSite(dir);
       // 指を左に払ったら次の現場が右から、右に払ったら前の現場が左から、少しだけ滑り込む
