@@ -1,6 +1,6 @@
 {
-  "name": "収集3",
-  "short_name": "収集3",
+  "name": "収集",
+  "short_name": "収集",
   "description": "粗大ごみ収集の台ごとの金額と大きい物を数える（電卓つき）",
   "start_url": "./",
   "scope": "./",
