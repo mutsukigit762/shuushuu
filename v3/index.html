@@ -1786,11 +1786,11 @@ function renderShare() {
   const el = document.getElementById('share');
   if (room) {
     if (el.dataset.mode === 'on' && el.dataset.room === room) {
-      el.querySelector('small').textContent = online ? '同じコードの人と一緒に見ている' : 'つないでいるところ（電波が無い時は戻ったら送る）';
+      el.querySelector('small').textContent = online ? '' : 'オフライン（復帰後に送信）';
       return;
     }
     el.dataset.mode = 'on'; el.dataset.room = room;
-    el.innerHTML = `<div class="share-on">共有中：${room.replace(/[<>&"]/g, '')}<small></small></div><button class="sub" id="shareOff">やめる</button>`;
+    el.innerHTML = `<div class="share-on">共有中：${room.replace(/[<>&"]/g, '')}<small></small></div><button class="sub" id="shareOff">解除</button>`;
     renderShare();
   } else if (el.dataset.mode !== 'off') {
     el.dataset.mode = 'off';
