@@ -1794,7 +1794,7 @@ function renderShare() {
     renderShare();
   } else if (el.dataset.mode !== 'off') {
     el.dataset.mode = 'off';
-    el.innerHTML = `<input id="shareIn" type="text" placeholder="共有コード" autocomplete="off" autocapitalize="off"><button id="shareGo">つなぐ</button>`;
+    el.innerHTML = `<input id="shareIn" type="text" placeholder="共有コード" autocomplete="off" autocapitalize="off"><button id="shareGo">参加</button>`;
   }
 }
 document.getElementById('share').addEventListener('click', e => {
