@@ -1597,24 +1597,31 @@ bigSheet.addEventListener('touchend', e => {
   if (dragDy > 80) closeAll();
 });
 
-// 金額登録（電卓）も、下に払うと閉じる
+// 金額登録（電卓）も、下に払うと閉じる。少しでも指が動いたら、離した時にボタンを押したことにしない
 (() => {
   const sh = document.getElementById('calcSheet'), body = document.getElementById('calcBody');
-  let y0 = null, dy = 0;
+  let y0 = null, dy = 0, sx = 0, sy = 0, moved = false, swallow = false;
+  sh.addEventListener('click', e => { if (swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
   sh.addEventListener('touchstart', e => {
     y0 = (e.touches.length > 1 || (body.contains(e.target) && body.scrollTop > 0)) ? null : e.touches[0].clientY;
-    dy = 0;
+    dy = 0; moved = false;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
   }, { passive: true });
   sh.addEventListener('touchmove', e => {
+    const t = e.touches[0];
+    if (!moved && Math.abs(t.clientX - sx) < 8 && Math.abs(t.clientY - sy) < 8) return;
+    if (!moved) { moved = true; sh.classList.add('swiping'); } // 押した色も消す
     if (y0 === null) return;
-    dy = e.touches[0].clientY - y0;
+    dy = t.clientY - y0;
     if (dy <= 0) { sh.classList.remove('drag'); sh.style.transform = ''; return; }
     e.preventDefault();
     sh.classList.add('drag');
     sh.style.transform = `translateY(${dy}px)`;
   }, { passive: false });
   sh.addEventListener('touchend', () => {
-    if (y0 === null) { y0 = null; return; }
+    if (moved) { swallow = true; setTimeout(() => { swallow = false; }, 400); }
+    sh.classList.remove('swiping');
+    if (y0 === null) return;
     y0 = null;
     sh.classList.remove('drag');
     sh.style.transform = '';
