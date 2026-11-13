@@ -263,7 +263,6 @@ main > section { flex: 1; min-height: 0; display: flex; flex-direction: column; 
   color: var(--text); font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit;
 }
 .bottom .bbtn { flex: 1; font-size: 14px; white-space: nowrap; padding: 0 4px; }
-.bottom .bbtn.undo { flex: 0 0 84px; }
 .bbtn.undo { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .bbtn.reset-all { border-color: var(--red); color: var(--red); background: transparent; }
 
@@ -461,7 +460,6 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 <div class="bottom">
   <div>
   <button class="bbtn undo" id="undo">1つ戻す</button>
-  <button class="bbtn" id="resetDai">この台をリセット</button>
   <button class="bbtn reset-all" id="resetAll">全てリセット</button>
 </div></div>
 
@@ -1382,11 +1380,6 @@ document.getElementById('calcReset').onclick = () => {
   change(() => { cur().pts = []; });
 };
 // 台の行き来は「n台目」のチップで。リセットは確認なし。押し間違えたら「1つ戻す」で元に戻る
-document.getElementById('resetDai').onclick = () => {
-  const d = cur();
-  if (!d.bigs.length) return;
-  change(() => { d.bigs = []; d.next = 0; }); // 金額（点数）は残す、大物だけ
-};
 document.getElementById('resetAll').onclick = () => {
   if (!state.goal && !state.dais.some(d => d.pts.length || d.bigs.length)) return;
   change(() => { const c = state.cur; state = newDay(); state.cur = c; }); // 今日の総量も消す
