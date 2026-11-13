@@ -399,7 +399,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 .big-top { display: flex; align-items: center; gap: 10px; }
 #bigPlace:read-only { -webkit-user-select: none; user-select: none; } /* 固定中は文字を選ばせない */
 #bigPlace { width: 100%; box-sizing: border-box; height: 44px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); padding: 0 12px; font: inherit; font-size: 16px; -webkit-user-select: text; user-select: text; }
-.big-foot { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--bg); }
+.big-foot { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px calc(18px + 1.5 * env(safe-area-inset-bottom)); /* 一覧・電卓の下と同じ高さ */ border-top: 1px solid var(--border); background: var(--bg); }
 .big-foot.two { display: flex; gap: 8px; }
 .foot-row { display: flex; gap: 8px; align-items: stretch; }
 .big-foot .foot-row .ok { flex: none; width: auto; min-width: 84px; height: 50px; padding: 0 20px; }
