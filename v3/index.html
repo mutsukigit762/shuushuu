@@ -244,8 +244,8 @@ main > section { flex: 1; min-height: 0; display: flex; flex-direction: column; 
 .now b { color: var(--text); }
 .tbtn .c { display: block; font-size: 11px; color: var(--text2); margin-top: 2px; }
 /* 払っている最中（.swiping）は押した色を出さない。iOSは指を置いた瞬間に色が付き、pointer-events を切っても残るため
-   電卓は、指を置いた瞬間には色を付けない。少し待って動かなければ .press で付ける（払うつもりで触っても光らない） */
-.pbtn:active:not(.swiping *):not(#calcSheet *), .tbtn:active:not(.swiping *):not(#calcSheet *), .pbtn.press { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+   電卓・大物登録（.late-press）は、指を置いた瞬間には色を付けない。少し待って動かなければ .press で付ける（払うつもりで触っても光らない） */
+.pbtn:active:not(.swiping *):not(.late-press *), .tbtn:active:not(.swiping *):not(.late-press *), .pbtn.press, .tbtn.press { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .tbtn:active .c { color: var(--on-accent); }
 
 
@@ -478,7 +478,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 </aside>
 
 <!-- 金額登録：電卓。左上のテンキーボタンで、足すテンキーが開く -->
-<div class="sheet tall" id="calcSheet">
+<div class="sheet tall late-press" id="calcSheet">
   <div class="sheet-head"><h1>金額登録</h1><button class="burger" data-close aria-label="閉じる">✕</button></div>
   <div class="sheet-body" id="calcBody">
     <div class="hero">
@@ -524,7 +524,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 </div>
 
 <!-- この台の大物を登録する。点数とは関係なく、いつ足してもいい -->
-<div class="sheet tall" id="bigSheet">
+<div class="sheet tall late-press" id="bigSheet">
   <div class="sheet-head big-head"><div class="big-top"><h1 id="bigTitle"></h1><span class="splace" id="bigPlaceLbl" hidden></span></div></div>
   <div class="sheet-body">
     <div id="groups"></div>
@@ -1592,6 +1592,7 @@ bigSheet.addEventListener('touchend', e => {
     return;
   }
   swX = null;
+  if (axis === 'y') { swallowClick = true; setTimeout(() => { swallowClick = false; }, 400); } // 上下に動いた指でもボタンを押したことにしない
   if (dragY === null) { dragY = null; return; }
   dragY = null;
   bigSheet.classList.remove('drag');
@@ -1599,17 +1600,33 @@ bigSheet.addEventListener('touchend', e => {
   if (dragDy > 80) closeAll();
 });
 
+// 電卓・大物登録のボタンは、指を置いた瞬間には光らせない。0.1秒動かなければ光る。動いたら（払う・スクロール）光らせない
+document.querySelectorAll('.late-press').forEach(sh => {
+  let b = null, t = 0, sx = 0, sy = 0;
+  const off = () => { clearTimeout(t); if (b) b.classList.remove('press'); b = null; };
+  sh.addEventListener('touchstart', e => {
+    off();
+    if (e.touches.length > 1) return;
+    b = e.target.closest('.pbtn, .tbtn'); sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    if (b) { const x = b; t = setTimeout(() => x.classList.add('press'), 100); }
+  }, { passive: true });
+  sh.addEventListener('touchmove', e => {
+    if (b && (Math.abs(e.touches[0].clientX - sx) >= 8 || Math.abs(e.touches[0].clientY - sy) >= 8)) off();
+  }, { passive: true });
+  sh.addEventListener('touchend', () => {
+    if (!b) return;
+    const x = b; clearTimeout(t); b = null;
+    x.classList.add('press'); setTimeout(() => x.classList.remove('press'), 120); // すぐ離した時も一瞬だけ光らせる
+  });
+  sh.addEventListener('touchcancel', off);
+});
+
 // 金額登録（電卓）も、下に払うと閉じる。少しでも指が動いたら、離した時にボタンを押したことにしない
 (() => {
   const sh = document.getElementById('calcSheet'), body = document.getElementById('calcBody');
   let y0 = null, dy = 0, sx = 0, sy = 0, moved = false, swallow = false;
   sh.addEventListener('click', e => { if (swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
-  let pressed = null, pressT = 0;
-  const unpress = () => { clearTimeout(pressT); if (pressed) pressed.classList.remove('press'); };
   sh.addEventListener('touchstart', e => {
-    unpress();
-    pressed = e.target.closest('.pbtn');
-    if (pressed) { const b = pressed; pressT = setTimeout(() => b.classList.add('press'), 100); }
     y0 = (e.touches.length > 1 || (body.contains(e.target) && body.scrollTop > 0)) ? null : e.touches[0].clientY;
     dy = 0; moved = false;
     sx = e.touches[0].clientX; sy = e.touches[0].clientY;
@@ -1617,7 +1634,7 @@ bigSheet.addEventListener('touchend', e => {
   sh.addEventListener('touchmove', e => {
     const t = e.touches[0];
     if (!moved && Math.abs(t.clientX - sx) < 8 && Math.abs(t.clientY - sy) < 8) return;
-    if (!moved) { moved = true; unpress(); pressed = null; sh.classList.add('swiping'); } // 押した色も消す
+    if (!moved) { moved = true; sh.classList.add('swiping'); } // 押した色も消す
     if (y0 === null) return;
     dy = t.clientY - y0;
     if (dy <= 0) { sh.classList.remove('drag'); sh.style.transform = ''; return; }
@@ -1627,8 +1644,6 @@ bigSheet.addEventListener('touchend', e => {
   }, { passive: false });
   sh.addEventListener('touchend', () => {
     if (moved) { swallow = true; setTimeout(() => { swallow = false; }, 400); }
-    else if (pressed) { const b = pressed; clearTimeout(pressT); b.classList.add('press'); setTimeout(() => b.classList.remove('press'), 120); } // すぐ離した時も、押したのが分かるように一瞬だけ光らせる
-    pressed = null;
     sh.classList.remove('swiping');
     if (y0 === null) return;
     y0 = null;
