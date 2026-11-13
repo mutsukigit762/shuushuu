@@ -163,7 +163,7 @@ main > section { flex: 1; min-height: 0; display: flex; flex-direction: column; 
 #calcBody { display: flex; flex-direction: column; }
 /* 下のボタンを指の届く高さへ。数字の下の空きを詰めて、その分をボタンの下に回す */
 #calcSheet #calcBody { padding-bottom: 0; }
-#calcSheet .calc-foot { flex: none; display: flex; gap: 8px; padding: 10px 12px calc(26px + 2 * env(safe-area-inset-bottom)); border-top: 1px solid var(--border); }
+#calcSheet .calc-foot { flex: none; display: flex; gap: 8px; padding: 10px 12px calc(18px + 1.5 * env(safe-area-inset-bottom)); border-top: 1px solid var(--border); }
 #calcSheet .calc-foot .bbtn { flex: 1; font-size: 14px; white-space: nowrap; padding: 0 4px; }
 #calcBody .hero { flex: none; }
 #calcBody .combo-row { margin-bottom: 8px; }
@@ -254,7 +254,7 @@ main > section { flex: 1; min-height: 0; display: flex; flex-direction: column; 
   flex-direction: column;
   background: rgba(255,255,255,0.94); border-top: 1px solid var(--border);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  padding: 10px 12px calc(26px + 2 * env(safe-area-inset-bottom)); /* 電卓の下と同じ高さ。指の届くところまで上げる */
+  padding: 10px 12px calc(18px + 1.5 * env(safe-area-inset-bottom)); /* 電卓の下と同じ高さ。指の届くところまで上げる */
   display: flex; gap: 8px;
 }
 .bottom > div { flex: none; width: 100%; display: flex; gap: 8px; max-width: 560px; margin: 0 auto; }
