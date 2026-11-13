@@ -1380,9 +1380,10 @@ document.getElementById('calcReset').onclick = () => {
   if (!cur().pts.length) return;
   change(() => { cur().pts = []; });
 };
-// 台の行き来は「n台目」のチップで。リセットは確認なし。押し間違えたら「1つ戻す」で元に戻る
+// 台の行き来は「n台目」のチップで。全てリセットだけ確認を出す。押し間違えたら「1つ戻す」で元に戻る
 document.getElementById('resetAll').onclick = () => {
   if (!state.goal && !state.dais.some(d => d.pts.length || d.bigs.length)) return;
+  if (!confirm('全ての台の金額・大物と、今日の総量を消します。')) return;
   change(() => { const c = state.cur; state = newDay(); state.cur = c; }); // 今日の総量も消す
 };
 
