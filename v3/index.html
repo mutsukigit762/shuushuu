@@ -161,7 +161,9 @@ body { position: fixed; inset: 0; display: flex; flex-direction: column; overflo
 main { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; }
 main > section { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-bottom: 0; }
 #calcBody { display: flex; flex-direction: column; }
-#calcSheet .calc-foot { flex: none; display: flex; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); }
+/* 下のボタンを指の届く高さへ。数字の下の空きを詰めて、その分をボタンの下に回す */
+#calcSheet #calcBody { padding-bottom: 0; }
+#calcSheet .calc-foot { flex: none; display: flex; gap: 8px; padding: 10px 12px calc(26px + 2 * env(safe-area-inset-bottom)); border-top: 1px solid var(--border); }
 #calcSheet .calc-foot .bbtn { flex: 1; font-size: 14px; white-space: nowrap; padding: 0 4px; }
 #calcBody .hero { flex: none; }
 #calcBody .combo-row { margin-bottom: 8px; }
