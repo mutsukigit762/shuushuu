@@ -295,7 +295,7 @@ body.lock { overflow: hidden; }
 .share button.sub { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
 .share-on { font-size: 15px; font-weight: 700; flex: 1; }
 .share-on small { display: block; font-size: 12px; font-weight: 600; color: var(--text2); }
-.head-title .shared { margin-left: 6px; font-size: 11px; font-weight: 700; color: var(--on-accent); background: var(--accent); border-radius: 6px; padding: 1px 5px; vertical-align: 2px; }
+.head-title .shared { font-size: 11px; font-weight: 700; color: var(--on-accent); background: var(--accent); border-radius: 6px; padding: 1px 5px; vertical-align: 2px; }
 .head-title .shared.off { background: var(--text2); }
 /* 料金表は3ページを横スワイプで送る。前後に写しを置いて、端まで行ったら黙って入れ替える */
 .pager { flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
@@ -447,7 +447,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
 <header>
   <button class="burger" id="burger" aria-label="料金表">☰</button>
-  <div class="head-title"><span id="headTitle"></span><button class="head-reset" id="resetAll">クリア</button></div>
+  <div class="head-title"><span id="headTitle"></span><button class="head-reset" id="resetAll">クリア</button><span id="headShared"></span></div>
   <button class="head-rest" id="restBtn" aria-label="今日の総量を打つ"><span id="restLabel"></span><b id="dayTotal"></b></button>
 </header>
 
@@ -759,7 +759,8 @@ function render() {
   const dayTotal = state.dais.reduce((a, d, i) => a + val(i), 0);
 
   document.getElementById('headTitle').innerHTML =
-    `<b>${daime(state.cur)}</b>${room ? `<span class="shared${online ? '' : ' off'}">共有</span>` : ''}`;
+    `<b>${daime(state.cur)}</b>`;
+  document.getElementById('headShared').innerHTML = room ? `<span class="shared${online ? '' : ' off'}">共有</span>` : '';
   renderShare();
   // 総量を打ったら「残り479p/1070p」。今日の合計そのものは出さない
   const goal = state.goal || 0;
