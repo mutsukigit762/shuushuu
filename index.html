@@ -51,9 +51,10 @@ header {
 }
 .head-title { flex: 1; font-size: 15px; color: var(--text2); }
 .head-title b { color: var(--text); font-size: 17px; }
-/* 日付の下に全てリセット。指の届きにくい上に、赤い字だけで小さく置く（横に並べると右上の合計が広がった時に日付が切れる） */
-.head-title { flex: none; }
-.head-date { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; font-size: 13px; color: var(--text2); line-height: 1.25; white-space: nowrap; }
+/* 上の段に「1台目」、下の段に日付とその右の全てリセット。
+   全部1列に並べると、右上が「残り479p/1070p」に広がった時に日付が切れる */
+.head-title { min-width: 0; line-height: 1.2; white-space: nowrap; }
+.head-date { display: flex; align-items: center; gap: 10px; font-size: 13px; }
 .head-reset { border: none; background: transparent; color: var(--red); font: inherit; font-size: 12px; font-weight: 600; padding: 2px 0; cursor: pointer; }
 .head-day { text-align: right; font-size: 12px; color: var(--text2); line-height: 1.2; }
 .head-day b { display: block; font-size: 17px; color: var(--text); }
@@ -296,8 +297,8 @@ body.lock { overflow: hidden; }
 .share button.sub { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
 .share-on { font-size: 15px; font-weight: 700; flex: 1; }
 .share-on small { display: block; font-size: 12px; font-weight: 600; color: var(--text2); }
-.head-date .shared { margin-left: 6px; font-size: 11px; font-weight: 700; color: var(--on-accent); background: var(--accent); border-radius: 6px; padding: 1px 5px; vertical-align: 2px; }
-.head-date .shared.off { background: var(--text2); }
+.head-title .shared { margin-left: 6px; font-size: 11px; font-weight: 700; color: var(--on-accent); background: var(--accent); border-radius: 6px; padding: 1px 5px; vertical-align: 2px; }
+.head-title .shared.off { background: var(--text2); }
 /* 料金表は3ページを横スワイプで送る。前後に写しを置いて、端まで行ったら黙って入れ替える */
 .pager { flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 .pager::-webkit-scrollbar { display: none; }
@@ -448,8 +449,7 @@ tr.sub td { border-top-color: #f0f0ee; } /* 同じグループの続き。品目
 
 <header>
   <button class="burger" id="burger" aria-label="料金表">☰</button>
-  <div class="head-title" id="headTitle"></div>
-  <div class="head-date"><span id="headDate"></span><button class="head-reset" id="resetAll">全てリセット</button></div>
+  <div class="head-title"><div id="headTitle"></div><div class="head-date"><span id="headDate"></span><button class="head-reset" id="resetAll">全てリセット</button></div></div>
   <button class="head-rest" id="restBtn" aria-label="今日の総量を打つ"><span id="restLabel"></span><b id="dayTotal"></b></button>
 </header>
 
@@ -763,9 +763,8 @@ function render() {
   const wd = '日月火水木金土'[d.getDay()];
 
   document.getElementById('headTitle').innerHTML =
-    `<b>${daime(state.cur)}</b>`;
-  document.getElementById('headDate').innerHTML =
-    `${d.getMonth()+1}/${d.getDate()}(${wd})${room ? `<span class="shared${online ? '' : ' off'}">共有</span>` : ''}`;
+    `<b>${daime(state.cur)}</b>${room ? `<span class="shared${online ? '' : ' off'}">共有</span>` : ''}`;
+  document.getElementById('headDate').textContent = `${d.getMonth()+1}/${d.getDate()}(${wd})`;
   renderShare();
   // 総量を打ったら「残り479p/1070p」。今日の合計そのものは出さない
   const goal = state.goal || 0;
